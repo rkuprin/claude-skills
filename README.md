@@ -25,7 +25,7 @@ else (like `docs/`) is ignored by the installer.
 ## Install (including on another machine)
 
 ```bash
-git clone <this-repo-url> ~/claude-skills      # or copy the folder to ~/claude-skills
+git clone https://github.com/rkuprin/claude-skills.git ~/claude-skills
 cd ~/claude-skills
 ./install.sh
 ```
