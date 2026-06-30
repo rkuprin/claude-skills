@@ -117,9 +117,10 @@ points Codex at `pylox.io`.)
 
 ## Invocation (exact posture)
 
-Run under the overlay home; model **inherited** from the symlinked `config.toml`
-(`gpt-5.5`, the current strongest — no `gpt-5.5-codex` variant exists), so no `-m` and
-nothing to go stale. Prompt piped via stdin.
+Run under the overlay home; model **inherited** from the symlinked `config.toml`, so no
+`-m` and nothing to go stale. (Dated note, 2026-06-30: that default is `gpt-5.5`, currently
+the strongest, and no `gpt-5.5-codex` variant exists — but the design inherits whatever is
+configured rather than asserting a "strongest".) Prompt piped via stdin.
 
 New run:
 ```
@@ -192,11 +193,17 @@ Attached via the user's `~/.claude/CLAUDE.md` and the skill's own `description` 
 Superpowers-owned file is edited.** If something Superpowers owns ever has to change, it is
 copied out and the divergence flagged, not modified in place.
 
-- **Spec → implementation-plan transition (on by default, auto-run).** A CLAUDE.md block
+**These are conventions, not deterministic hooks.** Claude Code has no automation surface
+that can both detect the brainstorming→writing-plans boundary *and* compose a contextual
+Codex prompt (settings.json hooks run shell and can do neither). So the "hooks" below are
+best-effort instructions Claude follows — they can be missed, misclassified, or skipped
+under context pressure. Where guaranteed gating matters, the user invokes `/codex` manually.
+
+- **Spec → implementation-plan transition (default convention).** A CLAUDE.md block
   instructs Claude: when about to move from an approved Superpowers spec to `writing-plans`
-  (any project), first auto-run `/codex` with a "find the gaps in this spec before we plan"
-  goal, relay and weigh its reply, then proceed to `writing-plans`. The goal is supplied by
-  the hook, so the skill does not ask in this path.
+  (any project), first run `/codex` with a "find the gaps in this spec before we plan" goal,
+  relay and weigh its reply, then proceed to `writing-plans`. The goal is supplied by the
+  convention, so the skill does not ask in this path. Best-effort, per the caveat above.
 - **Manual invocation (always available).** The skill's `description` makes Claude reach
   for it whenever the user wants an independent second opinion.
 - **Completion of a non-trivial coding task (opt-in, off by default).** A commented
@@ -232,8 +239,9 @@ End-to-end against a real repo (`pylox.io` for the test):
 2. A "find the gaps" pass returns Codex's final message as readable prose (no JSON), and
    the reply reflects the charter disposition (proving the overlay loaded it).
 3. A data-claim pass reaches the project's dev/local DB through the project's own
-   configured access (inherited via the symlinked `config.toml`), checks one concrete claim
-   read-only, and reports what it found — no secrets echoed, no mutations.
+   configured access (inherited via the symlinked `config.toml`), checks one **named**
+   concrete claim read-only, and returns the **actual value obtained from the database** —
+   a guess or "I'd need access" does not pass. No secrets echoed, no mutations.
 4. A rebuttal round via `codex exec resume "<thread_id>" …` continues the same thread.
 5. The user's **own** `codex` run (no skill, default `~/.codex`) is neutral — the charter
    does not apply.
