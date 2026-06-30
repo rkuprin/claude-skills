@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Fake Codex for tests: records CODEX_HOME + argv, drains stdin, emits a canned
+# --json stream (with thread.started), writes a canned --output-last-message file.
+set -euo pipefail
+: "${FAKE_CODEX_LOG:?FAKE_CODEX_LOG must be set}"
+{ printf 'CODEX_HOME=%s\n' "${CODEX_HOME:-UNSET}"
+  for a in "$@"; do printf '%s\n' "$a"; done
+  printf '%s\n' '---ARGV-END---'; } >> "$FAKE_CODEX_LOG"
+
+out=""; prev=""
+for a in "$@"; do [ "$prev" = "--output-last-message" ] && out="$a"; prev="$a"; done
+cat >/dev/null || true   # drain piped prompt
+
+SID="11111111-2222-4333-8444-555555555555"
+printf '%s\n' '{"type":"thread.started","thread_id":"'"$SID"'"}'
+printf '%s\n' '{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"hi"}}'
+[ -n "$out" ] && printf '%s\n' "CODEX FINAL MESSAGE (fake): scope is coherent; one gap noted." > "$out"
+exit 0
