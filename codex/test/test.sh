@@ -43,5 +43,20 @@ has "network_access=true"           "$LOG" "sandbox_workspace_write.network_acce
 has "reasoning effort"              "$LOG" "model_reasoning_effort=high"
 case "$LOG" in *$'\n'"-m"$'\n'*) no "must not pin model (-m present)";; *) ok "model not pinned";; esac
 
+# --- guard: non-git repo ---
+NOGIT="$(mktemp -d)"
+"$WRAP" run --repo "$NOGIT" --prompt-file "$PROMPT" --out-dir "$(mktemp -d)" >/dev/null 2>"$OUT/err2"; rc=$?
+[ "$rc" != 0 ] && ok "non-git repo rejected" || no "non-git repo rejected (rc=0)"
+has "non-git message actionable" "$(cat "$OUT/err2")" "not a git repo"
+
+# --- guard: missing prompt file ---
+"$WRAP" run --repo "$REPO" --prompt-file /no/such/file --out-dir "$(mktemp -d)" >/dev/null 2>"$OUT/err3"; rc=$?
+[ "$rc" != 0 ] && ok "missing prompt rejected" || no "missing prompt rejected (rc=0)"
+
+# --- guard: codex non-zero exit surfaces ---
+FAILDIR="$(mktemp -d)"; printf '%s\n' '#!/usr/bin/env bash' 'exit 7' > "$FAILDIR/codex"; chmod +x "$FAILDIR/codex"
+PATH="$FAILDIR:$PATH" "$WRAP" run --repo "$REPO" --prompt-file "$PROMPT" --out-dir "$(mktemp -d)" >/dev/null 2>"$OUT/err4"; rc=$?
+[ "$rc" != 0 ] && ok "codex failure surfaced" || no "codex failure surfaced (rc=0)"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" = 0 ]
