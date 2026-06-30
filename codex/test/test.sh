@@ -58,5 +58,21 @@ FAILDIR="$(mktemp -d)"; printf '%s\n' '#!/usr/bin/env bash' 'exit 7' > "$FAILDIR
 PATH="$FAILDIR:$PATH" "$WRAP" run --repo "$REPO" --prompt-file "$PROMPT" --out-dir "$(mktemp -d)" >/dev/null 2>"$OUT/err4"; rc=$?
 [ "$rc" != 0 ] && ok "codex failure surfaced" || no "codex failure surfaced (rc=0)"
 
+# --- resume path ---
+: > "$FAKE_CODEX_LOG"
+OUT2="$(mktemp -d)"; REPLY="$(mktemp)"; printf 'rebuttal: consider X\n' > "$REPLY"
+SID="11111111-2222-4333-8444-555555555555"
+"$WRAP" resume --session-id "$SID" --repo "$REPO" --prompt-file "$REPLY" --out-dir "$OUT2" >/dev/null 2>"$OUT2/err"; rc=$?
+[ "$rc" = 0 ] && ok "resume exits 0" || no "resume exits 0 (rc=$rc, $(cat "$OUT2/err"))"
+RLOG="$(cat "$FAKE_CODEX_LOG")"
+has "resume under overlay CODEX_HOME" "$RLOG" "CODEX_HOME=$CODEX_HOME_OVERLAY"
+has "resume subcommand used"          "$RLOG" "resume"
+has "resume passes session id"        "$RLOG" "$SID"
+has "resume sandbox via -c"           "$RLOG" "sandbox_mode=workspace-write"
+has "resume keeps approval off"       "$RLOG" "approval_policy=never"
+has "resume relays new message"       "$(cat "$OUT2/last.txt" 2>/dev/null)" "CODEX FINAL MESSAGE (fake)"
+case "$RLOG" in *$'\n'"-C"$'\n'*) no "resume must not pass -C";; *) ok "resume omits -C";; esac
+case "$RLOG" in *$'\n'"--sandbox"$'\n'*) no "resume must not pass --sandbox";; *) ok "resume omits --sandbox flag";; esac
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" = 0 ]
