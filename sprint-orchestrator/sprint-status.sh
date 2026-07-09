@@ -18,9 +18,15 @@ git rev-parse --verify --quiet "$trunk^{commit}" >/dev/null \
 
 worktree_branches="$(git worktree list --porcelain | sed -n 's|^branch refs/heads/||p')"
 
+claimed_count=0
 for doc in "$sprint_dir"/[0-9]*.md; do
   [ -e "$doc" ] || continue
   slug="$(basename "$doc" .md)"
+  case "$slug" in *.CLAIMED) claimed_count=$((claimed_count + 1)) ;; esac
+  # Legacy naming: claimed state used to be tracked via a `.CLAIMED` filename
+  # suffix. State is derived from git now, so the suffix is meaningless — strip
+  # it so the branch lookup (and the printed slug) match the real sprint/<slug>.
+  slug="${slug%.CLAIMED}"
   case "$slug" in 00-*) continue ;; esac
   num="${slug%%-*}"
 
@@ -35,3 +41,7 @@ for doc in "$sprint_dir"/[0-9]*.md; do
   fi
   printf '%-6s %-4s %s\n' "$state" "$num" "$slug"
 done
+
+if [ "$claimed_count" -gt 0 ]; then
+  echo "sprint-status: $claimed_count docs still carry the legacy .CLAIMED suffix; state is derived now — rename them to NN-slug.md" >&2
+fi

@@ -71,6 +71,29 @@ SPRINT_TRUNK=main "$SUT" >/dev/null 2>&1; [ $? -eq 2 ] && ok "no args exits 2" |
 SPRINT_TRUNK=main "$SUT" /nonexistent >/dev/null 2>&1; [ $? -eq 2 ] && ok "bad dir exits 2" || no "bad dir exits 2"
 SPRINT_TRUNK=nosuchref "$SUT" "$SD" >/dev/null 2>&1; [ $? -eq 2 ] && ok "bad trunk exits 2" || no "bad trunk exits 2"
 
+# Story 07 — legacy `.CLAIMED` doc name, branch cut, zero commits.
+# Regression: `basename "$doc" .md` left `.CLAIMED` on the slug, so the branch
+# lookup went looking for `sprint/07-eta.CLAIMED`, which cannot exist, and every
+# legacy claimed story misreported TODO (lead-us story 10).
+CD="docs/sprints/claimed-only"; mkdir -p "$CD"
+echo "# 07-eta" > "$CD/07-eta.CLAIMED.md"
+git add -A && git commit -q -m "chore: seed claimed-suffix fixture"
+git branch sprint/07-eta main
+
+CERR="$(mktemp)"
+COUT="$(SPRINT_TRUNK=main "$SUT" "$CD" 2>"$CERR")"
+CERRTXT="$(cat "$CERR")"
+EXPECT_WARN="sprint-status: 1 docs still carry the legacy .CLAIMED suffix; state is derived now — rename them to NN-slug.md"
+
+state_is "$COUT" 07 DOING
+[ "$CERRTXT" = "$EXPECT_WARN" ] && ok "warning names count and reason" || no "warning names count and reason (got: '$CERRTXT')"
+case "$COUT" in *CLAIMED*) no "stdout stays clean of the warning";; *) ok "stdout stays clean of the warning";; esac
+
+# No `.CLAIMED` docs in the original fixture -> no warning at all.
+NERR="$(mktemp)"
+SPRINT_TRUNK=main "$SUT" "$SD" >/dev/null 2>"$NERR"
+[ -s "$NERR" ] && no "no warning when no .CLAIMED docs (got: '$(cat "$NERR")')" || ok "no warning when no .CLAIMED docs"
+
 git worktree remove --force "$WT" 2>/dev/null
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
