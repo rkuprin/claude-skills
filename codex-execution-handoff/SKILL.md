@@ -46,7 +46,10 @@ or if you can't keep prod green (roll back and tell me).
 ## The kickoff prompt (template)
 
 First line is the story's `conversation:` value, so the Codex.app session takes the story's name.
-Fill `{STORY_DOC}`, `{NN}`, `{SLUG}`, `{SPRINT}` and end with the story's `/goal`.
+Fill `{STORY_DOC}`, `{NN}`, `{SLUG}`, `{SPRINT}` and end with the story's `/goal`. `{SPRINT}` is the
+story doc's `sprint:` frontmatter value — the sprint directory's basename, verbatim. `sprint-status.sh`
+matches the commit's `Sprint:` trailer against that basename exactly, so filling in anything else
+(a shortened name, the tracker's sprint title) makes the story invisible to sprint status forever.
 
 ```
 Story {NN}: {Three Descriptive Words}

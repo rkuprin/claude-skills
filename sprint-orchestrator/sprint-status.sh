@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # sprint-status.sh — derive story state from git. Nothing is stored, so nothing can drift.
 #
-#   DONE   a `Story: NN` trailer is reachable from trunk
+#   DONE   a `Story: NN` trailer AND a matching `Sprint: <dir>` trailer are on the
+#          same commit reachable from trunk (story numbers restart every sprint)
 #   DOING  a sprint/NN-* branch or a worktree pinned to one exists, and not DONE
 #   TODO   neither
 #
@@ -16,6 +17,23 @@ trunk="${SPRINT_TRUNK:-origin/main}"
 git rev-parse --verify --quiet "$trunk^{commit}" >/dev/null \
   || { echo "sprint-status: cannot resolve trunk '$trunk' — run 'git fetch origin', or set SPRINT_TRUNK" >&2; exit 2; }
 
+sprint_name="$(basename "$sprint_dir")"
+
+# Escape BRE metacharacters so $num/$sprint_name are matched literally by --grep,
+# never as a pattern — an unescaped `.` or `*` in a slug/sprint name would
+# otherwise match trailers it has no business matching.
+escape_bre() {
+  local s="$1" out="" c i
+  for (( i=0; i<${#s}; i++ )); do
+    c="${s:i:1}"
+    case "$c" in
+      '.'|'*'|'['|']'|'^'|'$'|'\') out+="\\$c" ;;
+      *) out+="$c" ;;
+    esac
+  done
+  printf '%s' "$out"
+}
+
 worktree_branches="$(git worktree list --porcelain | sed -n 's|^branch refs/heads/||p')"
 
 claimed_count=0
@@ -29,10 +47,14 @@ for doc in "$sprint_dir"/[0-9]*.md; do
   slug="${slug%.CLAIMED}"
   case "$slug" in 00-*) continue ;; esac
   num="${slug%%-*}"
+  num_pattern="$(escape_bre "$num")"
+  sprint_pattern="$(escape_bre "$sprint_name")"
 
-  if [ -n "$(git log "$trunk" --grep="^Story: ${num}\$" --format=%h -1)" ]; then
+  # Story numbers restart every sprint, so `Story:` alone is not unique — require
+  # the `Sprint:` trailer to match this directory's basename on the same commit.
+  if [ -n "$(git log "$trunk" --all-match --grep="^Story: ${num_pattern}\$" --grep="^Sprint: ${sprint_pattern}\$" --format=%h -1)" ]; then
     state=DONE
-  elif printf '%s\n' "$worktree_branches" | grep -qx "sprint/$slug" \
+  elif printf '%s\n' "$worktree_branches" | grep -qxF "sprint/$slug" \
     || git show-ref --verify --quiet "refs/heads/sprint/$slug" \
     || git show-ref --verify --quiet "refs/remotes/origin/sprint/$slug"; then
     state=DOING

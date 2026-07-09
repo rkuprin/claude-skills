@@ -113,6 +113,58 @@ NERR="$(mktemp)"
 SPRINT_TRUNK=main "$SUT" "$SD" >/dev/null 2>"$NERR"
 [ -s "$NERR" ] && no "no warning when no .CLAIMED docs (got: '$(cat "$NERR")')" || ok "no warning when no .CLAIMED docs"
 
+# --- Cross-sprint story-number collision ---
+# Story numbers restart every sprint. Sprint "a"'s story 07 lands and merges;
+# sprint "b"'s story 07 is never touched. Regression: querying DONE off `Story:`
+# alone (ignoring `Sprint:`) made sprint b's 07 read DONE the moment sprint a's
+# 07 merged, from the second sprint onward.
+SDA="docs/sprints/a"; SDB="docs/sprints/b"; mkdir -p "$SDA" "$SDB"
+echo "# 07-cross" > "$SDA/07-cross.md"
+echo "# 07-other" > "$SDB/07-other.md"
+git add -A && git commit -q -m "chore: seed cross-sprint fixture"
+
+git switch -qc sprint/07-cross
+echo work > cross.txt && git add cross.txt
+git commit -q -m "$(printf 'feat: cross\n\nStory: 07\nSprint: a\n')"
+git switch -q main && git merge -q --ff-only sprint/07-cross && git branch -qD sprint/07-cross
+
+OUT_A="$(SPRINT_TRUNK=main "$SUT" "$SDA" 2>&1)"
+OUT_B="$(SPRINT_TRUNK=main "$SUT" "$SDB" 2>&1)"
+state_is "$OUT_A" 07 DONE
+state_is "$OUT_B" 07 TODO
+
+# --- Regex metacharacter in Story number must not match a decoy trailer ---
+# Story doc `07.1-numdot.md` (num `07.1`) is never committed. A decoy commit
+# carries the near-miss trailer `Story: 07x1`. An unescaped `.` in the --grep
+# pattern matches any character, so `^Story: 07.1$` would wrongly match `07x1`.
+SDM="docs/sprints/m"; mkdir -p "$SDM"
+echo "# 07.1-numdot" > "$SDM/07.1-numdot.md"
+git add -A && git commit -q -m "chore: seed num-metachar fixture"
+
+git switch -qc sprint/decoy-num
+echo work > decoy-num.txt && git add decoy-num.txt
+git commit -q -m "$(printf 'feat: decoy\n\nStory: 07x1\nSprint: m\n')"
+git switch -q main && git merge -q --ff-only sprint/decoy-num && git branch -qD sprint/decoy-num
+
+OUT_M="$(SPRINT_TRUNK=main "$SUT" "$SDM" 2>&1)"
+state_is "$OUT_M" "07.1" TODO
+
+# --- Regex metacharacter in Sprint name must not match a decoy trailer ---
+# Sprint dir `v1.0` never had a commit. A decoy commit carries `Story: 09` with
+# the near-miss trailer `Sprint: v1x0`. An unescaped `.` in `^Sprint: v1.0$`
+# would wrongly match `v1x0`.
+SDN="docs/sprints/v1.0"; mkdir -p "$SDN"
+echo "# 09-sprintdot" > "$SDN/09-sprintdot.md"
+git add -A && git commit -q -m "chore: seed sprint-metachar fixture"
+
+git switch -qc sprint/decoy-sprint
+echo work > decoy-sprint.txt && git add decoy-sprint.txt
+git commit -q -m "$(printf 'feat: decoy\n\nStory: 09\nSprint: v1x0\n')"
+git switch -q main && git merge -q --ff-only sprint/decoy-sprint && git branch -qD sprint/decoy-sprint
+
+OUT_N="$(SPRINT_TRUNK=main "$SUT" "$SDN" 2>&1)"
+state_is "$OUT_N" 09 TODO
+
 git worktree remove --force "$WT" 2>/dev/null
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

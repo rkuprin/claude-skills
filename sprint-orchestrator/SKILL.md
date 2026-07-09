@@ -38,6 +38,11 @@ Story: 07
 Sprint: 2026-07-07-report-delivery-sprint
 ```
 
+`Sprint:` is the sprint directory's basename, verbatim — for `docs/sprints/2026-07-07-report-delivery-sprint`,
+that's `2026-07-07-report-delivery-sprint`, not a shortened form or the tracker's sprint name.
+`sprint-status.sh` matches it exactly against the directory it's given, so any other string makes
+every story in that sprint read TODO forever.
+
 Read the current state with the `sprint-status.sh` helper that sits beside this skill file, from
 the repo root. It is the same script reached via either agent's skills directory:
 
@@ -81,7 +86,7 @@ Each story doc is a prompt for fresh investigation, not a stale implementation s
 story: 07
 title: <short imperative>
 conversation: "Story 07: Three Descriptive Words"
-sprint: <sprint-name>
+sprint: <sprint-name>        # this sprint directory's basename, copied verbatim into every commit's Sprint: trailer
 execution: autonomous        # autonomous | stop-at-pr — copied from 00-overview.md
 flow: mechanical             # mechanical | design-heavy
 branch: sprint/07-<slug>
