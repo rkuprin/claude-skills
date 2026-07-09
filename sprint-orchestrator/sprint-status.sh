@@ -43,5 +43,6 @@ for doc in "$sprint_dir"/[0-9]*.md; do
 done
 
 if [ "$claimed_count" -gt 0 ]; then
-  echo "sprint-status: $claimed_count docs still carry the legacy .CLAIMED suffix; state is derived now — rename them to NN-slug.md" >&2
+  if [ "$claimed_count" -eq 1 ]; then verb="doc still carries"; pronoun="it"; else verb="docs still carry"; pronoun="them"; fi
+  echo "sprint-status: $claimed_count $verb the legacy .CLAIMED suffix; state is derived now — rename $pronoun to NN-slug.md" >&2
 fi

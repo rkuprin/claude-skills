@@ -42,29 +42,39 @@ git switch -q main && git merge -q --no-ff -m "Merge story 03" sprint/03-gamma
 WT="$(mktemp -d)/wt03"
 git worktree add -q "$WT" sprint/03-gamma
 
-# Story 06 — DONE via trailer. Exists solely so that 06b can prove the `$` anchor holds:
-# a `Story: 06` trailer must NOT satisfy story 06b.
-git switch -qc sprint/06-zeta
-echo work > z.txt && git add z.txt
-git commit -q -m "$(printf 'feat: zeta\n\nStory: 06\nSprint: s\n')"
-git switch -q main && git merge -q --ff-only sprint/06-zeta
+# Story 06b — DONE via trailer `Story: 06b`, merged to trunk. This is the `$`
+# anchor proof: without the trailing `$` in the grep pattern, `--grep="^Story: 06"`
+# matches this `Story: 06b` trailer, and story 06 below would falsely read DONE.
+# Also proves the old [0-9][0-9]-*.md glob bug is gone — 06b must be enumerated at all.
+git switch -qc sprint/06b-delta
+echo work > d.txt && git add d.txt
+git commit -q -m "$(printf 'feat: delta\n\nStory: 06b\nSprint: s\n')"
+git switch -q main && git merge -q --ff-only sprint/06b-delta
 
-# Story 06b — TODO, and must be enumerated at all.
-# Regression: the old [0-9][0-9]-*.md glob skipped it entirely.
+# Story 06 — TODO: no commit, no branch. Must NOT be satisfied by the
+# `Story: 06b` trailer above.
 
 OUT="$(SPRINT_TRUNK=main "$SUT" "$SD" 2>&1)"
 printf '%s\n' "$OUT"
 echo "---"
 
+FAIL_BEFORE=$FAIL
 state_is "$OUT" 01  DONE
 state_is "$OUT" 02  DOING
 state_is "$OUT" 03  DONE
-state_is "$OUT" 06  DONE
-state_is "$OUT" 06b TODO
+state_is "$OUT" 06  TODO
+state_is "$OUT" 06b DONE
 
-# 00-overview and STORY-FEEDBACK must never appear as stories.
-case "$OUT" in *overview*) no "00-overview excluded";; *) ok "00-overview excluded";; esac
-case "$OUT" in *FEEDBACK*) no "STORY-FEEDBACK excluded";; *) ok "STORY-FEEDBACK excluded";; esac
+# 00-overview and STORY-FEEDBACK must never appear as stories. Only meaningful once
+# the run above actually produced the expected story rows — otherwise a shell error
+# like "No such file or directory" would vacuously satisfy both checks.
+if [ "$FAIL" -eq "$FAIL_BEFORE" ]; then
+  case "$OUT" in *overview*) no "00-overview excluded";; *) ok "00-overview excluded";; esac
+  case "$OUT" in *FEEDBACK*) no "STORY-FEEDBACK excluded";; *) ok "STORY-FEEDBACK excluded";; esac
+else
+  no "00-overview excluded (skipped: story rows above did not match)"
+  no "STORY-FEEDBACK excluded (skipped: story rows above did not match)"
+fi
 
 # Usage errors exit 2.
 SPRINT_TRUNK=main "$SUT" >/dev/null 2>&1; [ $? -eq 2 ] && ok "no args exits 2" || no "no args exits 2"
@@ -83,11 +93,20 @@ git branch sprint/07-eta main
 CERR="$(mktemp)"
 COUT="$(SPRINT_TRUNK=main "$SUT" "$CD" 2>"$CERR")"
 CERRTXT="$(cat "$CERR")"
-EXPECT_WARN="sprint-status: 1 docs still carry the legacy .CLAIMED suffix; state is derived now — rename them to NN-slug.md"
+EXPECT_WARN="sprint-status: 1 doc still carries the legacy .CLAIMED suffix; state is derived now — rename it to NN-slug.md"
 
+CFAIL_BEFORE=$FAIL
 state_is "$COUT" 07 DOING
 [ "$CERRTXT" = "$EXPECT_WARN" ] && ok "warning names count and reason" || no "warning names count and reason (got: '$CERRTXT')"
-case "$COUT" in *CLAIMED*) no "stdout stays clean of the warning";; *) ok "stdout stays clean of the warning";; esac
+
+# stdout must never carry the .CLAIMED warning — only meaningful once the run above
+# actually produced story 07's row (else an empty $COUT from a missing script would
+# vacuously satisfy this too).
+if [ "$FAIL" -eq "$CFAIL_BEFORE" ]; then
+  case "$COUT" in *CLAIMED*) no "stdout stays clean of the warning";; *) ok "stdout stays clean of the warning";; esac
+else
+  no "stdout stays clean of the warning (skipped: story 07 row above did not match)"
+fi
 
 # No `.CLAIMED` docs in the original fixture -> no warning at all.
 NERR="$(mktemp)"
