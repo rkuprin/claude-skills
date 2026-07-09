@@ -1,38 +1,53 @@
 # claude-skills
 
-A personal collection of **global** Claude Code skills — version-controlled here, and
-installed by symlinking each skill into your Claude skills directory so it's callable as
-`/<skill-name>` from any project.
+A personal collection of **global** agent skills — version-controlled here, and installed by
+symlinking each skill into an agent's skills directory so it's callable as `/<skill-name>`
+(Claude) or `$<skill-name>` (Codex) from any project.
 
-This repo is deliberately generic: it can hold any number of skills. Today it has one
-(`codex`), but the install mechanism and layout are skill-agnostic, so adding more is just
-"drop a directory and re-run the installer."
+The install mechanism and layout are skill-agnostic; adding one is "drop a directory and
+re-run the installer."
+
+| Skill | What it does |
+|---|---|
+| [`codex`](codex/) | Summons OpenAI Codex as an independent second perspective |
+| [`sprint-orchestrator`](sprint-orchestrator/) | Turns raw sprint inputs into verified story handoff docs; derives story state from git |
+| [`codex-execution-handoff`](codex-execution-handoff/) | Renders the kickoff prompt that runs one story end to end |
+
+The last two are companions: one plans, the other hands off.
 
 ## Layout
 
 ```
 claude-skills/
-├── install.sh            # symlinks every skill into ~/.claude/skills/
+├── install.sh            # symlinks every skill into $CLAUDE_SKILLS_DIR (default ~/.claude/skills/)
+├── test/                 # repo-level invariant checks (lint-skills.sh)
 ├── <skill-name>/         # one directory per skill (each is installable)
 │   ├── SKILL.md          # required: frontmatter (name, description) + instructions
-│   └── README.md         # optional: prerequisites / machine-specific setup
+│   ├── README.md         # optional: prerequisites / machine-specific setup
+│   ├── agents/           # optional: openai.yaml, Codex's per-skill interface + policy
+│   └── test/             # optional: the skill's own tests
 └── docs/                 # specs, plans, and review records (not installed as skills)
 ```
 
 A directory is treated as an installable skill **iff** it contains a `SKILL.md`. Anything
-else (like `docs/`) is ignored by the installer.
+else (like `docs/` and `test/`) is ignored by the installer.
 
 ## Install (including on another machine)
 
 ```bash
 git clone https://github.com/rkuprin/claude-skills.git ~/claude-skills
 cd ~/claude-skills
-./install.sh
+./install.sh                                    # -> ~/.claude/skills/
+CLAUDE_SKILLS_DIR=~/.codex/skills ./install.sh  # -> ~/.codex/skills/  (optional)
 ```
 
-`install.sh` symlinks every skill directory into `~/.claude/skills/<name>` (override the
-destination with `CLAUDE_SKILLS_DIR=…`). Claude Code auto-discovers skills there on the next
-session; invoke one with `/<name>`.
+`install.sh` symlinks every skill directory into `$CLAUDE_SKILLS_DIR` (default
+`~/.claude/skills/<name>`). Each agent auto-discovers skills there on the next session; invoke
+one with `/<name>` in Claude or `$<name>` in Codex.
+
+Install into both directories to give Claude and Codex the *same file*, so the two can never
+drift. Note that `install.sh` links **every** skill in the repo, with no exclusion mechanism —
+so a Claude-oriented skill will also appear in Codex's list, and vice versa.
 
 **Some skills need extra, machine-specific setup** (a CLI tool, an API login). After
 running `install.sh`, read each skill's own `README.md` for prerequisites. In particular,
