@@ -25,6 +25,8 @@ has   "orchestrator: surfaces field"        "surfaces:"          "$ORCH"
 has   "orchestrator: browser verification"  "## Browser Verification" "$ORCH"
 has   "orchestrator: owns_hunk promoted"    "owns_hunk:"         "$ORCH"
 has   "orchestrator: wave promoted"         "wave:"              "$ORCH"
+hasnt "orchestrator: no filesystem ledger claim" "filesystem remains the ledger" "$ORCH"
+hasnt "orchestrator: no filesystem-backed desc" "filesystem-backed" "$ORCH"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

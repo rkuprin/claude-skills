@@ -1,6 +1,6 @@
 ---
 name: sprint-orchestrator
-description: Manual sprint planning command for turning raw inputs into verified filesystem-backed story handoff docs. Invoke explicitly with /sprint-orchestrator (Claude) or $sprint-orchestrator (Codex).
+description: Manual sprint planning command turning raw inputs into verified, git-derived story handoff docs. Invoke explicitly with /sprint-orchestrator (Claude) or $sprint-orchestrator (Codex).
 disable-model-invocation: true
 argument-hint: [sprint-dir or raw inputs]
 ---
@@ -38,10 +38,12 @@ Story: 07
 Sprint: 2026-07-07-report-delivery-sprint
 ```
 
-Read the current state with the helper, from the repo root:
+Read the current state with the `sprint-status.sh` helper that sits beside this skill file, from
+the repo root. It is the same script reached via either agent's skills directory:
 
 ```bash
-~/.claude/skills/sprint-orchestrator/sprint-status.sh docs/sprints/<sprint>
+~/.claude/skills/sprint-orchestrator/sprint-status.sh docs/sprints/<sprint>   # Claude
+~/.codex/skills/sprint-orchestrator/sprint-status.sh docs/sprints/<sprint>    # Codex
 ```
 
 Stories are enumerated from files matching `[0-9]*.md`, skipping `00-*`. Suffixed numbers such as
@@ -157,7 +159,7 @@ Supported intents:
 - `card.create(story, sprint, branch)` creates a card in the doing bucket and returns an id.
 - `card.done(card_id)` moves that card to done.
 
-If `tracker: none`, no binding exists, or the named MCP/tool is unavailable, tracker intents are no-ops. Report the intended `card.*` action in the recap and leave `tracker_card` blank. The filesystem remains the ledger.
+If `tracker: none`, no binding exists, or the named MCP/tool is unavailable, tracker intents are no-ops. Report the intended `card.*` action in the recap and leave `tracker_card` blank. Nothing is lost: story state is derived from git, not from the tracker, so `sprint-status.sh` stays authoritative whether or not a tracker exists.
 
 ## Guardrails
 
