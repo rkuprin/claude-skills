@@ -19,13 +19,12 @@ only (`disable-model-invocation: true`), so read its story doc and `00-overview.
 than trying to invoke it.
 
 ## When to use
-- You have a planned story (via `sprint-orchestrator` or similar) and want an autonomous agent to take it all the way to live, not stop at a PR.
-- Early-stage / pre-real-users prod where the agent may merge + deploy itself.
-- You want to look exactly once, at the end.
+- You have a planned story (via `sprint-orchestrator` or similar) and want one agent to run it end to end.
+- `execution: autonomous` — early-stage / pre-real-users prod, where the agent may merge + deploy itself. You look exactly once, at the end.
+- `execution: stop-at-pr` — real production with users, where a human gates every deploy. Same lifecycle and same `/goal` discipline; the agent opens a PR and stops.
 
 ## When NOT to use
-- Real production with users where a human must gate every deploy → keep the "stop at PR, do not merge" handoff instead.
-- Exploratory work with no clear observable done-criteria.
+- Exploratory work with no clear observable done-criteria. There is nothing for the `/goal` to assert.
 
 ## The `/goal` late-checkpoint — the core idea
 
@@ -40,7 +39,7 @@ GOOD (late checkpoint):   /goal Story NN is done — the first point you check b
 <observable behavior> works on <live URL>, tests cover it, it's merged + deployed + verified there, and the
 "how to test yourself" writeup is ready. Work plan → build → validate → merge → deploy → verify autonomously;
 don't stop for intermediate approval. Interrupt earlier only for a wrong premise / genuine product ambiguity,
-or if you can't keep prod green (roll back and tell me).
+if you can't keep prod green (roll back and tell me), or if no approved driver can drive the browser verification.
 ```
 
 ## The kickoff prompt (template)
@@ -87,7 +86,7 @@ premise, an internal contradiction, or a genuine product ambiguity, STOP and ask
    "after" screenshots; open any produced artifact. Fix until green.
 
 4. MERGE & DEPLOY — gate: story tests + typecheck + a production build must all pass, and the story's
-   commits must carry the `Story: {NN}` trailer. Merge into trunk in the overview's merge order;
+   commits must carry BOTH the `Story: {NN}` and `Sprint: {SPRINT}` trailers. Merge into trunk in the overview's merge order;
    ensure trunk is green. If the push is rejected because another session landed first, run
    `git pull --rebase` and retry ONCE. If it is rejected again, STOP and report — do not force-push
    and do not keep retrying. Deploy with the project's deploy command.
@@ -112,9 +111,9 @@ Under `execution: stop-at-pr`, steps 4 and 5 collapse to: open a PR, do not merg
 The trailer still goes on the commits; `DONE` flips when the human merges.
 
 ## Deploy gate + rollback (non-negotiable)
-- Gate EVERY deploy on: story tests + typecheck + a production build + the `Story: NN` trailer being
-  present on the story's commits. A broken build never reaches prod, and an untrailered story is
-  invisible to sprint status.
+- Gate EVERY deploy on: story tests + typecheck + a production build + both the `Story: NN` and
+  `Sprint: <sprint-dir-basename>` trailers being present on the story's commits. A broken build never
+  reaches prod, and an untrailered story is invisible to sprint status.
 - If the live check fails and is not a fast fix: roll back the deploy (or revert the merge) and
   report. Never leave prod broken.
 

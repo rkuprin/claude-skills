@@ -21,9 +21,12 @@ Story state is never written down. It is computed from git, so it cannot drift.
 
 | State | Signal |
 |-------|--------|
-| `DONE` | a `Story: NN` trailer is reachable from trunk |
+| `DONE` | one commit reachable from trunk carries **both** `Story: NN` and `Sprint: <sprint-dir-basename>` |
 | `DOING` | a `sprint/NN-*` branch or a worktree pinned to one exists, and not `DONE` |
 | `TODO` | neither |
+
+Both trailers, on the same commit. `Story: NN` alone is not enough: story numbers restart every
+sprint, so a bare `Story: 07` match would make the next sprint's story 07 read `DONE` on day one.
 
 `DONE` outranks `DOING`: merged branches and the worktrees pinned to them linger long after the
 work lands.

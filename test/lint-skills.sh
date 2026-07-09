@@ -33,6 +33,12 @@ has   "orchestrator: kickoff line addresses planner, not executor" "executor doe
 # silently becomes model-invocable on one side. Claude: SKILL.md. Codex: agents/openai.yaml.
 has   "orchestrator: claude blocks implicit invocation" "disable-model-invocation: true" "$ORCH"
 has   "orchestrator: codex blocks implicit invocation"  "allow_implicit_invocation: false" "$ORCH_YAML"
+# DONE needs BOTH trailers. Story numbers restart each sprint, so `Story: NN` alone collides.
+done_row=$(grep -F '| `DONE` |' "$ORCH")
+case "$done_row" in
+  *Sprint*) ok "orchestrator: DONE row requires the Sprint trailer too" ;;
+  *) no "orchestrator: DONE row requires the Sprint trailer too (found: $done_row)" ;;
+esac
 
 # --- codex-execution-handoff ---
 HAND="$HERE/../codex-execution-handoff/SKILL.md"
@@ -58,6 +64,19 @@ case "$ctx3" in
   *) no "handoff: goal explainer names all three interrupts (missing third condition next to explainer bullet)" ;;
 esac
 has   "handoff: stop-at-pr variant"          "stop-at-pr"        "$HAND"
+# The deploy gate must check both trailers, not just Story:.
+gate=$(grep -F 'Gate EVERY deploy on:' "$HAND")
+case "$gate" in
+  *"Story: NN"*) ok "handoff: deploy gate names the Story trailer" ;;
+  *) no "handoff: deploy gate names the Story trailer" ;;
+esac
+grep -A1 -F 'Gate EVERY deploy on:' "$HAND" | grep -qF 'Sprint:' \
+  && ok "handoff: deploy gate names the Sprint trailer too" \
+  || no "handoff: deploy gate names the Sprint trailer too"
+# The GOOD /goal example must name all three interrupts, like the template does.
+grep -F 'GOOD (late checkpoint)' -A5 "$HAND" | grep -qF 'approved driver' \
+  && ok "handoff: goal example names all three interrupts" \
+  || no "handoff: goal example names all three interrupts"
 has   "handoff: executor never invokes it"   "never invoked by the executing" "$HAND"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
