@@ -288,9 +288,14 @@ Both skills move into `~/claude-skills/`, joining `codex`. `install.sh` links th
 directory. The override already exists — no script change.
 
 The two drifted `sprint-orchestrator` frontmatters reconcile into one, worded to cover both invocation
-sigils (`/sprint-orchestrator`, `$sprint-orchestrator`). Codex's tolerance of the Claude-specific
-`disable-model-invocation: true` key must be verified before symlinking; if Codex errors on unknown
-keys, the skills stay separately installed and this decision reverts.
+sigils (`/sprint-orchestrator`, `$sprint-orchestrator`).
+
+**Verified 2026-07-09:** Codex starts cleanly with the symlinked skill present and exits 0, so it does
+not reject the Claude-specific `disable-model-invocation: true` key. The key blocks *model*
+auto-invocation, not *user* invocation, so Codex planning a sprint with `$sprint-orchestrator` is
+unaffected. Note for anyone re-running the probe: `~/.codex/config.toml` sets
+`default_mode_request_user_input = true`, which makes a hermetic `codex exec` hang until you pass
+`-c default_mode_request_user_input=false`.
 
 ## Non-goals
 

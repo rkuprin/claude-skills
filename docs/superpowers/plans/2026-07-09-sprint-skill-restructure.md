@@ -65,11 +65,23 @@ Reply with the single word PROBE-OK.
 EOF
 CODEX_HOME="$PROBE" codex exec -C "$HOME/claude-skills" \
   -c approval_policy=never --sandbox read-only \
+  -c default_mode_request_user_input=false \
   "Reply with the single word READY." 2>&1 | tail -3
 echo "exit=$?"
 ```
 
+The `default_mode_request_user_input=false` override is load-bearing: the probe symlinks the real
+`~/.codex/config.toml` into its "hermetic" home, and that file sets `default_mode_request_user_input = true`,
+which makes `codex exec` block forever waiting on input. Without the override this command hangs
+rather than answering the question.
+
 Expected: `exit=0` and no parse/frontmatter error in the output. If Codex errors, skip Step 6 (the Codex symlink), leave `~/.codex/skills/sprint-orchestrator/` as a plain copied directory, and record the deviation in the spec's Packaging section.
+
+This probe establishes only that Codex does not choke at startup on the unknown key — it places the
+skill file, it does not invoke it. That is sufficient: if Codex parses frontmatter eagerly, a clean
+start proves tolerance; if it parses lazily, the unknown key is never read at all. And
+`disable-model-invocation` blocks *model* auto-invocation, not *user* invocation, so Codex planning a
+sprint with `$sprint-orchestrator` is unaffected either way.
 
 - [ ] **Step 3: Copy both skills into the repo and verify byte-identity**
 
