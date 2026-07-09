@@ -154,7 +154,7 @@ prod) · Test data/accounts · Evidence (inline screenshots + the provenance tab
 back · Checks run (commands + results, build, deploy id) · Open questions.
 
 ## Common mistakes
-- **`git checkout main`** — trunk lives in another worktree; the command fails. Use `git switch -c <branch> origin/main`.
+- **Never run `git checkout main`** — trunk lives in another worktree; the command fails. Use `git switch -c <branch> origin/main`.
 - **Commits without the `Story: NN` trailer** — the story ships and sprint status still calls it TODO.
 - **Co-opting an existing `sprint/NN-*` branch** instead of stopping. It means someone else has the story.
 - **Force-pushing after a rejected push.** Rebase once, retry once, then stop and report.

@@ -30,7 +30,7 @@ hasnt "orchestrator: no filesystem-backed desc" "filesystem-backed" "$ORCH"
 
 # --- codex-execution-handoff ---
 HAND="$HERE/../codex-execution-handoff/SKILL.md"
-bad=$(grep -nF 'git checkout main' "$HAND" | grep -viE 'never|do not|don.t|instead of|fails' || true)
+bad=$(grep -nF 'git checkout main' "$HAND" | grep -viE 'never|do not|don.t|instead of' || true)
 [ -z "$bad" ] && ok "handoff: git checkout main only ever appears negated" \
                || no "handoff: git checkout main appears as an instruction ($bad)"
 hasnt "handoff: no per-sprint HANDOFF.md"    "HANDOFF.md"        "$HAND"
