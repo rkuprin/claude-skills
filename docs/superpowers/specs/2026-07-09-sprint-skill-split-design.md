@@ -65,6 +65,7 @@ Two smaller ones: the template has drifted from real usage (real docs carry `wav
 | 5 | State is two moves on trunk: `.md` → `.CLAIMED.md` → `done/`. Under `autonomous` Codex makes both; under `stop-at-pr` Codex claims and the human moves to `done/` |
 | 6 | Codex claims on trunk as step 0, before cutting the story branch |
 | 7 | Both skills move into `~/claude-skills`, symlinked into Claude and Codex |
+| 8 | Browser verification is a hard gate. Any failure to drive the mandated browser halts the story — no substitute tooling |
 
 ## Design
 
@@ -211,6 +212,23 @@ that MCP tokens are valid only for the MCP server and do not work with the REST 
 With `frontend: false`, no screenshots are required — but a produced artifact (PDF, email, export)
 must still be opened and confirmed, as today.
 
+**Verification tooling is not negotiable.** Codex drives the browser named by the project. If it
+cannot — the connector is missing, fails to start, times out, or cannot drive an auth-gated flow —
+the story **halts and reports what was tried**. There is no substitute: not Playwright, not `curl`,
+not a DOM assertion standing in for a screenshot. Evidence produced by a tool other than the mandated
+browser is not evidence.
+
+This is a throughput cost, stated openly. Stories 07, 08, and 11 each hit a connector timeout on an
+auth-gated flow, each independently switched to Playwright Core with system Chrome, and each shipped.
+Under this rule all three would have halted. That is the intent: the timeout becomes a blocker that
+gets fixed once, rather than a footnote rediscovered every story. Story 08's own feedback shows what
+routing around it costs — its screenshots captured a default 1280×720 viewport and proved trigger
+placement only, while the actual colour assertion degraded to a DOM class check.
+
+The `/goal` therefore carries **three** legitimate early-interrupt conditions, not two: a wrong
+premise or genuine product ambiguity; an inability to keep prod green; and an inability to drive the
+browser verification.
+
 ### 5. Kickoff prompt
 
 Rendered by `codex-execution-handoff` from the story doc. Shape:
@@ -220,7 +238,7 @@ Rendered by `codex-execution-handoff` from the story doc. Shape:
 3. Steps 1–6: plan → implement → validate locally → merge & deploy → verify on prod → hand off.
    Under `execution: stop-at-pr`, steps 4–5 collapse to "open a PR, do not merge".
 4. Reading list: the story doc, `00-overview.md`, `STORY-FEEDBACK.md`, `AGENTS.md` / `CLAUDE.md`.
-5. Closing `/goal` line, verbatim from the story doc.
+5. Closing `/goal` line, verbatim from the story doc, naming the three interrupt conditions (§4).
 
 The prompt does not restate the plan, the deploy command, or the live URL. Those live in the story
 doc and `AGENTS.md`.
@@ -253,9 +271,12 @@ These touch `~/lead-us` and need an explicit go-ahead per item:
    The skill names `00-overview.md`; rename the older one or leave it.
 3. Delete `docs/sprints/2026-07-07-report-delivery-sprint/HANDOFF.md` once the skill supersedes it.
 4. Add `docs/sprints/**/evidence/` to `.gitignore`.
-5. Record in `lead-us/AGENTS.md` under Gotchas: the in-app browser connector times out on auth-gated
-   flows; use Playwright Core with system Chrome. Stories 07, 08, and 11 each rediscovered this
-   independently. It is a project fact, not a skill fact.
+5. The in-app browser connector times out driving `lead-us`'s auth-gated flows. Stories 07, 08, and
+   11 each hit it and each worked around it with Playwright. Under decision 8 that workaround is no
+   longer permitted, so this is now a **blocker on every frontend story** and must be fixed before
+   the next sprint runs. Do **not** record the Playwright workaround in `AGENTS.md`: writing it down
+   institutionalises the thing we are banning. Root-causing the timeout is separate work, out of
+   scope for this spec.
 
 Separately, the stale copies at `~/Downloads/sprint-orchestrator-skill/` and
 `~/Documents/Codex/2026-07-07/files-mentioned-by-the-user-name/outputs/sprint-orchestrator/` should be
@@ -270,6 +291,9 @@ deleted once `~/claude-skills` is the source of truth.
   before push resolves it. Same exposure the existing merge flow already has.
 - **`done/` meaning "Codex verified" loses the "Rodion confirmed" signal.** Accepted: that signal now
   lives in the review that produces follow-up stories, not in a filesystem state nobody maintained.
+- **The hard browser gate blocks every frontend story until the connector timeout is fixed.** This is
+  the intended consequence of decision 8, not a side effect, but it means the first sprint run under
+  these skills will halt on its first `frontend: true` story unless the timeout is resolved first.
 
 ## Success criteria
 
@@ -281,3 +305,5 @@ deleted once `~/claude-skills` is the source of truth.
 4. `sprint-orchestrator` and `codex-execution-handoff` each exist as exactly one file on disk,
    reachable from both `~/.claude/skills` and `~/.codex/skills`.
 5. No story doc contains both "do not merge" and a merge-and-deploy `/goal`.
+6. No story ships with evidence produced by a tool other than the project's mandated browser. A story
+   that could not drive it halted and reported instead.
