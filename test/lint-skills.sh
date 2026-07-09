@@ -3,6 +3,7 @@
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ORCH="$HERE/../sprint-orchestrator/SKILL.md"
+ORCH_YAML="$HERE/../sprint-orchestrator/agents/openai.yaml"
 PASS=0; FAIL=0
 ok() { PASS=$((PASS+1)); printf 'ok   - %s\n' "$1"; }
 no() { FAIL=$((FAIL+1)); printf 'FAIL - %s\n' "$1"; }
@@ -28,6 +29,10 @@ has   "orchestrator: wave promoted"         "wave:"              "$ORCH"
 hasnt "orchestrator: no filesystem ledger claim" "filesystem remains the ledger" "$ORCH"
 hasnt "orchestrator: no filesystem-backed desc" "filesystem-backed" "$ORCH"
 has   "orchestrator: kickoff line addresses planner, not executor" "executor does not run this" "$ORCH"
+# The two agents guard implicit invocation with different keys. Both must be set, or the skill
+# silently becomes model-invocable on one side. Claude: SKILL.md. Codex: agents/openai.yaml.
+has   "orchestrator: claude blocks implicit invocation" "disable-model-invocation: true" "$ORCH"
+has   "orchestrator: codex blocks implicit invocation"  "allow_implicit_invocation: false" "$ORCH_YAML"
 
 # --- codex-execution-handoff ---
 HAND="$HERE/../codex-execution-handoff/SKILL.md"
