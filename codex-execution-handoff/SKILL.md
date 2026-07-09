@@ -1,6 +1,6 @@
 ---
 name: codex-execution-handoff
-description: Use when handing a planned, self-contained story to an autonomous coding agent (e.g. Codex) that should implement it, ship it to prod, verify on the live app, and report back once — instead of stopping at a PR for review. Pairs with the sprint-orchestrator story-doc format. Triggers: "hand this to Codex", autonomous execution, merge+deploy+verify, run a story end-to-end.
+description: Use when handing a planned, self-contained story to an autonomous coding agent (e.g. Codex) — `autonomous` merges, deploys, verifies on prod, and reports back once; `stop-at-pr` runs the same lifecycle but opens a PR and stops. Pairs with the sprint-orchestrator story-doc format. Triggers: "hand this to Codex", autonomous execution, merge+deploy+verify, run a story end-to-end.
 ---
 
 # Codex Execution Handoff
@@ -65,7 +65,7 @@ premise, an internal contradiction, or a genuine product ambiguity, STOP and ask
    - If `sprint/{NN}-{SLUG}` already exists on any ref, the story is taken. STOP and report; never
      co-opt someone else's branch.
    - `git switch -c sprint/{NN}-{SLUG} origin/main`
-     NEVER check out main directly — trunk is checked out in another worktree and the command fails.
+     NEVER run `git checkout main`. Trunk is checked out in another worktree and the command fails.
    - Confirm this worktree is linked to the real Vercel project before any deploy (see AGENTS.md).
 
 1. PLAN — brainstorm your own approach (design-heavy: weigh 2-3 options; mechanical: a short TDD
@@ -154,7 +154,7 @@ prod) · Test data/accounts · Evidence (inline screenshots + the provenance tab
 back · Checks run (commands + results, build, deploy id) · Open questions.
 
 ## Common mistakes
-- **Checking out `main` directly** — trunk lives in another worktree; the command fails. Use `git switch -c <branch> origin/main`.
+- **`git checkout main`** — trunk lives in another worktree; the command fails. Use `git switch -c <branch> origin/main`.
 - **Commits without the `Story: NN` trailer** — the story ships and sprint status still calls it TODO.
 - **Co-opting an existing `sprint/NN-*` branch** instead of stopping. It means someone else has the story.
 - **Force-pushing after a rejected push.** Rebase once, retry once, then stop and report.
