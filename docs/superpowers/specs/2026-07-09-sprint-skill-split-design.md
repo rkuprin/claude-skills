@@ -184,9 +184,13 @@ Status derivation, in precedence order:
 
 | State | Signal |
 |-------|--------|
-| `DONE` | `git log origin/main --grep '^Story: NN'` finds a commit |
+| `DONE` | a commit reachable from trunk carries **both** `Story: NN` and `Sprint: <sprint-dir-basename>` |
 | `DOING` | a `sprint/NN-*` branch or a worktree pinned to one exists, and not `DONE` |
 | `TODO` | neither |
+
+Both trailers, matched on the same commit via `git log --all-match`. Querying `Story: NN` alone is a
+bug this spec originally shipped: story numbers restart every sprint, so once one sprint's story 07
+merged, **every later sprint's story 07 would read `DONE` on day one**. Caught in final review.
 
 `DONE` outranks `DOING`, because merged branches and their worktrees linger — `sprint/07-date-presets`
 is merged and still has a worktree pinned to it.
@@ -291,11 +295,17 @@ The two drifted `sprint-orchestrator` frontmatters reconcile into one, worded to
 sigils (`/sprint-orchestrator`, `$sprint-orchestrator`).
 
 **Verified 2026-07-09:** Codex starts cleanly with the symlinked skill present and exits 0, so it does
-not reject the Claude-specific `disable-model-invocation: true` key. The key blocks *model*
-auto-invocation, not *user* invocation, so Codex planning a sprint with `$sprint-orchestrator` is
-unaffected. Note for anyone re-running the probe: `~/.codex/config.toml` sets
-`default_mode_request_user_input = true`, which makes a hermetic `codex exec` hang until you pass
-`-c default_mode_request_user_input=false`.
+not reject the Claude-specific `disable-model-invocation: true` key. Note for anyone re-running the
+probe: `~/.codex/config.toml` sets `default_mode_request_user_input = true`, which makes a hermetic
+`codex exec` hang until you pass `-c default_mode_request_user_input=false`.
+
+**But tolerance is not enforcement, and this spec originally conflated them.** `disable-model-invocation`
+is a Claude key; Codex ignores it. Codex's own mechanism is `policy.allow_implicit_invocation` in
+`<skill>/agents/openai.yaml` — the convention used by `trace-scenario`, `claude-reviewer`, and OpenAI's
+bundled `template-creator`. Without that file, `sprint-orchestrator` was model-invocable in Codex,
+contrary to intent. `sprint-orchestrator/agents/openai.yaml` now sets it to `false`, and
+`test/lint-skills.sh` asserts both guards so they cannot drift apart. The directory symlink carries the
+file to both agents with no `install.sh` change.
 
 ## Non-goals
 
