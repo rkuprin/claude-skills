@@ -10,7 +10,7 @@ set -euo pipefail
 
 sprint_dir="${1:-}"
 [ -n "$sprint_dir" ] || { echo "sprint-status: usage: sprint-status.sh docs/sprints/<sprint>" >&2; exit 2; }
-[ -d "$sprint_dir" ] || { echo "sprint-status: no such directory: $sprint_dir" >&2; exit 2; }
+[ -d "$sprint_dir" ] || { echo "sprint-status: no such directory: $sprint_dir — run this from the repo root and pass a sprint dir, e.g. docs/sprints/2026-07-07-report-delivery-sprint" >&2; exit 2; }
 
 trunk="${SPRINT_TRUNK:-origin/main}"
 git rev-parse --verify --quiet "$trunk^{commit}" >/dev/null \
