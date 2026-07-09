@@ -108,7 +108,8 @@ tracker_card:
 
 # Story 07 - <title>
 
-**Kickoff:** render the prompt with `codex-execution-handoff` for `07-<slug>.md`.
+**Kickoff (planner only — the executor does not run this):** render this story's prompt with
+`codex-execution-handoff` for `07-<slug>.md`, then hand the rendered prompt to the executor.
 
 ## Goal
 <the single /goal line, nothing else>

@@ -32,7 +32,7 @@ than trying to invoke it.
 End the kickoff prompt with one `/goal <statement>`. Write it so DONE equals the **deployed-and-verified end state**, making it the **first** point the agent checks back — deliberately as late as possible. It MUST:
 - state the story's concrete, **observable** success (what the user sees working on the live app), not "tests pass";
 - require **merged + deployed + verified on the live URL**, with the how-to-test writeup ready;
-- name the only legitimate early interrupts: a **wrong premise / genuine product ambiguity**, or being **unable to keep prod green**.
+- name all three legitimate early interrupts: a **wrong premise / genuine product ambiguity**, being **unable to keep prod green**, or **no approved driver being able to drive the browser verification**.
 
 ```
 BAD  (early checkpoint):  /goal implement the fix and open a PR for me.

@@ -27,6 +27,7 @@ has   "orchestrator: owns_hunk promoted"    "owns_hunk:"         "$ORCH"
 has   "orchestrator: wave promoted"         "wave:"              "$ORCH"
 hasnt "orchestrator: no filesystem ledger claim" "filesystem remains the ledger" "$ORCH"
 hasnt "orchestrator: no filesystem-backed desc" "filesystem-backed" "$ORCH"
+has   "orchestrator: kickoff line addresses planner, not executor" "executor does not run this" "$ORCH"
 
 # --- codex-execution-handoff ---
 HAND="$HERE/../codex-execution-handoff/SKILL.md"
@@ -46,6 +47,11 @@ has   "handoff: bans DOM substitution"       "DOM"               "$HAND"
 has   "handoff: evidence outside the repo"   ".sprint-evidence"  "$HAND"
 has   "handoff: names Codex.app"             "Codex.app"         "$HAND"
 has   "handoff: third interrupt condition"   "approved driver can drive" "$HAND"
+ctx3=$(grep -F "unable to keep prod green" "$HAND")
+case "$ctx3" in
+  *"approved driver"*) ok "handoff: goal explainer names all three interrupts" ;;
+  *) no "handoff: goal explainer names all three interrupts (missing third condition next to explainer bullet)" ;;
+esac
 has   "handoff: stop-at-pr variant"          "stop-at-pr"        "$HAND"
 has   "handoff: executor never invokes it"   "never invoked by the executing" "$HAND"
 
