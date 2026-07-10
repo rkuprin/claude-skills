@@ -1,0 +1,4 @@
+interface:
+  display_name: "Claude Reviewer"
+  short_description: "Ask Claude for an independent review"
+  default_prompt: "Use $claude-reviewer to get an independent review of the current Codex work."
