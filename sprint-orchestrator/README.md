@@ -102,10 +102,12 @@ frontmatter and its `/goal` line — a recap of the wave plus one ready-to-paste
 Each kickoff mirrors `agent-handoff/SKILL.md`'s story-execution template — that skill file is the
 source of truth for the shape; this script fills it in. `execution:` → the EXECUTION MODE line,
 `loop:` → the planning-depth line, `driver_hint:` → the affinity default and the EXECUTION.md path
-(`~/.codex` vs `~/.claude`); capability, your explicit say, and current availability still override
-the driver at paste time. It expects the current frontmatter (`conversation`/`execution`/`loop`/
-`driver_hint`); pre-convention docs render with those fields blank. Exit code 2 on a bad sprint
-directory or a wave with no stories.
+(`~/.codex` vs `~/.claude`); `tier:` + `effort:`/`orchestrate:` → the **Launch** line (model ·
+effort) printed above each fenced block, resolved against the ladder in the SKILL.md files.
+Capability, your explicit say, and current availability still override everything at paste time.
+It expects the current frontmatter (`conversation`/`execution`/`loop`/`driver_hint`/`tier`); docs
+without `tier:` render a row-B default with an explicit "tier unset" marker. Exit code 2 on a bad
+sprint directory or a wave with no stories.
 
 ## The rule that makes it work
 
