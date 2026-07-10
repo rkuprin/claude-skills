@@ -45,45 +45,6 @@ case "$done_row" in
   *) no "orchestrator: DONE row requires the Sprint trailer too (found: $done_row)" ;;
 esac
 
-# --- codex-execution-handoff ---
-HAND="$HERE/../codex-execution-handoff/SKILL.md"
-bad=$(grep -nF 'git checkout main' "$HAND" | grep -viE 'never|do not|don.t|instead of' || true)
-[ -z "$bad" ] && ok "handoff: git checkout main only ever appears negated" \
-               || no "handoff: git checkout main appears as an instruction ($bad)"
-hasnt "handoff: no per-sprint HANDOFF.md"    "HANDOFF.md"        "$HAND"
-hasnt "handoff: no CLAIMED rename"           ".CLAIMED.md"       "$HAND"
-hasnt "handoff: no done/ archive"            "done/"             "$HAND"
-hasnt "handoff: does not tell a model to invoke the manual planner" "invoke \`sprint-orchestrator\`" "$HAND"
-has   "handoff: story trailer"               "Story: NN"         "$HAND"
-has   "handoff: sprint trailer"              "Sprint:"           "$HAND"
-has   "handoff: worktree-safe branching"     "git switch -c"     "$HAND"
-has   "handoff: refuses a taken story"       "already exists"    "$HAND"
-has   "handoff: approved drivers"            "approved driver"   "$HAND"
-has   "handoff: bans DOM substitution"       "DOM"               "$HAND"
-has   "handoff: evidence outside the repo"   ".sprint-evidence"  "$HAND"
-has   "handoff: names Codex.app"             "Codex.app"         "$HAND"
-has   "handoff: third interrupt condition"   "approved driver can drive" "$HAND"
-ctx3=$(grep -F "unable to keep prod green" "$HAND")
-case "$ctx3" in
-  *"approved driver"*) ok "handoff: goal explainer names all three interrupts" ;;
-  *) no "handoff: goal explainer names all three interrupts (missing third condition next to explainer bullet)" ;;
-esac
-has   "handoff: stop-at-pr variant"          "stop-at-pr"        "$HAND"
-# The deploy gate must check both trailers, not just Story:.
-gate=$(grep -F 'Gate EVERY deploy on:' "$HAND")
-case "$gate" in
-  *"Story: NN"*) ok "handoff: deploy gate names the Story trailer" ;;
-  *) no "handoff: deploy gate names the Story trailer" ;;
-esac
-grep -A1 -F 'Gate EVERY deploy on:' "$HAND" | grep -qF 'Sprint:' \
-  && ok "handoff: deploy gate names the Sprint trailer too" \
-  || no "handoff: deploy gate names the Sprint trailer too"
-# The GOOD /goal example must name all three interrupts, like the template does.
-grep -F 'GOOD (late checkpoint)' -A5 "$HAND" | grep -qF 'approved driver' \
-  && ok "handoff: goal example names all three interrupts" \
-  || no "handoff: goal example names all three interrupts"
-has   "handoff: executor never invokes it"   "never invoked by the executing" "$HAND"
-
 # --- agent-handoff (SKILL.md) ---
 AH="$HERE/../agent-handoff/SKILL.md"
 # Frontmatter sanity without a YAML parser: name matches the directory, and the description is a
