@@ -271,3 +271,21 @@ addressed to the executing agent:
   differ.
 - The visual-validation template is report-only by default, carries workspace identity, and ends
   with inline screenshots + a test scenario addressed to the user.
+
+## Amendment (2026-07-10, later same day): incremental waves
+
+Planning a sprint does not mean writing every story doc upfront. Stories that can start now form
+wave 1 and get full docs; blocked work is deferred — story number allocated, stub recorded in
+`00-overview.md` (number, working title, one-line intent, blockers, and which wave-1 outcome could
+reshape it), no story doc written. Rationale: wave-1 implementation changes the ground truth later
+docs must be written against; a doc written today would be stale by its own wave.
+
+At each wave boundary the user re-invokes `/sprint-orchestrator` on the sprint directory (the
+skill stays manual-only). The planner reads `sprint-status.sh` + `STORY-FEEDBACK.md`, gives an
+intermediary opinion on sprint progress, re-verifies stubs against current code, and writes the
+next wave's docs — cutting or reframing stubs whose premise no longer holds. Every plan-session
+recap names the pending wave checkpoint.
+
+Decided: stubs live in `00-overview.md`, not placeholder story files, so `sprint-status.sh`
+reports only actionable stories (user choice). Lint pins `wave boundary` and `stub` in the
+orchestrator skill.
