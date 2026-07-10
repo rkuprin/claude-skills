@@ -11,8 +11,8 @@ usage:
   run-codex.sh run    --repo DIR --prompt-file FILE --out-dir DIR [--effort LEVEL] [--model MODEL]
   run-codex.sh resume --session-id ID --repo DIR --prompt-file FILE --out-dir DIR [--effort LEVEL] [--model MODEL]
 
-effort: high (default, smaller/contained runs) | ultra (complex/architectural runs) | medium | low
-model:  default gpt-5.6-sol (needs codex-cli >= 0.144)
+effort: xhigh (default) | low | medium | high | max | ultra — max/ultra need a stated justification
+model:  default gpt-5.6-sol (needs codex-cli >= 0.144); the skill passes the lane's model explicitly
 
 exit codes: 0 ok, 2 usage error, 42 Codex account usage-limit hit (see OUT_DIR/usage_limit.txt),
 1 any other failure (see OUT_DIR/events.jsonl)
@@ -58,7 +58,7 @@ ensure_overlay() {
 }
 
 cmd="${1:-}"; [ -n "$cmd" ] || usage; shift
-repo="" prompt_file="" out_dir="" effort="high" model="gpt-5.6-sol" session_id=""
+repo="" prompt_file="" out_dir="" effort="xhigh" model="gpt-5.6-sol" session_id=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --repo)        repo="${2:-}"; shift 2;;

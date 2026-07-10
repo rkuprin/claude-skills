@@ -43,6 +43,14 @@ has "network_access=true"           "$LOG" "sandbox_workspace_write.network_acce
 has "reasoning effort"              "$LOG" "model_reasoning_effort=high"
 has "model pinned to sol"           "$LOG" "model=gpt-5.6-sol"
 
+# --- wrapper default effort (no --effort flag) ---
+: > "$FAKE_CODEX_LOG"
+OUTD="$(mktemp -d)"
+"$WRAP" run --repo "$REPO" --prompt-file "$PROMPT" --out-dir "$OUTD" >/dev/null 2>"$OUTD/err"
+rc=$?
+[ "$rc" = 0 ] && ok "default-effort run exits 0" || no "default-effort run exits 0 (rc=$rc, $(cat "$OUTD/err"))"
+has "default effort is xhigh" "$(cat "$FAKE_CODEX_LOG")" "model_reasoning_effort=xhigh"
+
 # --- guard: non-git repo ---
 NOGIT="$(mktemp -d)"
 "$WRAP" run --repo "$NOGIT" --prompt-file "$PROMPT" --out-dir "$(mktemp -d)" >/dev/null 2>"$OUT/err2"; rc=$?
