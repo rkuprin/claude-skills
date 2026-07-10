@@ -62,6 +62,7 @@ launch_line() {   # $1 = story doc path -> prints one operator-facing Launch lin
   if [ "$orchestrate" = "true" ]; then
     c_eff="ultracode"; x_eff="ultra"
     [ "$x_model" = "gpt-5.6-luna" ] && x_model="gpt-5.6-terra"   # Luna has no ultra
+    [ -n "$effort" ] && marker="$marker — effort ignored, orchestrate implies xhigh"
   fi
   case "$driver" in
     codex)  [ -n "$x_model" ] || { driver="claude"; marker="$marker — driver_hint conflicts with tier S, claude only"; } ;;
@@ -71,8 +72,10 @@ launch_line() {   # $1 = story doc path -> prints one operator-facing Launch lin
     codex)  printf 'Launch: %s · %s (tier %s%s)\n' "$x_model" "$x_eff" "$tier" "$marker" ;;
     claude) printf 'Launch: %s · %s (tier %s%s)\n' "$c_model" "$c_eff" "$tier" "$marker" ;;
     *)  if [ -z "$x_model" ]; then
+          [ "$driver" = "either" ] && marker="$marker — driver_hint either is invalid for tier S, claude only"
           printf 'Launch: %s · %s (tier %s%s)\n' "$c_model" "$c_eff" "$tier" "$marker"
         elif [ -z "$c_model" ]; then
+          [ "$driver" = "either" ] && marker="$marker — driver_hint either is invalid for tier A, codex only"
           printf 'Launch: %s · %s (tier %s%s)\n' "$x_model" "$x_eff" "$tier" "$marker"
         else
           printf 'Launch: %s · %s (claude) or %s · %s (codex) (tier %s%s)\n' \

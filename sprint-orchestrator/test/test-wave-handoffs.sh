@@ -25,6 +25,12 @@ story 09 tier-b-orch      'driver_hint: codex'  'tier: B' 'tier_why: fixture' 'o
 story 10 tier-c-orch-bump 'driver_hint: codex'  'tier: C' 'tier_why: fixture' 'orchestrate: true'
 story 11 legacy-no-tier   'driver_hint: claude'
 story 12 tier-b-either    'driver_hint: either' 'tier: B' 'tier_why: fixture'
+story 13 tier-s-claude    'driver_hint: claude' 'tier: S' 'tier_why: fixture'
+story 14 tier-a-codex     'driver_hint: codex'  'tier: A' 'tier_why: fixture'
+story 15 tier-s-conflict  'driver_hint: codex'  'tier: S' 'tier_why: fixture'
+story 16 tier-q-unknown   'driver_hint: claude' 'tier: Q' 'tier_why: fixture'
+story 17 tier-s-either    'driver_hint: either' 'tier: S' 'tier_why: fixture'
+story 18 tier-c-orch-effort 'driver_hint: claude' 'tier: C' 'tier_why: fixture' 'orchestrate: true' 'effort: medium' 'effort_why: fixture'
 
 OUTPUT="$("$WH" "$SPRINT" 1 2>&1)" && ok "wave-handoffs runs" || { no "wave-handoffs runs"; printf '%s\n' "$OUTPUT"; }
 
@@ -35,6 +41,13 @@ has "orchestrated C bumps luna to terra" "$OUTPUT" 'Launch: gpt-5.6-terra · ult
 has "legacy story marks tier unset"   "$OUTPUT" 'tier unset, default B assumed'
 has "legacy resolves row B on claude" "$OUTPUT" 'Launch: opus · xhigh (tier B — tier unset, default B assumed)'
 has "either lists both cells"         "$OUTPUT" 'Launch: opus · xhigh (claude) or gpt-5.6-terra · xhigh (codex) (tier B)'
+has "tier S/claude resolves fable high" "$OUTPUT" 'Launch: fable · high (tier S)'
+has "tier A/codex resolves gpt-5.6-sol xhigh" "$OUTPUT" 'Launch: gpt-5.6-sol · xhigh (tier A)'
+has "codex hint conflicts with tier S falls back to claude" "$OUTPUT" 'Launch: fable · high (tier S — driver_hint conflicts with tier S, claude only)'
+has "unknown tier Q defaults to B"    "$OUTPUT" "Launch: opus · xhigh (tier B — unknown tier 'Q', default B assumed)"
+has "either on one-cell tier S flags invalid hint" "$OUTPUT" 'Launch: fable · high (tier S — driver_hint either is invalid for tier S, claude only)'
+has "orchestrate overrides explicit effort with marker" "$OUTPUT" 'Launch: sonnet · ultracode (tier C — effort ignored, orchestrate implies xhigh)'
+has "kickoff block emits bold Launch line" "$OUTPUT" '**Launch: '
 
 in_fence="$(printf '%s\n' "$OUTPUT" | awk '/^```/{f=!f;next} f' | grep -c 'Launch:')"
 [ "$in_fence" = 0 ] && ok "no Launch text inside fenced prompts" || no "Launch leaked into a fenced prompt ($in_fence occurrences)"
