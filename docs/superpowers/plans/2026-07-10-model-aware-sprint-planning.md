@@ -370,7 +370,7 @@ Check back at your `/goal`. Surface earlier ONLY for:
 
 ## Common mistakes
 
-- Running `git checkout main` — trunk lives in another worktree; use
+- Never run `git checkout main` — trunk lives in another worktree; use
   `git switch -c <branch> origin/main`.
 - Commits without both trailers — the story ships and sprint status calls it TODO forever.
 - Co-opting an existing `sprint/NN-*` branch instead of stopping.
