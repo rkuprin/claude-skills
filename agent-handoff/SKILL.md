@@ -100,6 +100,8 @@ render time; no placeholders left for the executor.
   brainstorm → spec → plan phase first; `direct` → the story is fully defined, go straight to a
   short TDD plan. `loop: direct` also allows a `codex-cli` / `claude-cli` / subagent target;
   `loop: full` stories belong in an interactive session (`codex-app` or `claude-session`).
+- The story's `driver_hint:` / `driver_why:` frontmatter is the affinity input at the final
+  resolution step; capability and the user's explicit say still outrank it.
 - The contract path is spelled for the target harness:
   `~/.codex/skills/agent-handoff/EXECUTION.md` for Codex targets,
   `~/.claude/skills/agent-handoff/EXECUTION.md` for Claude targets.
@@ -112,14 +114,15 @@ EXECUTION MODE: {AUTONOMOUS — merge, deploy, verify on prod. | STOP AT PR — 
 Read first: {STORY_DOC}, 00-overview.md, STORY-FEEDBACK.md, and repo conventions
 (AGENTS.md / CLAUDE.md). If any are absent from this worktree, read them from trunk with
 `git show origin/main:<path>` — never copy them in. Product scope and decisions there are SETTLED;
-stop and ask only for a wrong premise or genuine product ambiguity.
+stop and ask for a wrong premise or genuine product ambiguity (the contract's other interrupts
+still apply).
 Execution contract: {~/.codex|~/.claude}/skills/agent-handoff/EXECUTION.md — follow it exactly.
 Planning depth: {run the contract's self-directed brainstorm → spec → plan phase first | the story
 is fully defined — go straight to a short TDD plan}.
 Use skills: {from the story's flow — e.g. superpowers:test-driven-development}
-Hard rules: every commit carries `Story: {NN}` and `Sprint: {SPRINT}` (verbatim); never
-`git checkout main`; if sprint/{NN}-* already exists on any ref the story is taken — stop; never
-leave prod broken.
+Hard rules: every commit carries `Story: {NN}` and `Sprint: {SPRINT}` (verbatim);
+never `git checkout main`; if sprint/{NN}-* already exists on any ref the story is taken — stop;
+never leave prod broken.
 
 /goal {STORY_GOAL}
 ```
