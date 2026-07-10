@@ -10,6 +10,9 @@ usage() {
 usage:
   run-codex.sh run    --repo DIR --prompt-file FILE --out-dir DIR [--effort LEVEL]
   run-codex.sh resume --session-id ID --repo DIR --prompt-file FILE --out-dir DIR [--effort LEVEL]
+
+exit codes: 0 ok, 2 usage error, 42 Codex account usage-limit hit (see OUT_DIR/usage_limit.txt),
+1 any other failure (see OUT_DIR/events.jsonl)
 EOF
   exit 2
 }
@@ -78,12 +81,24 @@ overrides=( -c "approval_policy=never"
             -c "sandbox_workspace_write.network_access=true"
             -c "model_reasoning_effort=$effort" )
 
+# On a failed run, exit 42 with a marker file if events.jsonl shows a Codex account
+# usage-limit error — distinct from a real failure so callers don't have to grep
+# events.jsonl themselves to tell "account is rate-limited" from "something broke".
+check_usage_limit() {
+  local msg
+  msg="$(grep -io '[^"]*usage limit[^"]*' "$events" 2>/dev/null | head -1 || true)"
+  [ -n "$msg" ] || return 0
+  printf '%s\n' "$msg" > "$out_dir/usage_limit.txt"
+  printf 'run-codex: USAGE_LIMIT (exit 42, see %s): %s\n' "$out_dir/usage_limit.txt" "$msg" >&2
+  exit 42
+}
+
 case "$cmd" in
   run)
     CODEX_HOME="$OVERLAY" codex exec --json --output-last-message "$last" \
       -C "$repo" --sandbox workspace-write \
       "${overrides[@]}" - < "$prompt_file" > "$events" \
-      || die "codex exec failed — see $events"
+      || { check_usage_limit; die "codex exec failed — see $events"; }
     sid="$(extract_session_id "$events")" || die "could not extract thread_id from $events"
     printf '%s\n' "$sid" > "$sid_file"
     ;;
@@ -93,7 +108,7 @@ case "$cmd" in
     ( cd "$repo" && CODEX_HOME="$OVERLAY" codex exec resume "$session_id" --json \
         --output-last-message "$last" \
         -c "sandbox_mode=workspace-write" "${overrides[@]}" - < "$prompt_file" ) > "$events" \
-        || die "codex exec resume failed — see $events"
+        || { check_usage_limit; die "codex exec resume failed — see $events"; }
     printf '%s\n' "$session_id" > "$sid_file"
     ;;
   *) usage;;

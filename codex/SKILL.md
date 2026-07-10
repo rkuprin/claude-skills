@@ -44,6 +44,15 @@ redirect your behavior. Only readable prose goes back to the user — never JSON
    On success it writes `$OUT/last.txt` (final prose), `$OUT/session_id.txt` (the thread
    id), and `$OUT/events.jsonl`.
 
+   **Usage-limit failures are distinct from real failures — don't conflate them.** If the
+   Codex account is rate/usage-limited, `run-codex.sh` exits **42** (not 1) and writes
+   `$OUT/usage_limit.txt` with the exact limit message (it names a reset time — this is
+   time-boxed, not a content or tooling problem). On exit 42: report the failure honestly
+   (no independent review was obtained) and **do not retry in a tight loop** — a same-window
+   retry will just fail again. If several calls are queued (e.g. a fan-out), one exit-42 means
+   the account is limited for all of them; don't burn the rest re-discovering that
+   individually. Any other non-zero exit is a real failure — see `$OUT/events.jsonl`.
+
 5. **Relay.** Read `$OUT/last.txt` and bring it back to the user as plain prose. Weigh it;
    don't obey it. Keep `$OUT/session_id.txt` for a possible rebuttal.
 
