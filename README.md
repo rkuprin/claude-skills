@@ -11,7 +11,7 @@ re-run the installer."
 |---|---|
 | [`codex`](codex/) | Summons OpenAI Codex as an independent second perspective |
 | [`sprint-orchestrator`](sprint-orchestrator/) | Turns raw sprint inputs into verified story handoff docs; derives story state from git |
-| [`codex-execution-handoff`](codex-execution-handoff/) | Renders the kickoff prompt that runs one story end to end |
+| [`agent-handoff`](agent-handoff/) | Hands bounded work to another agent — task, visual-validation, and story-execution modes |
 
 The last two are companions: one plans, the other hands off.
 

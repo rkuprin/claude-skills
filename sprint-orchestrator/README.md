@@ -4,7 +4,7 @@ Turns raw sprint inputs — notes, PDFs, screenshots, tracker cards — into ver
 story handoff docs. It plans and hands off. It does not implement stories, merge branches, or
 declare work done.
 
-Pairs with [`codex-execution-handoff`](../codex-execution-handoff/), which renders the kickoff
+Pairs with [`agent-handoff`](../agent-handoff/), whose story-execution mode renders the kickoff
 prompt that actually runs a story.
 
 ## Prerequisites
