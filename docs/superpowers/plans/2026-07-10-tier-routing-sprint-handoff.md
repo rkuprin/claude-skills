@@ -237,8 +237,9 @@ Immediately after that paragraph, insert:
 ```markdown
 ## Model and effort — the Launch line
 
-Every rendered handoff begins with a Launch line addressed to YOU, the operator, placed outside
-the fenced prompt block — it is launch advice, never part of what gets pasted into the executor:
+Every rendered handoff begins with a Launch line addressed to YOU,
+the operator, placed outside the fenced prompt block — it is launch advice, never part of
+what gets pasted into the executor:
 
     Launch: Codex.app · gpt-5.6-terra · xhigh   (tier B — same-tier alternative: opus on Claude)
 
@@ -331,7 +332,7 @@ git commit -m "feat(agent-handoff): render Launch line from tier ladder"
 In `test/lint-skills.sh`, after the `contract: second interrupt condition` check, insert:
 
 ```bash
-has   "contract: orchestration never waives the contract" "Orchestration never waives" "$AHEXEC"
+has   "contract: orchestration never waives the contract" "never waives this contract" "$AHEXEC"
 ```
 
 Run: `test/lint-skills.sh | grep -E 'FAIL|passed'` — expected: exactly this check FAILs.

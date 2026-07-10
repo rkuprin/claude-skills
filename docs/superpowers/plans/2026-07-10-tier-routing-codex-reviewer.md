@@ -122,7 +122,7 @@ grep -qE 'gpt-5\.6-terra. at .xhigh' "$CX" \
 has   "codex wrapper: usage names xhigh default" "xhigh (default)" "$CXSH"
 ```
 
-Run: `test/lint-skills.sh | grep -E 'FAIL|passed'` — expected: the six content checks against `$CX` FAIL (terra lane, sol lane, luna floor, justification, explicit flags, terra-at-xhigh); `codex: name matches directory` and the wrapper usage check already pass. Everything else passes.
+Run: `test/lint-skills.sh | grep -E 'FAIL|passed'` — expected: five content checks against `$CX` FAIL (terra lane, luna floor, justification, explicit flags, terra-at-xhigh); the sol-lane check already passes because `gpt-5.6-sol` appears in the pre-edit prose, as do `codex: name matches directory` and the wrapper usage check. Everything else passes.
 
 - [ ] **Step 2: Rewrite step 1 of the skill (lane selection)**
 
