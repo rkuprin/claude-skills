@@ -104,5 +104,22 @@ has   "handoff: hard rules name the sprint trailer" "Sprint: {SPRINT}" "$AH"
 bad=$(grep -nF 'git checkout main' "$AH" 2>/dev/null | grep -viE 'never|do not|don.t|instead of' || true)
 [ -z "$bad" ] && ok "handoff: git checkout main only ever negated" || no "handoff: git checkout main appears as an instruction ($bad)"
 
+# --- agent-handoff (EXECUTION.md, the lifecycle contract) ---
+AHEXEC="$HERE/../agent-handoff/EXECUTION.md"
+has   "contract: story trailer"              "Story: {NN}"        "$AHEXEC"
+has   "contract: sprint trailer"             "Sprint:"            "$AHEXEC"
+has   "contract: worktree-safe branching"    "git switch -c"      "$AHEXEC"
+has   "contract: refuses a taken story"      "already exists"     "$AHEXEC"
+has   "contract: approved drivers"           "approved driver"    "$AHEXEC"
+has   "contract: bans DOM substitution"      "DOM"                "$AHEXEC"
+has   "contract: evidence outside the repo"  ".sprint-evidence"   "$AHEXEC"
+has   "contract: stop-at-pr collapse"        "do not merge, do not deploy" "$AHEXEC"
+has   "contract: tracker done intent"        "card.done"          "$AHEXEC"
+has   "contract: third interrupt condition"  "approved driver can drive" "$AHEXEC"
+hasnt "contract: no per-sprint HANDOFF.md"   "HANDOFF.md"         "$AHEXEC"
+hasnt "contract: no CLAIMED rename"          ".CLAIMED.md"        "$AHEXEC"
+bad=$(grep -nF 'git checkout main' "$AHEXEC" 2>/dev/null | grep -viE 'never|do not|don.t|instead of' || true)
+[ -z "$bad" ] && ok "contract: git checkout main only ever negated" || no "contract: git checkout main appears as an instruction ($bad)"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
