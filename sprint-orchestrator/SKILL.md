@@ -11,10 +11,12 @@ Manual sprint-planning skill for turning raw inputs into independent story hando
 
 ## Run This on the Strongest Model
 
-Sprint planning gets the most capable model available. First, name the model you are running as.
-If it is not the strongest tier reachable right now (today: Fable, else Opus, on Claude Code; Sol
-at ultra effort on Codex), say so and offer to stop so the user can relaunch. No hard block — but
-proceeding on a lesser model needs the user's explicit go-ahead, recorded in `00-overview.md`.
+Sprint planning is coverage-shaped — every candidate is verified against source truth — so it
+gets the most capable model available, in its orchestration mode. First, name the model you are
+running as. If it is not the strongest tier reachable right now (today: Fable with ultracode,
+else Opus with ultracode, on Claude Code; Sol at `ultra` effort on Codex), say so and offer to
+stop so the user can relaunch. No hard block — but proceeding on a lesser model needs the user's
+explicit go-ahead, recorded in `00-overview.md`.
 
 ## Contract
 
@@ -120,6 +122,39 @@ affinity routes stages, not just whole stories. Beyond these lines, use judgment
 resolved at handoff time: required capability → the user's explicit say → current availability →
 affinity.
 
+## The Ladder
+
+`tier:` grades the work's difficulty; `driver_hint:` grades its nature. Tier picks the row,
+driver the column. S and A have one cell each, so they bind the harness at plan time; B and C
+stay late-bound. Tiers are the operator's routing policy, not an empirical ordering.
+
+| Tier | Claude (`--model`) | Codex (`-m`) | Depth default |
+|------|--------------------|--------------|---------------|
+| S | `fable` | — | high (xhigh only when capability-limited) |
+| A | — | `gpt-5.6-sol` | xhigh |
+| B | `opus` | `gpt-5.6-terra` | xhigh |
+| C | `sonnet` | `gpt-5.6-luna` | high |
+
+Depth scale, literal on both harnesses: `low | medium | high | xhigh | max`. Depth defaults are
+operator policy for today's model generation — effort levels do not port across models; revisit
+the defaults when a generation changes.
+
+Orchestration shares the launch control with depth and implies xhigh: ultracode on Claude,
+`model_reasoning_effort=ultra` on Codex. Sol and Terra support `ultra`; Luna does not — an
+orchestrated C-tier codex story bumps to Terra.
+
+Grading:
+
+- **S** — ambiguous, architectural, novel design; a wrong turn is very expensive.
+- **A** — hard but well-scoped cross-cutting work, mechanistic-leaning.
+- **B** — multi-file but well-trodden.
+- **C** — contained mechanical work; most `loop: direct` stories.
+
+Like `driver_hint:`, `tier:` derives from the work's nature ONLY — never from today's capacity.
+For S and A, `driver_hint` must equal the tier's harness (S → `claude`, A → `codex`); `either`
+is invalid there, and a contradictory pair (`tier: S` + `driver_hint: codex`) is a planning
+error.
+
 ## Story Doc Shape
 
 Each story doc is a prompt for fresh investigation, not a stale implementation spec. Use anchors that survive drift: symbols, behaviors, commands, queries, and files, not fragile line numbers unless the line itself is the evidence.
@@ -135,6 +170,8 @@ flow: mechanical             # mechanical | design-heavy
 loop: full                   # full | direct — planning depth only; the lifecycle contract is identical
 driver_hint: codex           # codex | claude | either — affinity from work nature only; resolved at handoff time
 driver_why: <one line tying the hint to the work's nature>
+tier: B                      # opus (claude) / gpt-5.6-terra (codex) — the letter governs; the comment is advisory
+tier_why: <one line grading the difficulty>
 branch: sprint/07-<slug>
 depends_on: []
 wave: 1
@@ -182,6 +219,20 @@ tracker_card:
 - [ ] <observable success criterion>
 - [ ] If output is a file, PDF, email, export, or other artifact, a human opened it and confirmed it.
 ```
+
+`effort:` is written only when the story deviates from its tier's depth default, and then an
+`effort_why:` line is required — an absent `effort:` means "the current row default, resolved at
+render time", so defaults never go stale inside story docs:
+
+```yaml
+effort: medium
+effort_why: pure mechanical sweep, low ambiguity
+```
+
+`orchestrate: true` is written only when true: the story itself is coverage-shaped and
+fire-and-verify — an audit, a migration, a repo-wide sweep where missing something costs more
+than compute. It implies xhigh depth; never combine it with `effort:`. Interactive or
+redirectable work never gets it (orchestrated workflows cannot pause for input).
 
 `conversation:` is `Story NN: <Three Descriptive Words>`, written by the planner. It matches the
 tracker's card-title convention, so the card and the executor's session share one name.
