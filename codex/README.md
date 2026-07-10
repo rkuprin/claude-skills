@@ -34,9 +34,11 @@ codex-home/config.toml -> ~/.codex/config.toml   # inherit model default + per-p
 and runs `CODEX_HOME=codex-home codex exec …`. So the charter applies **only on skill runs**;
 your direct `codex` invocations are unaffected.
 
-Posture (fixed): `--sandbox workspace-write`, `-c approval_policy=never`, network on,
-reasoning `high` (override per run with `/codex … --effort medium|low`), model inherited
-(no `-m`). Data access is **per-project** — the skill hardcodes no database; it uses whatever
+Posture (fixed): `--sandbox workspace-write`, `-c approval_policy=never`, network on.
+Model and effort are routed per run by lane: contained → `gpt-5.6-terra` at `xhigh`;
+premise-critical → `gpt-5.6-sol` at `xhigh`; escalation (`max`/`ultra`, Sol only) needs a
+stated justification; the floor is Terra, never Luna. `--model`/`--effort` override per run.
+Data access is **per-project** — the skill hardcodes no database; it uses whatever
 access the project provides (env vars, the repo's CLI tooling, a project-scoped MCP server).
 
 ## Optional: free the global AGENTS.md slot
