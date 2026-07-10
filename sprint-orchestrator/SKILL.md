@@ -80,11 +80,25 @@ lifecycle contract is identical — `loop:` never waives trailers, branch discip
 1. Collect raw sprint inputs without filtering.
 2. Verify every candidate against current source truth. If a premise is stale, already shipped, impossible, or out of scope, cut or reframe it and record why.
 3. Split surviving work into stories by blast radius, file ownership, and dependency order. Prefer serial stories for shared hotspots over optimistic parallelism.
-4. Write `00-overview.md`, `STORY-FEEDBACK.md`, and one story doc per survivor.
+4. Write `00-overview.md`, `STORY-FEEDBACK.md`, and one story doc per current-wave survivor; record deferred waves as stubs in the overview.
 5. Ask the user how Claude/Codex capacity looks right now; note the answer in `00-overview.md` as plan-time context. Capacity never changes a `driver_hint` — it informs the recap's routing suggestions and the handoff-time resolution.
-6. Recap open stories with kickoff prompts and any unresolved product questions.
+6. Recap open stories with kickoff prompts, any unresolved product questions, and the pending wave checkpoint, if any.
 
-`00-overview.md` must include merge order, dependency edges, shared file hotspots, cut items with reasons, and the path to `STORY-FEEDBACK.md`.
+`00-overview.md` must include merge order, dependency edges, shared file hotspots, deferred-wave stubs, cut items with reasons, and the path to `STORY-FEEDBACK.md`.
+
+## Waves Are Planned Incrementally
+
+Stories that can start now form wave 1 and get full story docs. Work that is blocked on wave-1
+outcomes is deferred: allocate its story number, record a stub in `00-overview.md` — number,
+working title, one-line intent, what blocks it, and which wave-1 outcome could reshape it — and
+write no story doc yet. Wave-1 implementation changes the ground truth a deferred doc would be
+written against; a doc written today would be stale by its own wave.
+
+At each wave boundary (the wave's stories read `DONE` in `sprint-status.sh`), the user re-invokes
+this skill on the sprint directory. The planner then reads `sprint-status.sh` output and
+`STORY-FEEDBACK.md`, gives its opinion on sprint progress — what landed, what drifted, what
+feedback changes the remaining plan — re-verifies each stub against the now-current code, and
+writes the next wave's story docs, cutting or reframing stubs whose premise no longer holds.
 
 ## Integration Is Planned Here, Performed Elsewhere
 

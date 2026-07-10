@@ -42,6 +42,10 @@ docs/sprints/<sprint>/
 └── 07-<slug>.md
 ```
 
+Only the current wave gets full story docs. Blocked work is deferred — story number allocated and
+a stub recorded in the overview — and gets its doc at the wave checkpoint: re-invoke the skill on
+the sprint directory when a wave lands, and it reassesses progress before writing the next wave.
+
 Set `execution: autonomous` or `execution: stop-at-pr` once in `00-overview.md`. The planner copies
 it into every story doc, so each doc stands alone and never has to read the overview to learn whether
 it may merge.
