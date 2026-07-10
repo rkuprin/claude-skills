@@ -88,6 +88,25 @@ Trunk defaults to `origin/main`; override with `SPRINT_TRUNK`. Stories are enume
 `[0-9]*.md`, skipping `00-*`, so suffixed numbers like `06b` are first-class. Exit code 2 on a bad
 sprint directory or an unresolvable trunk.
 
+## Render a wave's handoffs
+
+`sprint-status.sh` tells you what is done; `wave-handoffs.sh` (beside it) turns a wave into the sheet
+you actually paste from. Given a sprint dir and a wave number, it prints — from each story doc's
+frontmatter and its `/goal` line — a recap of the wave plus one ready-to-paste `agent-handoff`
+(story-execution) kickoff per story, every value resolved. Redirect it to one file per wave:
+
+```bash
+~/.claude/skills/sprint-orchestrator/wave-handoffs.sh docs/sprints/<sprint> 4 > ~/.handoffs/<sprint>-wave4.md
+```
+
+Each kickoff mirrors `agent-handoff/SKILL.md`'s story-execution template — that skill file is the
+source of truth for the shape; this script fills it in. `execution:` → the EXECUTION MODE line,
+`loop:` → the planning-depth line, `driver_hint:` → the affinity default and the EXECUTION.md path
+(`~/.codex` vs `~/.claude`); capability, your explicit say, and current availability still override
+the driver at paste time. It expects the current frontmatter (`conversation`/`execution`/`loop`/
+`driver_hint`); pre-convention docs render with those fields blank. Exit code 2 on a bad sprint
+directory or a wave with no stories.
+
 ## The rule that makes it work
 
 Every commit the executor makes for a story carries two trailers:
