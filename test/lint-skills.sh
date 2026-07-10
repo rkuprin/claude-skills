@@ -79,5 +79,30 @@ grep -F 'GOOD (late checkpoint)' -A5 "$HAND" | grep -qF 'approved driver' \
   || no "handoff: goal example names all three interrupts"
 has   "handoff: executor never invokes it"   "never invoked by the executing" "$HAND"
 
+# --- agent-handoff (SKILL.md) ---
+AH="$HERE/../agent-handoff/SKILL.md"
+# Frontmatter sanity without a YAML parser: name matches the directory, and the description is a
+# quoted scalar — the retired codex-execution-handoff description was unquoted, contained
+# "Triggers:", and silently failed YAML parsing. Grep can prevent that class.
+grep -q '^name: agent-handoff$' "$AH" 2>/dev/null && ok "handoff: name matches directory" || no "handoff: name matches directory"
+grep -q '^description: "' "$AH" 2>/dev/null && ok "handoff: description is a quoted scalar" || no "handoff: description is a quoted scalar"
+hasnt "handoff: model-invocable (no manual-only guard)" "disable-model-invocation" "$AH"
+has   "handoff: /goal ends every prompt"     "/goal"              "$AH"
+has   "handoff: names Codex.app"             "Codex.app"          "$AH"
+has   "handoff: report-only default"         "Report-only by default" "$AH"
+has   "handoff: mutation grant"              "mutation grant"     "$AH"
+has   "handoff: workspace identity (SHA)"    "HEAD SHA"           "$AH"
+has   "handoff: task files in ~/.handoffs"   "~/.handoffs"        "$AH"
+has   "handoff: EXECUTION MODE inline"       "EXECUTION MODE"     "$AH"
+has   "handoff: stop-at-pr rendered loud"    "STOP AT PR — DO NOT MERGE OR DEPLOY" "$AH"
+has   "handoff: codex contract path"         "~/.codex/skills/agent-handoff/EXECUTION.md" "$AH"
+has   "handoff: claude contract path"        "~/.claude/skills/agent-handoff/EXECUTION.md" "$AH"
+has   "handoff: task mode excludes sprint stories" "numbered sprint story" "$AH"
+has   "handoff: capability outranks affinity" "Capability outranks affinity" "$AH"
+has   "handoff: hard rules name the story trailer"  "Story: {NN}"   "$AH"
+has   "handoff: hard rules name the sprint trailer" "Sprint: {SPRINT}" "$AH"
+bad=$(grep -nF 'git checkout main' "$AH" 2>/dev/null | grep -viE 'never|do not|don.t|instead of' || true)
+[ -z "$bad" ] && ok "handoff: git checkout main only ever negated" || no "handoff: git checkout main appears as an instruction ($bad)"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
