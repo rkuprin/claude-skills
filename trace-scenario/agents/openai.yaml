@@ -1,0 +1,4 @@
+interface:
+  display_name: "Trace Scenario"
+  short_description: "Trace live scenarios into evidence"
+  default_prompt: "Use $trace-scenario to trace this scenario through the named environment and write an evidence dossier."
