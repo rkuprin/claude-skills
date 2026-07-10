@@ -31,6 +31,7 @@ story 15 tier-s-conflict  'driver_hint: codex'  'tier: S' 'tier_why: fixture'
 story 16 tier-q-unknown   'driver_hint: claude' 'tier: Q' 'tier_why: fixture'
 story 17 tier-s-either    'driver_hint: either' 'tier: S' 'tier_why: fixture'
 story 18 tier-c-orch-effort 'driver_hint: claude' 'tier: C' 'tier_why: fixture' 'orchestrate: true' 'effort: medium' 'effort_why: fixture'
+story 19 bare-legacy
 
 OUTPUT="$("$WH" "$SPRINT" 1 2>&1)" && ok "wave-handoffs runs" || { no "wave-handoffs runs"; printf '%s\n' "$OUTPUT"; }
 
@@ -47,6 +48,7 @@ has "codex hint conflicts with tier S falls back to claude" "$OUTPUT" 'Launch: f
 has "unknown tier Q defaults to B"    "$OUTPUT" "Launch: opus · xhigh (tier B — unknown tier 'Q', default B assumed)"
 has "either on one-cell tier S flags invalid hint" "$OUTPUT" 'Launch: fable · high (tier S — driver_hint either is invalid for tier S, claude only)'
 has "orchestrate overrides explicit effort with marker" "$OUTPUT" 'Launch: sonnet · ultracode (tier C — effort ignored, orchestrate implies xhigh)'
+has "bare legacy doc renders both cells" "$OUTPUT" 'Launch: opus · xhigh (claude) or gpt-5.6-terra · xhigh (codex) (tier B — tier unset, default B assumed)'
 has "kickoff block emits bold Launch line" "$OUTPUT" '**Launch: '
 
 in_fence="$(printf '%s\n' "$OUTPUT" | awk '/^```/{f=!f;next} f' | grep -c 'Launch:')"

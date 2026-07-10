@@ -33,7 +33,7 @@ frontmatter() { awk 'seen&&/^---[[:space:]]*$/{exit} /^---[[:space:]]*$/{seen=1;
 # whitespace, and one layer of quotes. Only used for comment-free scalar keys.
 fm_get() {
   frontmatter "$1" | grep -m1 "^$2:[[:space:]]" \
-    | sed -E "s/^$2:[[:space:]]*//; s/[[:space:]]+#.*$//; s/[[:space:]]+$//; s/^\"(.*)\"$/\1/; s/^'(.*)'$/\1/"
+    | sed -E "s/^$2:[[:space:]]*//; s/[[:space:]]+#.*$//; s/[[:space:]]+$//; s/^\"(.*)\"$/\1/; s/^'(.*)'$/\1/" || true
 }
 
 # First non-empty line after the `## Objective` heading.
