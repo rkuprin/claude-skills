@@ -10,10 +10,15 @@ re-run the installer."
 | Skill | What it does |
 |---|---|
 | [`codex`](codex/) | Summons OpenAI Codex as an independent second perspective |
+| [`claude-reviewer`](claude-reviewer/) | The mirror of `codex`: Codex summons Claude Code as an independent reviewer |
 | [`sprint-orchestrator`](sprint-orchestrator/) | Turns raw sprint inputs into verified story handoff docs; derives story state from git |
 | [`agent-handoff`](agent-handoff/) | Hands bounded work to another agent — task, visual-validation, and story-execution modes |
+| [`trace-scenario`](trace-scenario/) | Traces a real scenario through a named environment and writes an evidence dossier for planning |
 
-The last two are companions: one plans, the other hands off.
+`sprint-orchestrator` and `agent-handoff` are companions: one plans, the other hands off.
+`claude-reviewer` is Codex-facing; it installs into Claude's list too (the installer links
+everything into both), but carries `disable-model-invocation: true` there — from Claude it
+would be circular.
 
 ## Layout
 
