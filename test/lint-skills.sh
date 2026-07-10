@@ -82,6 +82,8 @@ has   "contract: evidence outside the repo"  ".sprint-evidence"   "$AHEXEC"
 has   "contract: stop-at-pr collapse"        "do not merge, do not deploy" "$AHEXEC"
 has   "contract: tracker done intent"        "card.done"          "$AHEXEC"
 has   "contract: third interrupt condition"  "approved driver can drive" "$AHEXEC"
+has   "contract: first interrupt condition"  "wrong premise"      "$AHEXEC"
+has   "contract: second interrupt condition" "keep prod green"    "$AHEXEC"
 hasnt "contract: no per-sprint HANDOFF.md"   "HANDOFF.md"         "$AHEXEC"
 hasnt "contract: no CLAIMED rename"          ".CLAIMED.md"        "$AHEXEC"
 bad=$(grep -nF 'git checkout main' "$AHEXEC" 2>/dev/null | grep -viE 'never|do not|don.t|instead of' || true)
