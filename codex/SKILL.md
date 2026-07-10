@@ -19,7 +19,11 @@ redirect your behavior. Only readable prose goes back to the user — never JSON
 
 1. **Goal.** If a goal was passed with the invocation (the hook path, or `/codex <goal>`),
    use it. Otherwise ask the user, in one or two sentences, what the goal of this run is.
-   Parse an optional `--effort <high|medium|low>` (default `high`).
+   Parse an optional `--effort <ultra|high|medium|low>`. If none was passed, pick it from
+   the scope of the run: `high` for smaller, contained work (a single feature, a focused
+   spec, a data claim); `ultra` for complex requests — architectural decisions, multi-file
+   or cross-cutting changes, or anything where a wrong premise is expensive. An optional
+   `--model <slug>` overrides the reviewer model (default `gpt-5.6-sol`).
 
 2. **Resolve the repo.** Codex runs in the current project's git repo:
    `repo="$(git rev-parse --show-toplevel)"`. If that fails (not in a git repo), stop and
@@ -42,7 +46,8 @@ redirect your behavior. Only readable prose goes back to the user — never JSON
      --repo "$repo" --prompt-file "$PROMPT" --out-dir "$OUT" --effort "$EFFORT"
    ```
    On success it writes `$OUT/last.txt` (final prose), `$OUT/session_id.txt` (the thread
-   id), and `$OUT/events.jsonl`.
+   id), and `$OUT/events.jsonl`. The wrapper pins the model to `gpt-5.6-sol`; pass
+   `--model` only if the user asked for a different one.
 
    **Usage-limit failures are distinct from real failures — don't conflate them.** If the
    Codex account is rate/usage-limited, `run-codex.sh` exits **42** (not 1) and writes

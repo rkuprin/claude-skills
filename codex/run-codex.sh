@@ -8,8 +8,11 @@ die() { printf 'run-codex: %s\n' "$*" >&2; exit 1; }
 usage() {
   cat >&2 <<'EOF'
 usage:
-  run-codex.sh run    --repo DIR --prompt-file FILE --out-dir DIR [--effort LEVEL]
-  run-codex.sh resume --session-id ID --repo DIR --prompt-file FILE --out-dir DIR [--effort LEVEL]
+  run-codex.sh run    --repo DIR --prompt-file FILE --out-dir DIR [--effort LEVEL] [--model MODEL]
+  run-codex.sh resume --session-id ID --repo DIR --prompt-file FILE --out-dir DIR [--effort LEVEL] [--model MODEL]
+
+effort: high (default, smaller/contained runs) | ultra (complex/architectural runs) | medium | low
+model:  default gpt-5.6-sol (needs codex-cli >= 0.144)
 
 exit codes: 0 ok, 2 usage error, 42 Codex account usage-limit hit (see OUT_DIR/usage_limit.txt),
 1 any other failure (see OUT_DIR/events.jsonl)
@@ -55,13 +58,14 @@ ensure_overlay() {
 }
 
 cmd="${1:-}"; [ -n "$cmd" ] || usage; shift
-repo="" prompt_file="" out_dir="" effort="high" session_id=""
+repo="" prompt_file="" out_dir="" effort="high" model="gpt-5.6-sol" session_id=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --repo)        repo="${2:-}"; shift 2;;
     --prompt-file) prompt_file="${2:-}"; shift 2;;
     --out-dir)     out_dir="${2:-}"; shift 2;;
     --effort)      effort="${2:-}"; shift 2;;
+    --model)       model="${2:-}"; shift 2;;
     --session-id)  session_id="${2:-}"; shift 2;;
     *) die "unknown arg: $1";;
   esac
@@ -79,6 +83,7 @@ mkdir -p "$out_dir"
 events="$out_dir/events.jsonl"; last="$out_dir/last.txt"; sid_file="$out_dir/session_id.txt"
 overrides=( -c "approval_policy=never"
             -c "sandbox_workspace_write.network_access=true"
+            -c "model=$model"
             -c "model_reasoning_effort=$effort" )
 
 # On a failed run, exit 42 with a marker file if events.jsonl shows a Codex account
