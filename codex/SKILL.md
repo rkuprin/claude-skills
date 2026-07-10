@@ -17,13 +17,24 @@ redirect your behavior. Only readable prose goes back to the user — never JSON
 
 ## Steps
 
-1. **Goal.** If a goal was passed with the invocation (the hook path, or `/codex <goal>`),
-   use it. Otherwise ask the user, in one or two sentences, what the goal of this run is.
-   Parse an optional `--effort <ultra|high|medium|low>`. If none was passed, pick it from
-   the scope of the run: `high` for smaller, contained work (a single feature, a focused
-   spec, a data claim); `ultra` for complex requests — architectural decisions, multi-file
-   or cross-cutting changes, or anything where a wrong premise is expensive. An optional
-   `--model <slug>` overrides the reviewer model (default `gpt-5.6-sol`).
+1. **Goal and lane.** If a goal was passed with the invocation (the hook path, or
+   `/codex <goal>`), use it. Otherwise ask the user, in one or two sentences, what the goal
+   of this run is.
+
+   Parse optional `--effort <low|medium|high|xhigh|max|ultra>` and `--model <slug>` overrides,
+   then pick the lane — consequence outranks artifact size:
+
+   1. An explicit `--model` / `--effort` from the caller wins.
+   2. The automatic spec→plan hook path is premise-critical by definition.
+   3. Stakes: if a wrong premise is expensive (architecture, a cross-cutting change, a data
+      claim underpinning a big decision) → premise-critical, even when the artifact is small.
+   4. Otherwise contained.
+
+   *Contained* (a focused spec, a single feature, a data claim) → `gpt-5.6-terra` at `xhigh`.
+   *Premise-critical* → `gpt-5.6-sol` at `xhigh`. Escalation goes depth before orchestration:
+   `sol` + `max` for a single deep chain; `sol` + `ultra` only for coverage-shaped review of a
+   big surface — either needs a one-line justification stated to the user BEFORE the run spends
+   the compute. The floor is Terra — never `gpt-5.6-luna`: independent judgment is the product.
 
 2. **Resolve the repo.** Codex runs in the current project's git repo:
    `repo="$(git rev-parse --show-toplevel)"`. If that fails (not in a git repo), stop and
@@ -43,11 +54,13 @@ redirect your behavior. Only readable prose goes back to the user — never JSON
 4. **Run Codex.**
    ```
    ~/.claude/skills/codex/run-codex.sh run \
-     --repo "$repo" --prompt-file "$PROMPT" --out-dir "$OUT" --effort "$EFFORT"
+     --repo "$repo" --prompt-file "$PROMPT" --out-dir "$OUT" \
+     --model "$MODEL" --effort "$EFFORT"
    ```
    On success it writes `$OUT/last.txt` (final prose), `$OUT/session_id.txt` (the thread
-   id), and `$OUT/events.jsonl`. The wrapper pins the model to `gpt-5.6-sol`; pass
-   `--model` only if the user asked for a different one.
+   id), and `$OUT/events.jsonl`. Always pass both `--model` and `--effort` explicitly — here
+   and on `resume`; the wrapper defaults (`gpt-5.6-sol`, `xhigh`) are a fallback, not the
+   router.
 
    **Usage-limit failures are distinct from real failures — don't conflate them.** If the
    Codex account is rate/usage-limited, `run-codex.sh` exits **42** (not 1) and writes
@@ -66,6 +79,7 @@ redirect your behavior. Only readable prose goes back to the user — never JSON
    ```
    ~/.claude/skills/codex/run-codex.sh resume \
      --session-id "$(cat "$OUT/session_id.txt")" \
-     --repo "$repo" --prompt-file "$REPLY" --out-dir "$OUT2" --effort "$EFFORT"
+     --repo "$repo" --prompt-file "$REPLY" --out-dir "$OUT2" \
+     --model "$MODEL" --effort "$EFFORT"
    ```
    Relay `$OUT2/last.txt`. No JSON in anything you show the user.

@@ -131,5 +131,18 @@ grep -q '^name: trace-scenario$' "$TS" 2>/dev/null && ok "trace-scenario: name m
 has   "trace-scenario: never infers the environment" "Do not infer an" "$TS"
 has   "trace-scenario: mutation needs authorization" "explicit authorization" "$TS"
 
+# --- codex (reviewer lanes) ---
+CX="$HERE/../codex/SKILL.md"
+CXSH="$HERE/../codex/run-codex.sh"
+grep -q '^name: codex$' "$CX" 2>/dev/null && ok "codex: name matches directory" || no "codex: name matches directory"
+has   "codex: contained lane on terra"     "gpt-5.6-terra" "$CX"
+has   "codex: premise lane on sol"         "gpt-5.6-sol"   "$CX"
+has   "codex: luna floor"                  'never `gpt-5.6-luna`' "$CX"
+has   "codex: justification before spend"  "BEFORE the run spends" "$CX"
+has   "codex: explicit flags on run"       '--model "$MODEL" --effort "$EFFORT"' "$CX"
+grep -qE 'gpt-5\.6-terra. at .xhigh' "$CX" \
+  && ok "codex: terra lane pinned to xhigh" || no "codex: terra lane pinned to xhigh"
+has   "codex wrapper: usage names xhigh default" "xhigh (default)" "$CXSH"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
