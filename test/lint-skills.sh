@@ -111,6 +111,7 @@ has   "contract: tracker done intent"        "card.done"          "$AHEXEC"
 has   "contract: third interrupt condition"  "approved driver can drive" "$AHEXEC"
 has   "contract: first interrupt condition"  "wrong premise"      "$AHEXEC"
 has   "contract: second interrupt condition" "keep prod green"    "$AHEXEC"
+has   "contract: orchestration never waives the contract" "never waives this contract" "$AHEXEC"
 hasnt "contract: no per-sprint HANDOFF.md"   "HANDOFF.md"         "$AHEXEC"
 hasnt "contract: no CLAIMED rename"          ".CLAIMED.md"        "$AHEXEC"
 bad=$(grep -nF 'git checkout main' "$AHEXEC" 2>/dev/null | grep -viE 'never|do not|don.t|instead of' || true)

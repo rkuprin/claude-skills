@@ -38,6 +38,10 @@ or a genuine product ambiguity, STOP and ask.
   This is the only record that the story landed. A commit without both is invisible to sprint
   status.
 
+- Orchestration (ultracode / `ultra`) never waives this contract: every commit — including
+  commits produced by subagents or workflow stages — carries both trailers, `ownership.owns` /
+  `do_not_touch` bind all subagents, and there is a single writer per file at any moment.
+
 ## 3. Validate locally
 
 Tests + typecheck; drive the story doc's Browser Verification locally; capture the "after"
