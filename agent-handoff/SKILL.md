@@ -23,6 +23,40 @@ work. Capability outranks affinity: anything that must show rendered screenshots
 `codex-app` — the CLI cannot render images and is never a silent substitute. If Codex.app capacity
 is unavailable, visual work is blocked; say so instead of downgrading.
 
+## Model and effort — the Launch line
+
+Every rendered handoff begins with a Launch line addressed to YOU,
+the operator, placed outside the fenced prompt block — it is launch advice, never part of
+what gets pasted into the executor:
+
+    Launch: Codex.app · gpt-5.6-terra · xhigh   (tier B — same-tier alternative: opus on Claude)
+
+CLI targets get a recommended base invocation instead — you complete repo and prompt transport:
+`codex exec -m gpt-5.6-terra -c model_reasoning_effort=xhigh` /
+`claude --model opus --effort xhigh`.
+
+| Tier | Claude (`--model`) | Codex (`-m`) | Depth default |
+|------|--------------------|--------------|---------------|
+| S | `fable` | — | high (xhigh only when capability-limited) |
+| A | — | `gpt-5.6-sol` | xhigh |
+| B | `opus` | `gpt-5.6-terra` | xhigh |
+| C | `sonnet` | `gpt-5.6-luna` | high |
+
+Resolve model and effort from the story's `tier:` × `driver_hint:` against this ladder at render
+time — the tier letter governs, not the story's inline comment. An absent `effort:` means the
+row's depth default, resolved now; an explicit `effort:` (with its `effort_why:`) wins.
+`driver_hint: either` lists both cells. `orchestrate: true` renders ultracode on Claude targets
+and `ultra` on the tier's codex model — Luna has no `ultra`, so an orchestrated C-tier codex
+story bumps to Terra. A doc without `tier:` (pre-convention): infer a tier from the work's
+nature using the grading in `sprint-orchestrator/SKILL.md`, use the current cell default, assume
+no orchestration — and say so in the one-line mode/target statement. Never render a blank Launch
+line. Depth defaults are operator policy for today's model generation; revisit when a generation
+changes.
+
+The Launch line is a recommendation — you decide at paste time. One swap worth knowing: when
+Claude capacity is free, a B story can run `fable` at low/medium instead of `opus` at xhigh —
+early evidence says that matches for similar burn.
+
 ## The prompt shape (every mode)
 
 ```
@@ -53,6 +87,9 @@ report, a fixed config, a research answer. No lifecycle machinery: no trailers, 
 deploy gates. Never use task mode for a numbered sprint story — that is story-execution, whatever
 its `loop:` value.
 
+Grade the work with the ladder's tiers yourself (same grading as the sprint planner) and fold
+the pick into the one-line mode/target statement: mode, target, tier, model, effort, why.
+
 ## Mode: visual-validation
 
 For "implemented here, confirm it there". **Report-only by default:** the receiver drives the flows
@@ -67,7 +104,10 @@ Beyond the standard contents, the task file must carry:
   changes are present — without this a fresh session may never see the sender's uncommitted work;
 - how to launch: dev server command, port, test account.
 
-Target is `codex-app`, always. The receiver ends its reply with the test scenario (steps, expected
+Target is `codex-app`, always; the Launch line defaults to `gpt-5.6-luna` · `high` — routine
+mechanical driving needs no more (and must not silently inherit a global `ultra` config).
+Escalate tier or effort when the ask involves ambiguous design judgment, accessibility review,
+or broad multi-surface validation. The receiver ends its reply with the test scenario (steps, expected
 vs observed) and inline screenshots grouped per surface — written for the user, not for another
 agent. Each shot names its driver and viewport; one line each, no provenance table.
 
@@ -102,6 +142,8 @@ render time; no placeholders left for the executor.
   `loop: full` stories belong in an interactive session (`codex-app` or `claude-session`).
 - The story's `driver_hint:` / `driver_why:` frontmatter is the affinity input at the final
   resolution step; capability and the user's explicit say still outrank it.
+- `tier:` / `effort:` / `orchestrate:` resolve to the Launch line per the ladder above; render
+  the Launch line before the fenced kickoff prompt, never inside it.
 - The contract path is spelled for the target harness:
   `~/.codex/skills/agent-handoff/EXECUTION.md` for Codex targets,
   `~/.claude/skills/agent-handoff/EXECUTION.md` for Claude targets.

@@ -82,6 +82,20 @@ has   "handoff: hard rules name the story trailer"  "Story: {NN}"   "$AH"
 has   "handoff: hard rules name the sprint trailer" "Sprint: {SPRINT}" "$AH"
 bad=$(grep -nF 'git checkout main' "$AH" 2>/dev/null | grep -viE 'never|do not|don.t|instead of' || true)
 [ -z "$bad" ] && ok "handoff: git checkout main only ever negated" || no "handoff: git checkout main appears as an instruction ($bad)"
+has   "handoff: Launch line rendered"        "Launch:"            "$AH"
+has   "handoff: Launch line outside the fence" "outside the fenced prompt block" "$AH"
+has   "handoff: luna orchestration bump"     "bumps to Terra"     "$AH"
+has   "handoff: recommended base invocation" "recommended base invocation" "$AH"
+grep -qE 'gpt-5\.6-luna.*`high`' "$AH" \
+  && ok "handoff: visual-validation defaults luna+high on one line" \
+  || no "handoff: visual-validation defaults luna+high on one line"
+ah_rows="$(grep -E '^\| [SABC] \|' "$AH")"
+[ "$(printf '%s\n' "$ah_rows" | grep -c .)" = 4 ] \
+  && ok "handoff: ladder has exactly 4 tier rows" \
+  || no "handoff: ladder has exactly 4 tier rows (got: $(printf '%s\n' "$ah_rows" | grep -c .))"
+[ -n "$orch_rows" ] && [ "$orch_rows" = "$ah_rows" ] \
+  && ok "ladder: orchestrator and handoff tables in sync" \
+  || no "ladder: orchestrator and handoff tables diverge"
 
 # --- agent-handoff (EXECUTION.md, the lifecycle contract) ---
 AHEXEC="$HERE/../agent-handoff/EXECUTION.md"
