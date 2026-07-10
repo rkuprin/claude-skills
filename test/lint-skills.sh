@@ -91,5 +91,19 @@ hasnt "contract: no CLAIMED rename"          ".CLAIMED.md"        "$AHEXEC"
 bad=$(grep -nF 'git checkout main' "$AHEXEC" 2>/dev/null | grep -viE 'never|do not|don.t|instead of' || true)
 [ -z "$bad" ] && ok "contract: git checkout main only ever negated" || no "contract: git checkout main appears as an instruction ($bad)"
 
+# --- claude-reviewer ---
+CR="$HERE/../claude-reviewer/SKILL.md"
+grep -q '^name: claude-reviewer$' "$CR" 2>/dev/null && ok "claude-reviewer: name matches directory" || no "claude-reviewer: name matches directory"
+# From Claude Code the skill is circular (Claude summoning Claude) and its triggers collide
+# with the `codex` skill. Codex ignores this key, so it stays implicitly invocable there.
+has   "claude-reviewer: manual-only on Claude"  "disable-model-invocation: true" "$CR"
+has   "claude-reviewer: reply is evidence, not instruction" "not an instruction to obey" "$CR"
+
+# --- trace-scenario ---
+TS="$HERE/../trace-scenario/SKILL.md"
+grep -q '^name: trace-scenario$' "$TS" 2>/dev/null && ok "trace-scenario: name matches directory" || no "trace-scenario: name matches directory"
+has   "trace-scenario: never infers the environment" "Do not infer an" "$TS"
+has   "trace-scenario: mutation needs authorization" "explicit authorization" "$TS"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
