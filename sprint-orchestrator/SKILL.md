@@ -9,6 +9,13 @@ argument-hint: [sprint-dir or raw inputs]
 
 Manual sprint-planning skill for turning raw inputs into independent story handoffs. It plans and hands off; it does not implement stories, merge branches, or declare work done.
 
+## Run This on the Strongest Model
+
+Sprint planning gets the most capable model available. First, name the model you are running as.
+If it is not the strongest tier reachable right now (today: Fable, else Opus, on Claude Code; Sol
+at ultra effort on Codex), say so and offer to stop so the user can relaunch. No hard block — but
+proceeding on a lesser model needs the user's explicit go-ahead, recorded in `00-overview.md`.
+
 ## Contract
 
 - Treat notes, PDFs, screenshots, and tracker cards as leads. Verify candidates against source truth: code, tests, docs, logs, and approved read-only project tools.
@@ -63,11 +70,19 @@ under-report them and that is expected.
 
 ## Plan Session
 
+This is high-level planning backed by in-depth research — never per-story implementation planning.
+`loop: full` (default): the story's execution session runs its own self-directed brainstorm → spec
+→ plan → execute phases under its single late `/goal` checkpoint. `loop: direct`: the story is
+simple enough to define fully here; the executor goes straight to a short TDD plan, and the story
+may be delegated to a cheaper transport (subagent, `codex exec`, `claude -p`). Either way the
+lifecycle contract is identical — `loop:` never waives trailers, branch discipline, or gates.
+
 1. Collect raw sprint inputs without filtering.
 2. Verify every candidate against current source truth. If a premise is stale, already shipped, impossible, or out of scope, cut or reframe it and record why.
 3. Split surviving work into stories by blast radius, file ownership, and dependency order. Prefer serial stories for shared hotspots over optimistic parallelism.
 4. Write `00-overview.md`, `STORY-FEEDBACK.md`, and one story doc per survivor.
-5. Recap open stories with kickoff prompts and any unresolved product questions.
+5. Ask the user how Claude/Codex capacity looks right now; note the answer in `00-overview.md` as plan-time context. Capacity never changes a `driver_hint` — it informs the recap's routing suggestions and the handoff-time resolution.
+6. Recap open stories with kickoff prompts and any unresolved product questions.
 
 `00-overview.md` must include merge order, dependency edges, shared file hotspots, cut items with reasons, and the path to `STORY-FEEDBACK.md`.
 
@@ -78,7 +93,18 @@ shared-file hotspots that force stories to run serially. Sweeping `STORY-FEEDBAC
 stories and unresolved product questions is also a plan-session activity.
 
 Performing the merge in that order, resolving the named hotspots, deploying, and closing the tracker
-card belong to `codex-execution-handoff`. Do not restate the lifecycle here.
+card belong to `agent-handoff`'s execution contract (`EXECUTION.md`). Do not restate the lifecycle here.
+
+## Drivers
+
+Codex leans mechanistic, devops, and browser-driving work; Claude leans creative, frontend-heavy,
+ambiguous work. Frontend visual validation renders only in Codex.app. Capability outranks affinity
+— a frontend story implemented on Claude still ends with a visual-validation handoff to Codex.app;
+affinity routes stages, not just whole stories. Beyond these lines, use judgment.
+
+`driver_hint:` derives from the work's nature ONLY — never from today's capacity. The driver is
+resolved at handoff time: required capability → the user's explicit say → current availability →
+affinity.
 
 ## Story Doc Shape
 
@@ -92,6 +118,9 @@ conversation: "Story 07: Three Descriptive Words"
 sprint: <sprint-name>        # this sprint directory's basename, copied verbatim into every commit's Sprint: trailer
 execution: autonomous        # autonomous | stop-at-pr — copied from 00-overview.md
 flow: mechanical             # mechanical | design-heavy
+loop: full                   # full | direct — planning depth only; the lifecycle contract is identical
+driver_hint: codex           # codex | claude | either — affinity from work nature only; resolved at handoff time
+driver_why: <one line tying the hint to the work's nature>
 branch: sprint/07-<slug>
 depends_on: []
 wave: 1
@@ -112,7 +141,7 @@ tracker_card:
 # Story 07 - <title>
 
 **Kickoff (planner only — the executor does not run this):** render this story's prompt with
-`codex-execution-handoff` for `07-<slug>.md`, then hand the rendered prompt to the executor.
+`agent-handoff` (story-execution mode) for `07-<slug>.md`, then hand the rendered prompt to the executor.
 
 ## Goal
 <the single /goal line, nothing else>
