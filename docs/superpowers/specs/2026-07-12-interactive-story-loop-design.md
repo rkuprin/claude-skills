@@ -138,9 +138,10 @@ story stay distinguishable:
 cannot see it (the executor may be in an isolated worktree). Mechanics: commit the append as a
 docs-only commit — carrying **no** `Story:`/`Sprint:` trailers; a trailered commit reaching trunk
 would flip the handed-back story to DONE — on a `sprint-docs/<event-id>` branch cut from trunk
-(not the claim branch, which is about to be deleted). `execution: autonomous` → merge it to trunk
-immediately; `stop-at-pr` → open a docs-only PR. Either way, release the claim per §2 and stop:
-story reads TODO. The operator re-invokes `/sprint-orchestrator` on the sprint directory. Under
+(not the claim branch, whose fate §2 governs). `execution: autonomous` → merge it to trunk
+immediately; `stop-at-pr` → open a docs-only PR. Either way, release the claim per §2 (which
+conditions release on the branch being a pure claim) and stop. The operator re-invokes
+`/sprint-orchestrator` on the sprint directory. Under
 `stop-at-pr` the docs PR must merge before the planner re-invocation — the sweep reads trunk, and
 an unmerged event is invisible to it.
 
