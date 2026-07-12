@@ -136,10 +136,15 @@ render time; no placeholders left for the executor.
 - `execution:` in the story doc becomes the EXECUTION MODE line: `autonomous` →
   `AUTONOMOUS — merge, deploy, verify on prod.`; `stop-at-pr` →
   `STOP AT PR — DO NOT MERGE OR DEPLOY.`
-- `loop:` sets the planning-depth sentence: `full` → run the contract's self-directed
-  brainstorm → spec → plan phase first; `direct` → the story is fully defined, go straight to a
-  short TDD plan. `loop: direct` also allows a `codex-cli` / `claude-cli` / subagent target;
-  `loop: full` stories belong in an interactive session (`codex-app` or `claude-session`).
+- `loop:` sets the planning-depth sentence: `full` → run the contract's
+  investigation + interactive brainstorm phase with the operator first; `direct` → the story is
+  fully defined — go straight to a short TDD plan. `loop: direct` also allows a `codex-cli` /
+  `claude-cli` / subagent target; `loop: full` stories belong in an interactive session
+  (`codex-app` or `claude-session`).
+- The `Use skills:` line comes from the story's `flow:` — `mechanical` →
+  superpowers:test-driven-development; `design-heavy` → superpowers:brainstorming +
+  superpowers:test-driven-development; `flow: direction` → none: the brainstorm is the
+  contract's own gate and the deliverable is a dossier, so no implementation skill applies.
 - The story's `driver_hint:` / `driver_why:` frontmatter is the affinity input at the final
   resolution step; capability and the user's explicit say still outrank it.
 - `tier:` / `effort:` / `orchestrate:` resolve to the Launch line per the ladder above; render
@@ -155,15 +160,16 @@ You are executing ONE story end-to-end.
 EXECUTION MODE: {AUTONOMOUS — merge, deploy, verify on prod. | STOP AT PR — DO NOT MERGE OR DEPLOY.}
 Read first: {STORY_DOC}, 00-overview.md, STORY-FEEDBACK.md, and repo conventions
 (AGENTS.md / CLAUDE.md). If any are absent from this worktree, read them from trunk with
-`git show origin/main:<path>` — never copy them in. Product scope and decisions there are SETTLED;
-stop and ask for a wrong premise or genuine product ambiguity (the contract's other interrupts
-still apply).
+`git show origin/main:<path>` — never copy them in. Product scope and decisions there are
+settled by default; the operator may amend them at the brainstorm gate, and divergences follow
+the contract's handback protocol.
 Execution contract: {~/.codex|~/.claude}/skills/agent-handoff/EXECUTION.md — follow it exactly.
-Planning depth: {run the contract's self-directed brainstorm → spec → plan phase first | the story
-is fully defined — go straight to a short TDD plan}.
-Use skills: {from the story's flow — e.g. superpowers:test-driven-development}
+Planning depth: {run the contract's investigation + interactive brainstorm phase with the operator
+first | the story is fully defined — go straight to a short TDD plan}.
+Use skills: {from the story's flow — e.g. superpowers:test-driven-development; `flow: direction` → none}
 Hard rules: every commit carries `Story: {NN}` and `Sprint: {SPRINT}` (verbatim);
 never `git checkout main`; if sprint/{NN}-* already exists on any ref the story is taken — stop;
+on handback publish the REPLAN event (docs-only, no trailers) and release the claim branch;
 never leave prod broken.
 
 /goal {STORY_GOAL}

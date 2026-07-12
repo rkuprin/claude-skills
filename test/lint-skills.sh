@@ -108,6 +108,12 @@ ah_rows="$(grep -E '^\| [SABC] \|' "$AH")"
 [ -n "$orch_rows" ] && [ "$orch_rows" = "$ah_rows" ] \
   && ok "ladder: orchestrator and handoff tables in sync" \
   || no "ladder: orchestrator and handoff tables diverge"
+has   "handoff: interactive depth line"      "investigation + interactive brainstorm phase with the operator first" "$AH"
+hasnt "handoff: no self-directed wording"    "self-directed brainstorm" "$AH"
+has   "handoff: settled by default"          "settled by default" "$AH"
+hasnt "handoff: no hard SETTLED wording"     "are SETTLED"        "$AH"
+has   "handoff: handback hard rule"          "publish the REPLAN event" "$AH"
+has   "handoff: direction renders no skills" "\`flow: direction\` → none" "$AH"
 
 # --- agent-handoff (EXECUTION.md, the lifecycle contract) ---
 AHEXEC="$HERE/../agent-handoff/EXECUTION.md"
