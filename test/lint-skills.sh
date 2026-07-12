@@ -69,6 +69,7 @@ has   "orchestrator: dossier naming"            "dossier-NN.md"            "$ORC
 has   "orchestrator: subagents gated on recap"  "user approves the recap"  "$ORCH"
 has   "orchestrator: publish before firing"     "Publish before firing"    "$ORCH"
 has   "orchestrator: one planner per sprint dir" "One planner per sprint dir" "$ORCH"
+has   "orchestrator: sweep checks unmerged sprint-docs" "sprint-docs/" "$ORCH"
 
 # --- agent-handoff (SKILL.md) ---
 AH="$HERE/../agent-handoff/SKILL.md"
@@ -144,6 +145,8 @@ has   "contract: events publish without trailers" 'NO `Story:`/`Sprint:` trailer
 has   "contract: claim released on handback" "Release the claim"  "$AHEXEC"
 has   "contract: direction stories section"  "## Direction stories" "$AHEXEC"
 has   "contract: dossier naming"             "dossier-{NN}.md"    "$AHEXEC"
+has   "contract: stop-at-pr event merges before replan" "must merge BEFORE that re-invocation" "$AHEXEC"
+has   "contract: claim deletion only when pure"  "only if the branch is still a pure claim" "$AHEXEC"
 
 # --- claude-reviewer ---
 CR="$HERE/../claude-reviewer/SKILL.md"

@@ -117,7 +117,8 @@ feedback events: every `## REPLAN — rp-YYYYMMDD-<n> — Story NN` or
 Re-verify each against current source truth; rewrite, cut, or split the affected story docs (for
 a DIRECTION dossier: plan the follow-on stories or record why not); then append the resolution as
 its own immutable event — `## RESOLUTION — <id>` with a `- Resolution:` line. Never edit an existing event
-block. Only then read `sprint-status.sh` output and the rest of
+block. Also check for unmerged `sprint-docs/*` branches or docs-only PRs — an event stuck behind an
+unmerged PR is invisible to this sweep until it lands. Only then read `sprint-status.sh` output and the rest of
 `STORY-FEEDBACK.md`, give an opinion on sprint progress — what landed, what drifted, what
 feedback changes the remaining plan — re-verify each stub against the now-current code, and
 write the next wave's story docs, cutting or reframing stubs whose premise no longer holds.

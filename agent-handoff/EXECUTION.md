@@ -124,10 +124,15 @@ On hand back:
    trailered commit reaching trunk would flip this story to DONE — on a
    `sprint-docs/rp-YYYYMMDD-<n>` branch cut from `origin/main`, not on the claim branch.
    `execution: autonomous`: merge it to trunk now. `stop-at-pr`: open a docs-only PR.
-3. Release the claim: remove your worktree if you created one, then delete the `sprint/{NN}-*`
-   branch — it has no story commits. The story reads TODO again.
+3. Release the claim — only if the branch is still a pure claim (no story commits): remove your
+   worktree if you created one, then delete the `sprint/{NN}-*` branch. The story reads TODO
+   again. If story commits already exist (the wrong-premise interrupt fired mid-implementation),
+   keep the branch and worktree and name the branch and its last commit in the REPLAN event —
+   the story reads DOING until the planner disposes of it.
 4. Stop. Tell the operator to re-invoke `/sprint-orchestrator` on the sprint directory; the next
-   plan session resolves the event before planning anything else.
+   plan session resolves the event before planning anything else. Under stop-at-pr the docs PR
+   from step 2 must merge BEFORE that re-invocation — the planner sweep reads trunk, and an
+   unmerged event is invisible to it; say so in your stop report.
 
 If the operator says continue, record the decision in STORY-FEEDBACK.md and proceed under the
 amended understanding.

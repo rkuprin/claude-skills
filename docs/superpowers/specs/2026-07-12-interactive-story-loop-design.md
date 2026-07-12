@@ -93,7 +93,9 @@ it would let two sessions duplicate investigation and operator brainstorms:
    single late `/goal` checkpoint.
 
 On a clean handback (§3) the executor releases the claim: remove the worktree if one was created,
-delete the `sprint/{NN}-*` branch (it has no story commits), and the story reads TODO again.
+delete the `sprint/{NN}-*` branch (it has no story commits), and the story reads TODO again. Release
+applies only while the branch is a pure claim; once story commits exist the branch stays (the
+story reads DOING) and the REPLAN event names it.
 
 `loop: direct` skips phase 2: preflight, investigate, then a short TDD plan — unchanged from
 today.
@@ -138,7 +140,9 @@ docs-only commit — carrying **no** `Story:`/`Sprint:` trailers; a trailered co
 would flip the handed-back story to DONE — on a `sprint-docs/<event-id>` branch cut from trunk
 (not the claim branch, which is about to be deleted). `execution: autonomous` → merge it to trunk
 immediately; `stop-at-pr` → open a docs-only PR. Either way, release the claim per §2 and stop:
-story reads TODO. The operator re-invokes `/sprint-orchestrator` on the sprint directory.
+story reads TODO. The operator re-invokes `/sprint-orchestrator` on the sprint directory. Under
+`stop-at-pr` the docs PR must merge before the planner re-invocation — the sweep reads trunk, and
+an unmerged event is invisible to it.
 
 On **continue**, the operator's decision is recorded in STORY-FEEDBACK.md and the story proceeds
 under the amended understanding (the append rides the story's normal commits).

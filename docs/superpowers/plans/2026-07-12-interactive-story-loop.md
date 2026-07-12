@@ -793,7 +793,7 @@ Edit F — the recap line. Insert after the at-a-glance loop's closing `done` (c
 - [ ] **Step 5: Run the wave test to verify everything passes**
 
 Run: `sprint-orchestrator/test/test-wave-handoffs.sh`
-Expected: `0 failed` (17 pre-existing + 11 new assertions).
+Expected: `0 failed` (17 pre-existing + 12 new assertions).
 
 - [ ] **Step 6: Add the renderer-sync lint pins**
 
