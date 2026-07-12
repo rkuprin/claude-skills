@@ -7,7 +7,7 @@ argument-hint: [sprint-dir or raw inputs]
 
 # Sprint Orchestrator
 
-Manual sprint-planning skill for turning raw inputs into independent story handoffs. It plans and hands off; it does not implement stories, merge branches, or declare work done.
+Manual sprint-planning skill for turning raw inputs into independent story handoffs. It plans and hands off; the one sanctioned exception is firing `loop: direct` stories as subagents after the user approves the recap (see Executing Direct Stories In-Session). It never implements stories inline and never declares work done.
 
 ## Run This on the Strongest Model
 
@@ -73,11 +73,22 @@ under-report them and that is expected.
 ## Plan Session
 
 This is high-level planning backed by in-depth research — never per-story implementation planning.
-`loop: full` (default): the story's execution session runs its own self-directed brainstorm → spec
-→ plan → execute phases under its single late `/goal` checkpoint. `loop: direct`: the story is
-simple enough to define fully here; the executor goes straight to a short TDD plan, and the story
-may be delegated to a cheaper transport (subagent, `codex exec`, `claude -p`). Either way the
-lifecycle contract is identical — `loop:` never waives trailers, branch discipline, or gates.
+`loop: full` (default): the story's execution session opens with read-only investigation and an
+interactive brainstorm with the operator before any code — the story doc is the input to that
+brainstorm, not a replacement for it. `loop: direct`: the story is simple enough to define fully
+here; the executor goes straight to a short TDD plan, and the story may be delegated to a cheaper
+transport (subagent, `codex exec`, `claude -p`). Either way the lifecycle contract is identical —
+`loop:` never waives trailers, branch discipline, or gates.
+
+`loop:` is a judgment call, not a tier rule — ask the user when unsure. Brainstorm (`full`) when
+the design space is open (multiple valid approaches with genuinely different trade-offs), when
+investigation could plausibly reshape the approach (novel integration, unfamiliar subsystem, a
+premise this session could only verify shallowly), or when user-facing design judgment is
+involved. Go `direct` when the work repeats a well-trodden in-repo pattern, is a mechanical
+sweep, rename, or config change, is a bugfix whose root cause and fix shape this session already
+found, or when this session already verified everything the executor would otherwise
+investigate. As a tendency, not a rule: S/A stories almost always read `full`, B usually does,
+C usually reads `direct`.
 
 1. Collect raw sprint inputs without filtering.
 2. Verify every candidate against current source truth. If a premise is stale, already shipped, impossible, or out of scope, cut or reframe it and record why.
@@ -85,6 +96,8 @@ lifecycle contract is identical — `loop:` never waives trailers, branch discip
 4. Write `00-overview.md`, `STORY-FEEDBACK.md`, and one story doc per current-wave survivor; record deferred waves as stubs in the overview.
 5. Ask the user how Claude/Codex capacity looks right now; note the answer in `00-overview.md` as plan-time context. Capacity never changes a `driver_hint` — it informs the recap's routing suggestions and the handoff-time resolution.
 6. Recap open stories with kickoff prompts, any unresolved product questions, and the pending wave checkpoint, if any.
+7. If the user approves at the recap, execute chosen `loop: direct` stories as subagents (see
+   Executing Direct Stories In-Session); otherwise every story goes out as a rendered handoff.
 
 `00-overview.md` must include merge order, dependency edges, shared file hotspots, deferred-wave stubs, cut items with reasons, and the path to `STORY-FEEDBACK.md`.
 
@@ -97,10 +110,45 @@ write no story doc yet. Wave-1 implementation changes the ground truth a deferre
 written against; a doc written today would be stale by its own wave.
 
 At each wave boundary (the wave's stories read `DONE` in `sprint-status.sh`), the user re-invokes
-this skill on the sprint directory. The planner then reads `sprint-status.sh` output and
-`STORY-FEEDBACK.md`, gives its opinion on sprint progress — what landed, what drifted, what
-feedback changes the remaining plan — re-verifies each stub against the now-current code, and
-writes the next wave's story docs, cutting or reframing stubs whose premise no longer holds.
+this skill on the sprint directory. On ANY re-invocation of an existing sprint dir — wave
+boundary, handback, or a landed direction story — FIRST sweep `STORY-FEEDBACK.md` for unresolved
+feedback events: every `## REPLAN — rp-YYYYMMDD-<n> — Story NN` or
+`## DIRECTION — dr-YYYYMMDD-<n> — Story NN` block with no matching `## RESOLUTION — <id>` block.
+Re-verify each against current source truth; rewrite, cut, or split the affected story docs (for
+a DIRECTION dossier: plan the follow-on stories or record why not); then append the resolution as
+its own immutable event — `## RESOLUTION — <id>` with a `- Resolution:` line. Never edit an existing event
+block. Also check for unmerged `sprint-docs/*` branches or docs-only PRs — an event stuck behind an
+unmerged PR is invisible to this sweep until it lands. Only then read `sprint-status.sh` output and the rest of
+`STORY-FEEDBACK.md`, give an opinion on sprint progress — what landed, what drifted, what
+feedback changes the remaining plan — re-verify each stub against the now-current code, and
+write the next wave's story docs, cutting or reframing stubs whose premise no longer holds.
+
+One planner per sprint dir at a time: concurrent plan sessions collide on story numbers and
+merge order. After a direction story lands, re-enter planning in a fresh strongest-model
+session, never in the executor's thread.
+
+## Executing Direct Stories In-Session
+
+This skill's only sanctioned in-session execution. It never starts before the user approves the
+recap — the gate exists so a bad plan is seen before it runs.
+
+- **Publish before firing.** Commit and push the sprint planning docs (story docs,
+  `00-overview.md`, `STORY-FEEDBACK.md`) to trunk first: a fresh worktree reads planning docs
+  via `git show origin/main:<path>` and cannot see this session's uncommitted files. Pasted
+  cross-session kickoffs have the same dependency.
+- Each subagent runs ONE `loop: direct` story end-to-end in an isolated worktree from its
+  rendered kickoff prompt, bound by EXECUTION.md unchanged: trailers on every commit,
+  `ownership.owns` / `do_not_touch`, single writer per file. `sprint-status.sh` cannot tell the
+  transports apart — state stays git-derived.
+- Scheduling is the plan itself: fire only stories whose `depends_on` are DONE and whose
+  ownership is disjoint from every in-flight story; shared-hotspot stories run serially in
+  `00-overview.md`'s merge order.
+- First failure stops the fleet: report what ran and what failed, leave the failed branch for
+  inspection, no automatic retries.
+- Transport is resolved at handoff time, never at plan time: when Claude capacity is tight, the
+  same stories render as `codex exec` prints instead. Never subagent a `loop: full` story (they
+  need an interactive session); `frontend: true` stories are a poor fit — their evidence path
+  ends in Codex.app visual validation.
 
 ## Integration Is Planned Here, Performed Elsewhere
 
@@ -166,7 +214,7 @@ title: <short imperative>
 conversation: "Story 07: Three Descriptive Words"
 sprint: <sprint-name>        # this sprint directory's basename, copied verbatim into every commit's Sprint: trailer
 execution: autonomous        # autonomous | stop-at-pr — copied from 00-overview.md
-flow: mechanical             # mechanical | design-heavy
+flow: mechanical             # mechanical | design-heavy | direction
 loop: full                   # full | direct — planning depth only; the lifecycle contract is identical
 driver_hint: codex           # codex | claude | either — affinity from work nature only; resolved at handoff time
 driver_why: <one line tying the hint to the work's nature>
@@ -244,6 +292,13 @@ prompt for a fresh agent; it must not require reading the overview to learn whet
 contain component paths. A pure `lib/` change that alters what a page renders is a frontend story.
 When unsure, set it true and name the surface.
 
+`flow: direction` marks a story whose deliverable is an investigation dossier — planning input,
+not product code. Direction stories are always `loop: full` and typically tier S. The executor
+writes `dossier-NN.md` into the sprint directory (never `NN-dossier.md`: `sprint-status.sh`
+enumerates `[0-9]*.md` files as stories, so that name surfaces a phantom story) and the dossier
+commit is the story's only trailered commit. EXECUTION.md carries the full alternate terminal
+path; the kickoff renders `Use skills: none` for direction stories.
+
 ## Tracker Binding
 
 If the project wants tracker writes, define the binding once in `.sprint/tracking.md`, project instructions, or another user-specified file. Discovery order is: a path named by the user, then `.sprint/tracking.md`, then a clearly labeled tracker binding in project instructions. If no binding exists, use `tracker: none`.
@@ -266,6 +321,6 @@ If `tracker: none`, no binding exists, or the named MCP/tool is unavailable, tra
 
 ## Guardrails
 
-- If verification contradicts a story premise, stop and report the contradiction before building around it.
+- If verification contradicts a story premise, follow EXECUTION.md's divergence protocol: contained divergences proceed under a recorded amendment; cross-boundary ones offer the operator the handback that writes a REPLAN event. Never build around a broken premise.
 - If two stories want the same files, update `00-overview.md` so they run serially or split ownership clearly.
 - For artifact-returning work, mocked tests are not enough. Human inspection of the produced artifact is part of done.

@@ -7,7 +7,7 @@ claude CLI, or a fresh Claude session. One skill, three modes:
 |---|---|---|
 | `task` (default) | bounded work outside the sprint ledger | a result returned to the caller |
 | `visual-validation` | "implemented here, confirm it there" | test scenario + inline screenshots, for the human |
-| `story-execution` | one planned sprint story, end to end | the story's late `/goal` checkpoint |
+| `story-execution` | one planned sprint story, end to end | the story's late `/goal` checkpoint (after an operator brainstorm gate, for `loop: full`) |
 
 It is a prompt renderer: it produces a task file (default `~/.handoffs/`) plus text you paste. It
 never executes the work itself. Every prompt ends with `/goal` — a command in both Codex.app and
@@ -16,6 +16,10 @@ Claude Code, plain text anywhere else.
 The story lifecycle contract (branching, trailers, gates, evidence, rollback) lives in
 [`EXECUTION.md`](EXECUTION.md), which rendered story prompts reference by the receiving harness's
 path. The prompt itself keeps only the catastrophic rules inline, with literal values.
+
+For `loop: full` stories the contract opens with read-only investigation and an interactive
+brainstorm with the operator; divergences that cross the story boundary hand back to the sprint
+planner via a REPLAN event in `STORY-FEEDBACK.md`.
 
 ## Prerequisites
 

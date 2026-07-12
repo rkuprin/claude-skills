@@ -165,6 +165,20 @@ git switch -q main && git merge -q --ff-only sprint/decoy-sprint && git branch -
 OUT_N="$(SPRINT_TRUNK=main "$SUT" "$SDN" 2>&1)"
 state_is "$OUT_N" 09 TODO
 
+# --- Direction dossiers must not enumerate as stories ---
+# dossier-NN.md is the convention BECAUSE it does not match the [0-9]*.md story
+# glob. Story 09's row is the canary proving the hazard: NN-dossier.md DOES
+# enumerate — if enumeration ever changes, these assertions flag it.
+DD="docs/sprints/dossier-fixture"; mkdir -p "$DD"
+echo "# 08-real" > "$DD/08-real.md"
+echo "# dossier for 08" > "$DD/dossier-08.md"
+echo "# phantom probe" > "$DD/09-dossier.md"
+git add docs/sprints/dossier-fixture && git commit -q -m "chore: seed dossier fixture"
+OUT_DD="$(SPRINT_TRUNK=main "$SUT" "$DD" 2>&1)"
+state_is "$OUT_DD" 08 TODO
+case "$OUT_DD" in *dossier-08*) no "dossier-08.md not enumerated";; *) ok "dossier-08.md not enumerated";; esac
+state_is "$OUT_DD" 09 TODO
+
 git worktree remove --force "$WT" 2>/dev/null
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

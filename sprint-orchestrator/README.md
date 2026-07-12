@@ -46,6 +46,18 @@ Only the current wave gets full story docs. Blocked work is deferred — story n
 a stub recorded in the overview — and gets its doc at the wave checkpoint: re-invoke the skill on
 the sprint directory when a wave lands, and it reassesses progress before writing the next wave.
 
+`loop: full` stories open with read-only investigation and an interactive brainstorm with you
+before any code; `loop: direct` stories go straight to a short TDD plan. When execution findings
+cross a story's boundary, the executor offers a handback: a `## REPLAN — rp-YYYYMMDD-<n> — Story NN`
+event appended to `STORY-FEEDBACK.md`. Direction stories (`flow: direction`) deliver an
+investigation dossier (`dossier-NN.md` — the name deliberately misses the `[0-9]*.md` story glob)
+plus a `## DIRECTION — …` event. Any re-invocation of the skill on the sprint dir resolves
+unresolved events first, appending `## RESOLUTION — <id>` blocks — events are immutable and
+append-only. After you approve the recap, the planner may also execute `loop: direct` stories
+itself as worktree-isolated subagents under the same execution contract (see Executing Direct
+Stories In-Session in SKILL.md); when Claude capacity is tight the same stories render as Codex
+handoffs instead.
+
 Set `execution: autonomous` or `execution: stop-at-pr` once in `00-overview.md`. The planner copies
 it into every story doc, so each doc stands alone and never has to read the overview to learn whether
 it may merge.
@@ -108,6 +120,9 @@ Capability, your explicit say, and current availability still override everythin
 It expects the current frontmatter (`conversation`/`execution`/`loop`/`driver_hint`/`tier`); docs
 without `tier:` render a row-B default with an explicit "tier unset" marker. Exit code 2 on a bad
 sprint directory or a wave with no stories.
+
+If `STORY-FEEDBACK.md` carries unresolved REPLAN/DIRECTION events, the script warns on stderr and
+puts a matching line in the rendered recap — it renders anyway; resolving is your call.
 
 ## The rule that makes it work
 

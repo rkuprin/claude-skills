@@ -57,6 +57,19 @@ case "$done_row" in
   *Sprint*) ok "orchestrator: DONE row requires the Sprint trailer too" ;;
   *) no "orchestrator: DONE row requires the Sprint trailer too (found: $done_row)" ;;
 esac
+has   "orchestrator: loop is a judgment call"   "judgment call, not a tier rule" "$ORCH"
+has   "orchestrator: brainstorm cue"            "design space is open"     "$ORCH"
+has   "orchestrator: direct cue"                "well-trodden in-repo pattern" "$ORCH"
+has   "orchestrator: REPLAN event heading"      "## REPLAN — rp-"          "$ORCH"
+has   "orchestrator: DIRECTION event heading"   "## DIRECTION — dr-"       "$ORCH"
+has   "orchestrator: RESOLUTION event heading"  "## RESOLUTION —"          "$ORCH"
+has   "orchestrator: events are immutable"      "Never edit an existing event" "$ORCH"
+has   "orchestrator: direction flow value"      "# mechanical | design-heavy | direction" "$ORCH"
+has   "orchestrator: dossier naming"            "dossier-NN.md"            "$ORCH"
+has   "orchestrator: subagents gated on recap"  "user approves the recap"  "$ORCH"
+has   "orchestrator: publish before firing"     "Publish before firing"    "$ORCH"
+has   "orchestrator: one planner per sprint dir" "One planner per sprint dir" "$ORCH"
+has   "orchestrator: sweep checks unmerged sprint-docs" "sprint-docs/" "$ORCH"
 
 # --- agent-handoff (SKILL.md) ---
 AH="$HERE/../agent-handoff/SKILL.md"
@@ -96,6 +109,12 @@ ah_rows="$(grep -E '^\| [SABC] \|' "$AH")"
 [ -n "$orch_rows" ] && [ "$orch_rows" = "$ah_rows" ] \
   && ok "ladder: orchestrator and handoff tables in sync" \
   || no "ladder: orchestrator and handoff tables diverge"
+has   "handoff: interactive depth line"      "investigation + interactive brainstorm phase with the operator first" "$AH"
+hasnt "handoff: no self-directed wording"    "self-directed brainstorm" "$AH"
+has   "handoff: settled by default"          "settled by default" "$AH"
+hasnt "handoff: no hard SETTLED wording"     "are SETTLED"        "$AH"
+has   "handoff: handback hard rule"          "publish the REPLAN event" "$AH"
+has   "handoff: direction renders no skills" "\`flow: direction\` → none" "$AH"
 
 # --- agent-handoff (EXECUTION.md, the lifecycle contract) ---
 AHEXEC="$HERE/../agent-handoff/EXECUTION.md"
@@ -116,6 +135,18 @@ hasnt "contract: no per-sprint HANDOFF.md"   "HANDOFF.md"         "$AHEXEC"
 hasnt "contract: no CLAIMED rename"          ".CLAIMED.md"        "$AHEXEC"
 bad=$(grep -nF 'git checkout main' "$AHEXEC" 2>/dev/null | grep -viE 'never|do not|don.t|instead of' || true)
 [ -z "$bad" ] && ok "contract: git checkout main only ever negated" || no "contract: git checkout main appears as an instruction ($bad)"
+has   "contract: brainstorm gate section"    "## 2. Brainstorm gate" "$AHEXEC"
+has   "contract: settled by default"         "settled by default" "$AHEXEC"
+hasnt "contract: no hard SETTLED wording"    "are SETTLED"        "$AHEXEC"
+has   "contract: hand-back-or-continue question" "hand back to sprint-orchestrator now, or continue?" "$AHEXEC"
+has   "contract: REPLAN event heading"       "## REPLAN — rp-"    "$AHEXEC"
+has   "contract: DIRECTION event heading"    "## DIRECTION — dr-" "$AHEXEC"
+has   "contract: events publish without trailers" 'NO `Story:`/`Sprint:` trailers' "$AHEXEC"
+has   "contract: claim released on handback" "Release the claim"  "$AHEXEC"
+has   "contract: direction stories section"  "## Direction stories" "$AHEXEC"
+has   "contract: dossier naming"             "dossier-{NN}.md"    "$AHEXEC"
+has   "contract: stop-at-pr event merges before replan" "must merge BEFORE that re-invocation" "$AHEXEC"
+has   "contract: claim deletion only when pure"  "only if the branch is still a pure claim" "$AHEXEC"
 
 # --- claude-reviewer ---
 CR="$HERE/../claude-reviewer/SKILL.md"
@@ -143,6 +174,15 @@ has   "codex: explicit flags on run"       '--model "$MODEL" --effort "$EFFORT"'
 grep -qE 'gpt-5\.6-terra. at .xhigh' "$CX" \
   && ok "codex: terra lane pinned to xhigh" || no "codex: terra lane pinned to xhigh"
 has   "codex wrapper: usage names xhigh default" "xhigh (default)" "$CXSH"
+
+# --- wave-handoffs.sh (renderer must mirror agent-handoff/SKILL.md's template) ---
+WHS="$HERE/../sprint-orchestrator/wave-handoffs.sh"
+has   "renderer: interactive depth string"   "investigation + interactive brainstorm phase with the operator first" "$WHS"
+has   "renderer: direction renders no skills" 'skills="none"'     "$WHS"
+has   "renderer: handback hard rule"         "publish the REPLAN event" "$WHS"
+has   "renderer: unresolved-event warning"   "unresolved feedback events" "$WHS"
+hasnt "renderer: no hard SETTLED wording"    "are SETTLED"        "$WHS"
+hasnt "renderer: no self-directed wording"   "self-directed brainstorm" "$WHS"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
