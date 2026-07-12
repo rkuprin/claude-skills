@@ -172,5 +172,14 @@ grep -qE 'gpt-5\.6-terra. at .xhigh' "$CX" \
   && ok "codex: terra lane pinned to xhigh" || no "codex: terra lane pinned to xhigh"
 has   "codex wrapper: usage names xhigh default" "xhigh (default)" "$CXSH"
 
+# --- wave-handoffs.sh (renderer must mirror agent-handoff/SKILL.md's template) ---
+WHS="$HERE/../sprint-orchestrator/wave-handoffs.sh"
+has   "renderer: interactive depth string"   "investigation + interactive brainstorm phase with the operator first" "$WHS"
+has   "renderer: direction renders no skills" 'skills="none"'     "$WHS"
+has   "renderer: handback hard rule"         "publish the REPLAN event" "$WHS"
+has   "renderer: unresolved-event warning"   "unresolved feedback events" "$WHS"
+hasnt "renderer: no hard SETTLED wording"    "are SETTLED"        "$WHS"
+hasnt "renderer: no self-directed wording"   "self-directed brainstorm" "$WHS"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
