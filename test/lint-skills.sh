@@ -116,6 +116,16 @@ hasnt "contract: no per-sprint HANDOFF.md"   "HANDOFF.md"         "$AHEXEC"
 hasnt "contract: no CLAIMED rename"          ".CLAIMED.md"        "$AHEXEC"
 bad=$(grep -nF 'git checkout main' "$AHEXEC" 2>/dev/null | grep -viE 'never|do not|don.t|instead of' || true)
 [ -z "$bad" ] && ok "contract: git checkout main only ever negated" || no "contract: git checkout main appears as an instruction ($bad)"
+has   "contract: brainstorm gate section"    "## 2. Brainstorm gate" "$AHEXEC"
+has   "contract: settled by default"         "settled by default" "$AHEXEC"
+hasnt "contract: no hard SETTLED wording"    "are SETTLED"        "$AHEXEC"
+has   "contract: hand-back-or-continue question" "hand back to sprint-orchestrator now, or continue?" "$AHEXEC"
+has   "contract: REPLAN event heading"       "## REPLAN — rp-"    "$AHEXEC"
+has   "contract: DIRECTION event heading"    "## DIRECTION — dr-" "$AHEXEC"
+has   "contract: events publish without trailers" 'NO `Story:`/`Sprint:` trailers' "$AHEXEC"
+has   "contract: claim released on handback" "Release the claim"  "$AHEXEC"
+has   "contract: direction stories section"  "## Direction stories" "$AHEXEC"
+has   "contract: dossier naming"             "dossier-{NN}.md"    "$AHEXEC"
 
 # --- claude-reviewer ---
 CR="$HERE/../claude-reviewer/SKILL.md"
