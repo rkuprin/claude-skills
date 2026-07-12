@@ -57,6 +57,18 @@ case "$done_row" in
   *Sprint*) ok "orchestrator: DONE row requires the Sprint trailer too" ;;
   *) no "orchestrator: DONE row requires the Sprint trailer too (found: $done_row)" ;;
 esac
+has   "orchestrator: loop is a judgment call"   "judgment call, not a tier rule" "$ORCH"
+has   "orchestrator: brainstorm cue"            "design space is open"     "$ORCH"
+has   "orchestrator: direct cue"                "well-trodden in-repo pattern" "$ORCH"
+has   "orchestrator: REPLAN event heading"      "## REPLAN — rp-"          "$ORCH"
+has   "orchestrator: DIRECTION event heading"   "## DIRECTION — dr-"       "$ORCH"
+has   "orchestrator: RESOLUTION event heading"  "## RESOLUTION —"          "$ORCH"
+has   "orchestrator: events are immutable"      "Never edit an existing event" "$ORCH"
+has   "orchestrator: direction flow value"      "# mechanical | design-heavy | direction" "$ORCH"
+has   "orchestrator: dossier naming"            "dossier-NN.md"            "$ORCH"
+has   "orchestrator: subagents gated on recap"  "user approves the recap"  "$ORCH"
+has   "orchestrator: publish before firing"     "Publish before firing"    "$ORCH"
+has   "orchestrator: one planner per sprint dir" "One planner per sprint dir" "$ORCH"
 
 # --- agent-handoff (SKILL.md) ---
 AH="$HERE/../agent-handoff/SKILL.md"
