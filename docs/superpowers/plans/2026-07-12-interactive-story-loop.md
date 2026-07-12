@@ -397,8 +397,8 @@ feedback events: every `## REPLAN — rp-YYYYMMDD-<n> — Story NN` or
 `## DIRECTION — dr-YYYYMMDD-<n> — Story NN` block with no matching `## RESOLUTION — <id>` block.
 Re-verify each against current source truth; rewrite, cut, or split the affected story docs (for
 a DIRECTION dossier: plan the follow-on stories or record why not); then append the resolution as
-its own immutable event — `## RESOLUTION — <id>` with a `- Resolution:` line. Never edit an
-existing event block. Only then read `sprint-status.sh` output and the rest of
+its own immutable event — `## RESOLUTION — <id>` with a `- Resolution:` line. Never edit an existing event
+block. Only then read `sprint-status.sh` output and the rest of
 `STORY-FEEDBACK.md`, give an opinion on sprint progress — what landed, what drifted, what
 feedback changes the remaining plan — re-verify each stub against the now-current code, and
 write the next wave's story docs, cutting or reframing stubs whose premise no longer holds.
@@ -525,11 +525,11 @@ Edit A — the `loop:` bullet. Replace:
 with:
 
 ```markdown
-- `loop:` sets the planning-depth sentence: `full` → run the contract's investigation +
-  interactive brainstorm phase with the operator first; `direct` → the story is fully defined —
-  go straight to a short TDD plan. `loop: direct` also allows a `codex-cli` / `claude-cli` /
-  subagent target; `loop: full` stories belong in an interactive session (`codex-app` or
-  `claude-session`).
+- `loop:` sets the planning-depth sentence: `full` → run the contract's
+  investigation + interactive brainstorm phase with the operator first; `direct` → the story is
+  fully defined — go straight to a short TDD plan. `loop: direct` also allows a `codex-cli` /
+  `claude-cli` / subagent target; `loop: full` stories belong in an interactive session
+  (`codex-app` or `claude-session`).
 - The `Use skills:` line comes from the story's `flow:` — `mechanical` →
   superpowers:test-driven-development; `design-heavy` → superpowers:brainstorming +
   superpowers:test-driven-development; `flow: direction` → none: the brainstorm is the
