@@ -128,6 +128,7 @@ has   "handoff: settled by default"          "settled by default" "$AH"
 hasnt "handoff: no hard SETTLED wording"     "are SETTLED"        "$AH"
 has   "handoff: handback hard rule"          "publish the REPLAN event" "$AH"
 has   "handoff: direction renders no skills" "\`flow: direction\` → none" "$AH"
+has   "handoff: mailbox line in template"    "Mailbox: {MAILBOX}" "$AH"
 
 # --- agent-handoff (EXECUTION.md, the lifecycle contract) ---
 AHEXEC="$HERE/../agent-handoff/EXECUTION.md"
@@ -161,6 +162,12 @@ has   "contract: direction stories section"  "## Direction stories" "$AHEXEC"
 has   "contract: dossier naming"             "dossier-{NN}.md"    "$AHEXEC"
 has   "contract: stop-at-pr event merges before replan" "must merge BEFORE that re-invocation" "$AHEXEC"
 has   "contract: claim deletion only when pure"  "only if the branch is still a pure claim" "$AHEXEC"
+has   "contract: mailbox section"            "## Mailbox"         "$AHEXEC"
+has   "contract: mailbox never state"        "The mailbox is never state" "$AHEXEC"
+has   "contract: outcome enum"               "outcome: <merged | pr-ready | handback | blocked | failed | dossier>" "$AHEXEC"
+has   "contract: mailbox degrades"           "degrades to the handback protocol" "$AHEXEC"
+has   "contract: one open question"          "One open question at a time" "$AHEXEC"
+has   "contract: notes read before merge"    "notes before merge or PR" "$AHEXEC"
 
 # --- claude-reviewer ---
 CR="$HERE/../claude-reviewer/SKILL.md"

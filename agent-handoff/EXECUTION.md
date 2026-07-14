@@ -95,6 +95,34 @@ flips when the human merges. Skip to step 8.
 - Tracker: fire the `card.done` intent per the project's tracker binding. Where attachments are
   impossible (e.g. the Asana V2 MCP), the written hand-back reaches the card via `add_comment`.
 - State branch, files, tests + results, deploy id.
+- Post the terminal outcome: `concluded` with `outcome: merged` (AUTONOMOUS) or
+  `outcome: pr-ready` (STOP AT PR), naming the PR or branch and the evidence location.
+
+## Mailbox
+
+Transient mail between you and the sprint supervisor lives at
+`~/.sprint-mail/<repo-basename>/<sprint-basename>/` — your kickoff prompt names the literal
+path. Post and read with `sprint-mail.sh` (beside `sprint-status.sh` in the
+sprint-orchestrator skill directory). Files are `NN-SSS-<kind>.md`, append-only, never edited.
+
+- `evidence` — findings that may affect other stories. Post and keep working; no reply comes.
+- `question` — a blocking question inside this story's scope. Post it, then wait on the reply,
+  which reuses your question's sequence — an exact filename:
+  `sprint-mail.sh wait <sprint-dir> {NN}-{SSS}-reply.md 1800`. One open question at a time. A
+  reply that arrives after your wait timed out is void — by then you are on the fallback path.
+- `concluded` — posted once, on EVERY exit (below).
+- Check for new `note` messages from the supervisor at each numbered step boundary, and read
+  all of your story's notes before merge or PR.
+
+The mailbox is never state: DONE is still both trailers on a trunk-reachable commit, and
+`sprint-status.sh` never reads the mailbox. When nobody answers,
+the mailbox degrades to the handback protocol — nothing new to learn, just faster when it works.
+
+**Terminal outcome.** Every exit posts `concluded`, first line
+`outcome: <merged | pr-ready | handback | blocked | failed | dossier>`, body naming the
+terminal artifact (PR / dossier / branch) and where the hand-back evidence lives. After posting
+it you are done — never resume the story afterwards. Fixes arrive as a fresh kickoff under an
+ownership transfer, not as notes to a session that no longer exists.
 
 ## Divergences and handback
 
@@ -107,8 +135,10 @@ When investigation or brainstorm findings diverge from the story doc, grade the 
 - **Cross-boundary** — the divergence invalidates the premise, reshapes other stories, changes
   merge order or waves, or reveals the story should not exist. Interactive session: present the
   premise, the contradicting evidence, and the blast radius, then ask the operator:
-  **hand back to sprint-orchestrator now, or continue?** Non-interactive transport: hand back
-  without asking — stopping is what the wrong-premise interrupt has always required.
+  **hand back to sprint-orchestrator now, or continue?** Non-interactive transport: post the
+  premise, evidence, and blast radius as a mailbox `question` and wait on the reply; the
+  supervisor may answer continue (record the amendment and proceed) or instruct handback. No
+  reply within the wait → hand back exactly as below.
 
 On hand back:
 
@@ -130,7 +160,8 @@ On hand back:
    again. If story commits already exist (the wrong-premise interrupt fired mid-implementation),
    keep the branch and worktree and name the branch and its last commit in the REPLAN event —
    the story reads DOING until the planner disposes of it.
-4. Stop. Tell the operator to re-invoke `/sprint-orchestrator` on the sprint directory; the next
+4. Post `concluded` with `outcome: handback`. Stop. Tell the operator to re-invoke
+   `/sprint-orchestrator` on the sprint directory; the next
    plan session resolves the event before planning anything else. Under stop-at-pr the docs PR
    from step 2 must merge BEFORE that re-invocation — the planner sweep reads trunk, and an
    unmerged event is invisible to it; say so in your stop report.
@@ -160,8 +191,9 @@ brainstorm gate is where the operator shapes the direction. Then:
   fires.
 - Done means: dossier merged, DIRECTION event appended, and the operator has read the dossier —
   a dossier is an artifact, and human inspection of artifacts is part of done.
-- Then stop. Re-entering planning is the operator's move, in a fresh planner session — never this
-  session, which sits in a story worktree on a stale branch.
+- Post `concluded` with `outcome: dossier`, naming the dossier path. Then stop. Re-entering
+  planning is the operator's move, in a fresh planner session — never this session, which sits
+  in a story worktree on a stale branch.
 
 ## Evidence (frontend stories)
 
@@ -192,6 +224,10 @@ Check back at your `/goal`. Surface earlier ONLY for:
    handback";
 2. an inability to keep prod green (roll back and report);
 3. no approved driver can drive the browser verification.
+
+If an interrupt ends the story, post the terminal `concluded` before stopping: interrupt 1
+ends via the handback protocol (`outcome: handback`), interrupt 2 posts `outcome: failed`,
+interrupt 3 posts `outcome: blocked`.
 
 ## Common mistakes
 

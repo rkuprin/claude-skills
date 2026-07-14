@@ -164,6 +164,7 @@ render time; no placeholders left for the executor.
 You are executing ONE story end-to-end.
 EXECUTION MODE: {AUTONOMOUS — merge, deploy, verify on prod. | STOP AT PR — DO NOT MERGE OR DEPLOY.}
 Sprint identity: {SPRINT}. Designated claim branch: `{BRANCH}`.
+Mailbox: {MAILBOX} — post evidence, questions, and your terminal outcome per the contract's Mailbox section.
 Read first: {STORY_DOC}, 00-overview.md, STORY-FEEDBACK.md, and repo conventions
 (AGENTS.md / CLAUDE.md). If any are absent from this worktree, read them from trunk with
 `git show origin/main:<path>` — never copy them in. Product scope and decisions there are
@@ -186,3 +187,5 @@ The first line is the story's `conversation:` value, so the receiving session na
 the sprint-scoped story and its tracker card. `{SPRINT}` and `{BRANCH}` are the story doc's exact
 frontmatter values. The sprint is the directory basename verbatim; anything else makes the story
 invisible to sprint status forever.
+`{MAILBOX}` is the literal mail directory — `~/.sprint-mail/<repo-basename>/{SPRINT}/`, with
+the repo basename resolved at render time.
