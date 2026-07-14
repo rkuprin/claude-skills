@@ -142,6 +142,7 @@ has   "handoff: direction renders no skills" "\`flow: direction\` → none" "$AH
 has   "handoff: mailbox line in template"    "Mailbox: {MAILBOX}" "$AH"
 has   "handoff: takeover render rule"            "Resume grant:"      "$AH"
 has   "handoff: ordinary kickoffs still refuse"  "Ordinary kickoffs never carry it" "$AH"
+has   "handoff: hard rule carries grant carve-out" "unless this kickoff carries a resume grant" "$AH"
 
 # --- agent-handoff (EXECUTION.md, the lifecycle contract) ---
 AHEXEC="$HERE/../agent-handoff/EXECUTION.md"

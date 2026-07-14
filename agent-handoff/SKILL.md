@@ -180,7 +180,7 @@ first | the story is fully defined — go straight to a short TDD plan}.
 Use skills: {from the story's flow — e.g. superpowers:test-driven-development; `flow: direction` → none}
 Hard rules: every commit carries `Story: {NN}` and `Sprint: {SPRINT}` (verbatim);
 never `git checkout main`; if designated branch `{BRANCH}` already exists on any ref the story is
-taken — stop; check, create, and release only that exact branch;
+taken — stop (unless this kickoff carries a resume grant); check, create, and release only that exact branch;
 on handback publish the REPLAN event (docs-only, no trailers) and release the claim branch;
 never leave prod broken.
 
