@@ -2,7 +2,7 @@
 # Both must stay set: sprint planning is a deliberate, human-initiated act.
 interface:
   display_name: "Sprint Orchestrator"
-  short_description: "Plan sprint story handoffs"
+  short_description: "Plan, dispatch, and supervise sprint stories"
   default_prompt: "Use $sprint-orchestrator to plan this sprint from the attached notes and repo context."
 policy:
   allow_implicit_invocation: false

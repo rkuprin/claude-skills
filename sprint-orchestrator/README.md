@@ -7,6 +7,15 @@ declare work done.
 Pairs with [`agent-handoff`](../agent-handoff/), whose story-execution mode renders the kickoff
 prompt that actually runs a story.
 
+## Where to run it
+
+Sprint orchestration is judgment-heavy, shortcut-friendly work: it prunes, reframes, and
+re-scopes constantly. Run the planner on Anthropic models — **Fable** preferred, **Opus** as the
+fallback. Codex models execute stories well, but as planners they follow process too literally
+to cut short what deserves cutting short. This is launch advice for you, the operator — the
+running skill never checks or names its own model. Story-level routing is unaffected: the
+planner still routes each story with the tier ladder.
+
 ## Prerequisites
 
 Only `git` and `bash`. No CLI to install, no API to authenticate.

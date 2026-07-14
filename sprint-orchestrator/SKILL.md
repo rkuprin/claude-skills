@@ -1,6 +1,6 @@
 ---
 name: sprint-orchestrator
-description: Manual sprint planning command turning raw inputs into verified, git-derived story handoff docs. Invoke explicitly with /sprint-orchestrator (Claude) or $sprint-orchestrator (Codex).
+description: Manual sprint command that plans verified story handoffs, dispatches them, supervises the wave to conclusion, and integrates results. Invoke explicitly with /sprint-orchestrator (Claude) or $sprint-orchestrator (Codex).
 disable-model-invocation: true
 argument-hint: [sprint-dir or raw inputs]
 ---
@@ -8,15 +8,6 @@ argument-hint: [sprint-dir or raw inputs]
 # Sprint Orchestrator
 
 Manual sprint-planning skill for turning raw inputs into independent story handoffs. It plans and hands off; the one sanctioned exception is firing `loop: direct` stories as subagents after the user approves the recap (see Executing Direct Stories In-Session). It never implements stories inline and never declares work done.
-
-## Run This on the Strongest Model
-
-Sprint planning is coverage-shaped — every candidate is verified against source truth — so it
-gets the most capable model available, in its orchestration mode. First, name the model you are
-running as. If it is not the strongest tier reachable right now (today: Fable with ultracode,
-else Opus with ultracode, on Claude Code; Sol at `ultra` effort on Codex), say so and offer to
-stop so the user can relaunch. No hard block — but proceeding on a lesser model needs the user's
-explicit go-ahead, recorded in `00-overview.md`.
 
 ## Contract
 
@@ -124,8 +115,8 @@ feedback changes the remaining plan — re-verify each stub against the now-curr
 write the next wave's story docs, cutting or reframing stubs whose premise no longer holds.
 
 One planner per sprint dir at a time: concurrent plan sessions collide on story numbers and
-merge order. After a direction story lands, re-enter planning in a fresh strongest-model
-session, never in the executor's thread.
+merge order. After a direction story lands, re-enter planning in a fresh planner session,
+never in the executor's thread.
 
 ## Executing Direct Stories In-Session
 

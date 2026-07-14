@@ -4,6 +4,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ORCH="$HERE/../sprint-orchestrator/SKILL.md"
 ORCH_YAML="$HERE/../sprint-orchestrator/agents/openai.yaml"
+ORCH_README="$HERE/../sprint-orchestrator/README.md"
 PASS=0; FAIL=0
 ok() { PASS=$((PASS+1)); printf 'ok   - %s\n' "$1"; }
 no() { FAIL=$((FAIL+1)); printf 'FAIL - %s\n' "$1"; }
@@ -41,7 +42,15 @@ orch_rows="$(grep -E '^\| [SABC] \|' "$ORCH")"
   && ok "orchestrator: ladder has exactly 4 tier rows" \
   || no "orchestrator: ladder has exactly 4 tier rows (got: $(printf '%s\n' "$orch_rows" | grep -c .))"
 has   "orchestrator: capability outranks affinity" "Capability outranks affinity" "$ORCH"
-has   "orchestrator: strongest-model gate"  "Strongest Model"    "$ORCH"
+# The running agent must never reason about its own model. Launch advice is README-only:
+# frontmatter description is harness-visible and could re-trigger self-disqualification.
+hasnt "orchestrator: no self-model gate"        "Strongest Model"    "$ORCH"
+hasnt "orchestrator: no self-identification"    "name the model you are running as" "$ORCH"
+hasnt "orchestrator: no relaunch offer"         "so the user can relaunch" "$ORCH"
+hasnt "orchestrator: no strongest-model remnant" "strongest-model"   "$ORCH"
+hasnt "orchestrator: no launch advice in frontmatter" "Best run on"  "$ORCH"
+has   "orchestrator readme: where-to-run advice" "## Where to run it" "$ORCH_README"
+has   "orchestrator readme: fable preferred"     "Fable"             "$ORCH_README"
 has   "orchestrator: incremental waves"     "wave boundary"      "$ORCH"
 has   "orchestrator: deferred stories are stubs" "stub"          "$ORCH"
 hasnt "orchestrator: no filesystem ledger claim" "filesystem remains the ledger" "$ORCH"
@@ -133,6 +142,7 @@ has   "contract: second interrupt condition" "keep prod green"    "$AHEXEC"
 has   "contract: orchestration never waives the contract" "never waives this contract" "$AHEXEC"
 hasnt "contract: no per-sprint HANDOFF.md"   "HANDOFF.md"         "$AHEXEC"
 hasnt "contract: no CLAIMED rename"          ".CLAIMED.md"        "$AHEXEC"
+hasnt "contract: no strongest-model remnant"  "strongest-model"    "$AHEXEC"
 bad=$(grep -nF 'git checkout main' "$AHEXEC" 2>/dev/null | grep -viE 'never|do not|don.t|instead of' || true)
 [ -z "$bad" ] && ok "contract: git checkout main only ever negated" || no "contract: git checkout main appears as an instruction ($bad)"
 has   "contract: brainstorm gate section"    "## 2. Brainstorm gate" "$AHEXEC"

@@ -160,8 +160,8 @@ brainstorm gate is where the operator shapes the direction. Then:
   fires.
 - Done means: dossier merged, DIRECTION event appended, and the operator has read the dossier —
   a dossier is an artifact, and human inspection of artifacts is part of done.
-- Then stop. Re-entering planning is the operator's move, in a fresh strongest-model planner
-  session — never this session, which sits in a story worktree on a stale branch.
+- Then stop. Re-entering planning is the operator's move, in a fresh planner session — never this
+  session, which sits in a story worktree on a stale branch.
 
 ## Evidence (frontend stories)
 
