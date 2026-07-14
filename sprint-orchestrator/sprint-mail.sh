@@ -39,7 +39,8 @@ repo_name() {
   common="$(cd "$common" && pwd)"
   basename "$(dirname "$common")"
 }
-mail_dir="$MAIL_ROOT/$(repo_name)/$(basename "$sprint_dir")"
+repo="$(repo_name)"
+mail_dir="$MAIL_ROOT/$repo/$(basename "$sprint_dir")"
 
 next_seq() {  # $1=story  $2=ERE matching the kinds sharing this counter
   local max
@@ -53,6 +54,7 @@ case "$cmd" in
     nn="${3:-}"; kind="${4:-}"; src="${5:--}"
     [ -n "$nn" ] && [ -n "$kind" ] || usage
     echo "$nn" | grep -qE '^[0-9]+[a-z]?$' || err "story must look like 07 or 06b (got: $nn)"
+    [ "$src" = "-" ] || [ -f "$src" ] || err "cannot read message body: $src — pass an existing file or - for stdin"
     body="$(if [ "$src" = "-" ]; then cat; else cat "$src"; fi)"
     case "$kind" in
       evidence|question|concluded)

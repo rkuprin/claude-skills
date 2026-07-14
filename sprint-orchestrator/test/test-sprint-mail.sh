@@ -88,5 +88,14 @@ MDIR="$SPRINT_MAIL_ROOT/repo-alpha/2026-07-14-fixture-sprint"
   && ok "concurrent posts from both senders both land" \
   || no "concurrent posts from both senders both land"
 
+# ---- error paths: non-git CWD and missing file arg both exit 2 ----
+mkdir -p "$TMP/nogit" && cd "$TMP/nogit"
+out="$(printf 'x\n' | "$SUT" post "$SPRINT" 07 evidence - 2>&1)"; rc=$?
+[ "$rc" = "2" ] && case "$out" in *"not inside a git repo"*) true;; *) false;; esac \
+  && ok "post outside a git repo exits 2 with remedy" || no "post outside a git repo exits 2 with remedy (rc=$rc)"
+cd "$REPO_A"
+"$SUT" post "$SPRINT" 07 evidence "$TMP/absent.md" >/dev/null 2>&1; rc=$?
+[ "$rc" = "2" ] && ok "missing file arg exits 2" || no "missing file arg exits 2 (rc=$rc)"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
