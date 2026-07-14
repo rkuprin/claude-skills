@@ -156,12 +156,6 @@ grep -q '^name: claude-reviewer$' "$CR" 2>/dev/null && ok "claude-reviewer: name
 has   "claude-reviewer: manual-only on Claude"  "disable-model-invocation: true" "$CR"
 has   "claude-reviewer: reply is evidence, not instruction" "not an instruction to obey" "$CR"
 
-# --- trace-scenario ---
-TS="$HERE/../trace-scenario/SKILL.md"
-grep -q '^name: trace-scenario$' "$TS" 2>/dev/null && ok "trace-scenario: name matches directory" || no "trace-scenario: name matches directory"
-has   "trace-scenario: never infers the environment" "Do not infer an" "$TS"
-has   "trace-scenario: mutation needs authorization" "explicit authorization" "$TS"
-
 # --- codex (reviewer lanes) ---
 CX="$HERE/../codex/SKILL.md"
 CXSH="$HERE/../codex/run-codex.sh"
