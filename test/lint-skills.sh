@@ -98,8 +98,8 @@ has   "orchestrator: DISPOSED heading"          "## DISPOSED — dp-"  "$ORCH"
 has   "orchestrator: disposed is wave accounting" "wave accounting, never DONE" "$ORCH"
 has   "orchestrator: story-scoped event ids"    "rp-YYYYMMDD-NN-"    "$ORCH"
 has   "orchestrator: planner handoff section"   "## The Planner Handoff" "$ORCH"
-has   "orchestrator: handoff goal spans the wave" "supervised to conclusion" "$ORCH"
-has   "orchestrator: demotion cutover"          "no longer counts as a planner" "$ORCH"
+has   "orchestrator: handoff goal spans the wave" "and the next planner handoff rendered" "$ORCH"
+has   "orchestrator: demotion cutover"          "solely as the leftover's executor" "$ORCH"
 hasnt "orchestrator: handoff never asks identity" "identify its model" "$ORCH"
 
 # --- agent-handoff (SKILL.md) ---
