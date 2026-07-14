@@ -133,9 +133,10 @@ working title, one-line intent, what blocks it, and which wave-1 outcome could r
 write no story doc yet. Wave-1 implementation changes the ground truth a deferred doc would be
 written against; a doc written today would be stale by its own wave.
 
-At each wave boundary (the wave's stories read `DONE` in `sprint-status.sh`), the user re-invokes
-this skill on the sprint directory. On ANY re-invocation of an existing sprint dir — wave
-boundary, handback, or a landed direction story — FIRST sweep `STORY-FEEDBACK.md` for unresolved
+At each wave boundary (every story `DONE` or DISPOSED), the outgoing supervisor renders the
+planner handoff (see The Planner Handoff) and the user pastes it into a fresh session. On ANY
+re-invocation of an existing sprint dir — wave boundary, handback, or a landed direction story
+— FIRST sweep `STORY-FEEDBACK.md` for unresolved
 feedback events: every `## REPLAN — rp-YYYYMMDD-NN-<n> — Story NN`,
 `## DIRECTION — dr-YYYYMMDD-NN-<n> — Story NN`, or `## DISPOSED — dp-YYYYMMDD-NN-<n> — Story NN`
 block with no matching `## RESOLUTION — <id>` block.
@@ -149,8 +150,9 @@ feedback changes the remaining plan — re-verify each stub against the now-curr
 write the next wave's story docs, cutting or reframing stubs whose premise no longer holds.
 
 One planner per sprint dir at a time: concurrent plan sessions collide on story numbers and
-merge order. After a direction story lands, re-enter planning in a fresh planner session,
-never in the executor's thread.
+merge order. Succession, not exclusion: a demoted supervisor no longer counts as a planner.
+After a direction story lands, re-enter planning in a fresh planner session, never in the
+executor's thread.
 
 ## Executing Direct Stories In-Session
 
@@ -239,6 +241,33 @@ next planner treats a DISPOSED story as settled intent, not unfinished work. Eve
 kinds carry the story number — `rp-YYYYMMDD-NN-<n>`, `dr-YYYYMMDD-NN-<n>`, `dp-YYYYMMDD-NN-<n>`
 — so parallel writers cannot collide on same-day IDs. Events already recorded keep their old
 IDs; events are immutable.
+
+## The Planner Handoff
+
+A wave concludes when every story is DONE or DISPOSED. The next wave is never planned in this
+transcript — supervision leftovers poison planning focus. Render a planner handoff for a fresh
+session, then stop:
+
+    Sprint planning continues: <sprint-basename> — wave <N+1>
+
+    Re-invoke /sprint-orchestrator on <literal sprint path>.
+    Wave <N> outcome: <one line per story — merged / disposed / leftover>.
+    Leftover in flight: <story NN and who holds it | none>.
+    Unresolved events: <ids | none>.
+    Mailbox: <literal mailbox path> — sweep it before planning.
+
+    /goal Wave <N+1> planned, dispatched, and supervised to conclusion — every story
+    merged or disposed — and the next planner handoff rendered.
+
+The `/goal` targets the NEXT wave boundary — a goal that ends at dispatch would recreate the
+plan-and-exit behavior this lifecycle replaces.
+
+**Early unblock.** If only a leftover story holds the wave and nothing in wave N+1 depends on
+it, render the planner handoff now and demote yourself: from that moment, answer no mailbox
+messages and write no planning files — story docs, `00-overview.md`, and event resolutions
+belong to the fresh planner. You act solely as the leftover's executor: executor mailbox kinds,
+executor-side events (a REPLAN on handback), nothing more. A demoted supervisor no longer
+counts as a planner.
 
 ## Drivers
 
