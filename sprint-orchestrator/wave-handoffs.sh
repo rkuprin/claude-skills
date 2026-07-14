@@ -107,7 +107,7 @@ feedback="$sprint_dir/STORY-FEEDBACK.md"
 unresolved=""
 if [ -f "$feedback" ]; then
   unresolved="$(awk '
-    /^## (REPLAN|DIRECTION) — /{ids[$4]=$7}
+    /^## (REPLAN|DIRECTION|DISPOSED) — /{ids[$4]=$7}
     /^## RESOLUTION — /{resolved[$4]=1}
     END{for (id in ids) if (!(id in resolved)) printf "%s (Story %s), ", id, ids[id]}' "$feedback")"
   unresolved="${unresolved%, }"
@@ -188,7 +188,7 @@ for doc in "${docs[@]}"; do
   printf 'Planning depth: %s.\n' "$depth"
   printf 'Use skills: %s\n' "$skills"
   printf 'Hard rules: every commit carries `Story: %s` and `Sprint: %s` (verbatim);\n' "$story" "${sprint_fm:-$sprint_name}"
-  printf 'never `git checkout main`; if designated branch `%s` already exists on any ref the story is taken — stop (unless this kickoff carries a resume grant);\n' "$branch"
+  printf 'never `git checkout main`; if designated branch `%s` already exists on any ref the story is taken — stop (unless this kickoff carries a resume grant); check, create, and release only that exact branch;\n' "$branch"
   printf 'on handback publish the REPLAN event (docs-only, no trailers) and release the claim branch;\n'
   printf 'never leave prod broken.\n\n'
   printf '%s\n' "${goal:-/goal <missing /goal line in $doc_rel>}"

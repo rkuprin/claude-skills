@@ -81,6 +81,7 @@ case "$OUTPUT" in
 esac
 has "dispatch constraint rendered"          "$OUTPUT" "merge-order-independent"
 has "hard rule carries grant carve-out"     "$OUTPUT" "stop (unless this kickoff carries a resume grant)"
+has "hard rule keeps exact-branch clause"   "$OUTPUT" "check, create, and release only that exact branch"
 case "$OUTPUT" in *"are SETTLED"*) no "old SETTLED wording gone";; *) ok "old SETTLED wording gone";; esac
 
 # ---- Unresolved feedback events: warn on stderr, recap line on stdout ----
@@ -105,6 +106,11 @@ cat > "$SPRINT/STORY-FEEDBACK.md" <<'EOF'
 ## DIRECTION — dr-20260702-02 — Story 09
 - Dossier: docs/sprints/fixture/dossier-09.md
 - Recommendation: fixture
+
+## DISPOSED — dp-20260714-03-1 — Story 03
+- Outcome: cut
+- Cleanup: fixture
+- Reason: fixture
 EOF
 
 WERR="$(mktemp)"
@@ -112,6 +118,7 @@ WOUT="$("$WH" "$SPRINT" 1 2>"$WERR")"
 WERRTXT="$(cat "$WERR")"
 has "warning names unresolved replan id"    "$WERRTXT" 'rp-20260702-01 (Story 07)'
 has "warning names unresolved direction id" "$WERRTXT" 'dr-20260702-02 (Story 09)'
+has "warning names unresolved disposed id"  "$WERRTXT" 'dp-20260714-03-1 (Story 03)'
 case "$WERRTXT" in *rp-20260701-01*) no "resolved id not warned";; *) ok "resolved id not warned";; esac
 has "recap carries the unresolved line"     "$WOUT"    '> **Unresolved feedback events**'
 case "$WOUT" in *"wave-handoffs: WARNING"*) no "stderr warning stays off stdout";; *) ok "stderr warning stays off stdout";; esac
@@ -122,6 +129,9 @@ cat >> "$SPRINT/STORY-FEEDBACK.md" <<'EOF'
 - Resolution: fixture
 
 ## RESOLUTION — dr-20260702-02
+- Resolution: fixture
+
+## RESOLUTION — dp-20260714-03-1
 - Resolution: fixture
 EOF
 RERR="$(mktemp)"
