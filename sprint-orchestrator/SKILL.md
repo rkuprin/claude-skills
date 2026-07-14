@@ -61,6 +61,26 @@ Sprints planned before this convention have no trailers and their history is not
 those, `00-overview.md` and `STORY-FEEDBACK.md` are the record; `sprint-status.sh` will
 under-report them and that is expected.
 
+## The Sprint Brief
+
+What exists in the sprint directory decides how a session opens:
+
+- **Undefined** — no sprint directory, or one holding neither story docs nor `00-overview.md`:
+  discuss the sprint with the user first — what it is about, what is in, what is out, what done
+  looks like. Print a **Sprint brief** on screen in colloquial, simple English and iterate until
+  the user approves it. Until then nothing else happens: no verification sweep, no story docs,
+  no writes. The approved brief lands verbatim as the opening `## Sprint brief` section of
+  `00-overview.md`.
+- **Legacy** — `00-overview.md` exists without a `## Sprint brief` section: skip the gate and
+  do not force a backfill; the overview as written is the scope boundary. Backfill only if the
+  user asks.
+- **Partial** — story docs or `STORY-FEEDBACK.md` exist but `00-overview.md` does not: stop and
+  ask the user how to recover. Never run first-run creation over an existing partial directory.
+
+On every re-invocation of a defined sprint, re-read the brief (when present) as the boundary
+all planning stays inside. The brief is the one human-facing artifact; the rest of the overview
+and the story docs stay dense and agent-facing.
+
 ## Plan Session
 
 This is high-level planning backed by in-depth research — never per-story implementation planning.

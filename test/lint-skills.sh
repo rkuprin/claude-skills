@@ -79,6 +79,10 @@ has   "orchestrator: subagents gated on recap"  "user approves the recap"  "$ORC
 has   "orchestrator: publish before firing"     "Publish before firing"    "$ORCH"
 has   "orchestrator: one planner per sprint dir" "One planner per sprint dir" "$ORCH"
 has   "orchestrator: sweep checks unmerged sprint-docs" "sprint-docs/" "$ORCH"
+has   "orchestrator: brief gate section"        "## The Sprint Brief" "$ORCH"
+has   "orchestrator: brief lands in overview"   "## Sprint brief"     "$ORCH"
+has   "orchestrator: brief legacy case"         "do not force a backfill" "$ORCH"
+has   "orchestrator: brief partial case"        "Never run first-run creation" "$ORCH"
 
 # --- agent-handoff (SKILL.md) ---
 AH="$HERE/../agent-handoff/SKILL.md"
