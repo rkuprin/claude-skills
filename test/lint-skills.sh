@@ -192,6 +192,7 @@ has   "contract: one open question"          "One open question at a time" "$AHE
 has   "contract: notes read before merge"    "notes before merge or PR" "$AHEXEC"
 has   "contract: story-scoped replan id"        "rp-YYYYMMDD-{NN}-"  "$AHEXEC"
 has   "contract: story-scoped direction id"     "dr-YYYYMMDD-{NN}-"  "$AHEXEC"
+has   "contract: preflight refusal posts nothing" "reports via its transport and posts nothing" "$AHEXEC"
 
 # --- claude-reviewer ---
 CR="$HERE/../claude-reviewer/SKILL.md"

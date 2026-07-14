@@ -125,7 +125,7 @@ the mailbox degrades to the handback protocol — nothing new to learn, just fas
 `outcome: <merged | pr-ready | handback | blocked | failed | dossier>`, body naming the
 terminal artifact (PR / dossier / branch) and where the hand-back evidence lives. After posting
 it you are done — never resume the story afterwards. Fixes arrive as a fresh kickoff under an
-ownership transfer, not as notes to a session that no longer exists.
+ownership transfer, not as notes to a session that no longer exists. A preflight refusal (taken branch, or a resume-grant SHA mismatch) reports via its transport and posts nothing — you never owned the story, and its mailbox counters belong to whoever does.
 
 ## Divergences and handback
 

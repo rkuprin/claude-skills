@@ -156,7 +156,7 @@ executor's thread.
 
 ## Executing Direct Stories In-Session
 
-This skill's only sanctioned in-session execution. It never starts before the user approves the
+One of this skill's two sanctioned in-session executions — inline rescue, bound by ownership transfer, is the other (see Supervising the Wave). It never starts before the user approves the
 recap — the gate exists so a bad plan is seen before it runs.
 
 - **Publish before firing.** Commit and push the sprint planning docs (story docs,
