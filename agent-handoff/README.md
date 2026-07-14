@@ -19,7 +19,10 @@ path. The prompt itself keeps only the catastrophic rules inline, with literal v
 
 For `loop: full` stories the contract opens with read-only investigation and an interactive
 brainstorm with the operator; divergences that cross the story boundary hand back to the sprint
-planner via a REPLAN event in `STORY-FEEDBACK.md`.
+planner via a REPLAN event in `STORY-FEEDBACK.md`. Executors also keep a transient mail lane with the supervising planner
+(`~/.sprint-mail/<repo>/<sprint>/`, via `sprint-orchestrator`'s `sprint-mail.sh`): `evidence`
+posts, one blocking `question` at a time, and a terminal `concluded` outcome on every exit —
+never a substitute for the git-derived state or the event protocol.
 
 ## Prerequisites
 

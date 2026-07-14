@@ -1,8 +1,9 @@
 # sprint-orchestrator
 
 Turns raw sprint inputs — notes, PDFs, screenshots, tracker cards — into verified, independent
-story handoff docs. It plans and hands off. It does not implement stories, merge branches, or
-declare work done.
+story handoff docs. It plans, dispatches, supervises the wave to conclusion, and integrates results — merging per
+the story's execution mode, disposing of or rescuing problem stories, and handing planning to a
+fresh session at each wave boundary. Story state stays derived from git throughout.
 
 Pairs with [`agent-handoff`](../agent-handoff/), whose story-execution mode renders the kickoff
 prompt that actually runs a story.
@@ -51,9 +52,10 @@ docs/sprints/<sprint>/
 └── 07-<slug>.md
 ```
 
-Only the current wave gets full story docs. Blocked work is deferred — story number allocated and
-a stub recorded in the overview — and gets its doc at the wave checkpoint: re-invoke the skill on
-the sprint directory when a wave lands, and it reassesses progress before writing the next wave.
+Only the current wave gets full story docs. Blocked work is deferred — story number allocated and a stub recorded in the overview — and
+gets its doc at the wave checkpoint: when a wave concludes (every story DONE or DISPOSED), the
+outgoing supervisor renders a planner handoff and a fresh session reassesses progress before
+writing the next wave.
 
 `loop: full` stories open with read-only investigation and an interactive brainstorm with you
 before any code; `loop: direct` stories go straight to a short TDD plan. When execution findings
@@ -133,6 +135,14 @@ sprint directory or a wave with no stories.
 If `STORY-FEEDBACK.md` carries unresolved REPLAN/DIRECTION events, the script warns on stderr and
 puts a matching line in the rendered recap — it renders anyway; resolving is your call.
 
+## The mailbox
+
+Executors and the supervising session exchange transient mail in
+`~/.sprint-mail/<repo>/<sprint>/` via `sprint-mail.sh` (beside `sprint-status.sh`): executors
+post `evidence`, one blocking `question` at a time, and a terminal `concluded` outcome on every
+exit; the supervisor posts `reply` and `note`. It is never state — story state stays in the
+commit trailers — and when nobody answers, everything degrades to the REPLAN handback protocol.
+
 ## The rule that makes it work
 
 Every commit the executor makes for a story carries two trailers:
@@ -167,6 +177,7 @@ From this repo:
 
 ```bash
 sprint-orchestrator/test/test-sprint-status.sh   # 18 assertions, hermetic git fixtures
+sprint-orchestrator/test/test-sprint-mail.sh   # mailbox helper: sequencing, replies, waits
 test/lint-skills.sh                              # invariants both skill files must hold
 ```
 
