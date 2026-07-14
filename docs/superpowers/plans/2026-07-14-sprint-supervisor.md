@@ -128,6 +128,15 @@ MDIR="$SPRINT_MAIL_ROOT/repo-alpha/2026-07-14-fixture-sprint"
   && ok "concurrent posts from both senders both land" \
   || no "concurrent posts from both senders both land"
 
+# ---- error paths: non-git CWD and missing file arg both exit 2 ----
+mkdir -p "$TMP/nogit" && cd "$TMP/nogit"
+out="$(printf 'x\n' | "$SUT" post "$SPRINT" 07 evidence - 2>&1)"; rc=$?
+[ "$rc" = "2" ] && case "$out" in *"not inside a git repo"*) true;; *) false;; esac \
+  && ok "post outside a git repo exits 2 with remedy" || no "post outside a git repo exits 2 with remedy (rc=$rc)"
+cd "$REPO_A"
+"$SUT" post "$SPRINT" 07 evidence "$TMP/absent.md" >/dev/null 2>&1; rc=$?
+[ "$rc" = "2" ] && ok "missing file arg exits 2" || no "missing file arg exits 2 (rc=$rc)"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
 ```
@@ -181,7 +190,8 @@ repo_name() {
   common="$(cd "$common" && pwd)"
   basename "$(dirname "$common")"
 }
-mail_dir="$MAIL_ROOT/$(repo_name)/$(basename "$sprint_dir")"
+repo="$(repo_name)"
+mail_dir="$MAIL_ROOT/$repo/$(basename "$sprint_dir")"
 
 next_seq() {  # $1=story  $2=ERE matching the kinds sharing this counter
   local max
@@ -195,6 +205,7 @@ case "$cmd" in
     nn="${3:-}"; kind="${4:-}"; src="${5:--}"
     [ -n "$nn" ] && [ -n "$kind" ] || usage
     echo "$nn" | grep -qE '^[0-9]+[a-z]?$' || err "story must look like 07 or 06b (got: $nn)"
+    [ "$src" = "-" ] || [ -f "$src" ] || err "cannot read message body: $src — pass an existing file or - for stdin"
     body="$(if [ "$src" = "-" ]; then cat; else cat "$src"; fi)"
     case "$kind" in
       evidence|question|concluded)
@@ -247,7 +258,7 @@ Then: `chmod +x sprint-orchestrator/sprint-mail.sh`
 - [ ] **Step 4: Run the suite until green**
 
 Run: `sprint-orchestrator/test/test-sprint-mail.sh`
-Expected: `21 passed, 0 failed`, exit 0. Also run the neighbors to prove no collateral: `test/lint-skills.sh && sprint-orchestrator/test/test-sprint-status.sh && sprint-orchestrator/test/test-wave-handoffs.sh` — all green.
+Expected: `23 passed, 0 failed`, exit 0. Also run the neighbors to prove no collateral: `test/lint-skills.sh && sprint-orchestrator/test/test-sprint-status.sh && sprint-orchestrator/test/test-wave-handoffs.sh` — all green.
 
 - [ ] **Step 5: Commit**
 
@@ -481,8 +492,8 @@ sprint-orchestrator skill directory). Files are `NN-SSS-<kind>.md`, append-only,
   all of your story's notes before merge or PR.
 
 The mailbox is never state: DONE is still both trailers on a trunk-reachable commit, and
-`sprint-status.sh` never reads the mailbox. When nobody answers, the mailbox degrades to the
-handback protocol — nothing new to learn, just faster when it works.
+`sprint-status.sh` never reads the mailbox. When nobody answers,
+the mailbox degrades to the handback protocol — nothing new to learn, just faster when it works.
 
 **Terminal outcome.** Every exit posts `concluded`, first line
 `outcome: <merged | pr-ready | handback | blocked | failed | dossier>`, body naming the
@@ -713,8 +724,8 @@ Re-dispatch, rescue, and demotion succession operate on a branch that already ex
 what the preflight refuses. Takeover is legal only through this protocol:
 
 - Precondition: the current owner is finished — a terminal `concluded` outcome, or a transport
-  confirmed dead (subagent exited; the user closed the session). Never take over a live
-  executor.
+  confirmed dead (subagent exited; the user closed the session).
+  Never take over a live executor.
 - Record the transfer: branch, worktree path (if any), HEAD SHA, and what remains to be done.
 - The successor's kickoff is a story-execution render carrying an explicit grant line —
   `Resume grant: resume designated branch {BRANCH} at {SHA} — {WHAT REMAINS}` — and the grant
@@ -743,8 +754,21 @@ what the preflight refuses. Takeover is legal only through this protocol:
 ```markdown
 - Takeover kickoffs — re-dispatch or rescue authorized by the supervisor's ownership transfer
   (see `sprint-orchestrator/SKILL.md`) — add one line after `Sprint identity:`:
-  `Resume grant: resume designated branch {BRANCH} at {SHA} — {WHAT REMAINS}`. Ordinary
-  kickoffs never carry it, and for them the pre-render claim check refusal stands unchanged.
+  `Resume grant: resume designated branch {BRANCH} at {SHA} — {WHAT REMAINS}`.
+  Ordinary kickoffs never carry it, and for them the pre-render claim check refusal stands unchanged.
+```
+
+**Review follow-up (landed as separate commit):** the branch-exists hard rule in the fenced
+kickoff template of `agent-handoff/SKILL.md` still read as an unconditional stop, contradicting
+the resume-grant exception just added. Its "Hard rules" line changed:
+
+`taken — stop; check, create, and release only that exact branch;` →
+`taken — stop (unless this kickoff carries a resume grant); check, create, and release only that exact branch;`
+
+Add the matching lint pin in `test/lint-skills.sh`:
+
+```bash
+has   "handoff: hard rule carries grant carve-out" "unless this kickoff carries a resume grant" "$AH"
 ```
 
 - [ ] **Step 4: Verify green** — `test/lint-skills.sh` → 0 failed; other suites green.
@@ -848,8 +872,8 @@ git commit -m "feat(sprint): DISPOSED events and story-scoped event ids"
 
 ```bash
 has   "orchestrator: planner handoff section"   "## The Planner Handoff" "$ORCH"
-has   "orchestrator: handoff goal spans the wave" "supervised to conclusion" "$ORCH"
-has   "orchestrator: demotion cutover"          "no longer counts as a planner" "$ORCH"
+has   "orchestrator: handoff goal spans the wave" "and the next planner handoff rendered" "$ORCH"
+has   "orchestrator: demotion cutover"          "solely as the leftover's executor" "$ORCH"
 hasnt "orchestrator: handoff never asks identity" "identify its model" "$ORCH"
 ```
 
@@ -944,6 +968,7 @@ case "$OUTPUT" in
   *) ok "unconditional parallel sentence removed" ;;
 esac
 has "dispatch constraint rendered"          "$OUTPUT" "merge-order-independent"
+has "hard rule carries grant carve-out"     "$OUTPUT" "stop (unless this kickoff carries a resume grant)"
 ```
 
 And in `test/lint-skills.sh`, in the renderer block:
@@ -981,6 +1006,19 @@ In the per-story kickoff block, after the `printf 'Sprint identity: …'` line, 
 
 ```bash
 printf 'Mailbox: %s — post evidence, questions, and your terminal outcome per the contract'"'"'s Mailbox section.\n' "$mailbox"
+```
+
+Replace the `Hard rules:` printf line for the branch-exists rule with the resume-grant carve-out
+(matching the same carve-out landed in `agent-handoff/SKILL.md`'s kickoff template):
+
+```bash
+printf 'never `git checkout main`; if designated branch `%s` already exists on any ref the story is taken — stop;\n' "$branch"
+```
+
+becomes:
+
+```bash
+printf 'never `git checkout main`; if designated branch `%s` already exists on any ref the story is taken — stop (unless this kickoff carries a resume grant);\n' "$branch"
 ```
 
 - [ ] **Step 4: Verify green**
