@@ -46,7 +46,7 @@ next_seq() {  # $1=story  $2=ERE matching the kinds sharing this counter
   local max
   max="$(ls "$mail_dir" 2>/dev/null \
     | sed -n -E "s/^$1-([0-9]{3})-($2)\.md\$/\1/p" | sort -n | tail -1)"
-  printf '%03d' "$(( ${max:-0} + 1 ))"
+  printf '%03d' "$(( 10#${max:-0} + 1 ))"
 }
 
 case "$cmd" in

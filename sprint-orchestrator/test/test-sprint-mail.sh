@@ -88,6 +88,15 @@ MDIR="$SPRINT_MAIL_ROOT/repo-alpha/2026-07-14-fixture-sprint"
   && ok "concurrent posts from both senders both land" \
   || no "concurrent posts from both senders both land"
 
+# ---- sequence arithmetic survives zero-padded 008/009 (octal trap) ----
+i=1; last=""
+while [ "$i" -le 10 ]; do
+  last="$(printf 'm%s\n' "$i" | "$SUT" post "$SPRINT" 09 evidence -)" || break
+  i=$((i+1))
+done
+[ "$(basename "$last")" = "09-010-evidence.md" ] \
+  && ok "counter passes 008/009 into 010" || no "counter passes 008/009 into 010 (got: $last)"
+
 # ---- error paths: non-git CWD and missing file arg both exit 2 ----
 mkdir -p "$TMP/nogit" && cd "$TMP/nogit"
 out="$(printf 'x\n' | "$SUT" post "$SPRINT" 07 evidence - 2>&1)"; rc=$?
