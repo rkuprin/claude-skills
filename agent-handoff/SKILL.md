@@ -152,12 +152,18 @@ render time; no placeholders left for the executor.
 - The contract path is spelled for the target harness:
   `~/.codex/skills/agent-handoff/EXECUTION.md` for Codex targets,
   `~/.claude/skills/agent-handoff/EXECUTION.md` for Claude targets.
+- Pre-render claim check: `git fetch origin`, then verify the story's exact `branch:` value exists
+  on NO ref and no worktree is pinned to it (`git branch -a`, `git worktree list`). A pure claim —
+  the branch with zero story commits — already means DOING; trailer-derived status lags it, so a
+  TODO reading is never clearance to dispatch (rp-20260712-1). If claimed, report the branch,
+  worktree, and HEAD instead of rendering a kickoff.
 
 ```
-Story {NN}: {Three Descriptive Words}
+{SPRINT} · Story {NN}: {Three Descriptive Words}
 
 You are executing ONE story end-to-end.
 EXECUTION MODE: {AUTONOMOUS — merge, deploy, verify on prod. | STOP AT PR — DO NOT MERGE OR DEPLOY.}
+Sprint identity: {SPRINT}. Designated claim branch: `{BRANCH}`.
 Read first: {STORY_DOC}, 00-overview.md, STORY-FEEDBACK.md, and repo conventions
 (AGENTS.md / CLAUDE.md). If any are absent from this worktree, read them from trunk with
 `git show origin/main:<path>` — never copy them in. Product scope and decisions there are
@@ -168,7 +174,8 @@ Planning depth: {run the contract's investigation + interactive brainstorm phase
 first | the story is fully defined — go straight to a short TDD plan}.
 Use skills: {from the story's flow — e.g. superpowers:test-driven-development; `flow: direction` → none}
 Hard rules: every commit carries `Story: {NN}` and `Sprint: {SPRINT}` (verbatim);
-never `git checkout main`; if sprint/{NN}-* already exists on any ref the story is taken — stop;
+never `git checkout main`; if designated branch `{BRANCH}` already exists on any ref the story is
+taken — stop; check, create, and release only that exact branch;
 on handback publish the REPLAN event (docs-only, no trailers) and release the claim branch;
 never leave prod broken.
 
@@ -176,6 +183,6 @@ never leave prod broken.
 ```
 
 The first line is the story's `conversation:` value, so the receiving session names itself after
-the story and its tracker card. `{SPRINT}` is the story doc's `sprint:` frontmatter value — the
-sprint directory's basename, verbatim; anything else makes the story invisible to sprint status
-forever.
+the sprint-scoped story and its tracker card. `{SPRINT}` and `{BRANCH}` are the story doc's exact
+frontmatter values. The sprint is the directory basename verbatim; anything else makes the story
+invisible to sprint status forever.

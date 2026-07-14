@@ -91,7 +91,7 @@ Nothing is renamed and nothing is archived, so nothing can drift:
 | State | Signal |
 |---|---|
 | `DONE` | one commit reachable from trunk carries **both** `Story: NN` and `Sprint: <sprint-dir-basename>` |
-| `DOING` | a `sprint/NN-*` branch or a worktree pinned to one exists, and not `DONE` |
+| `DOING` | the story doc's exact `branch:` exists locally, remotely, or in a worktree, and not `DONE` |
 | `TODO` | neither |
 
 `DONE` outranks `DOING`, because merged branches and their worktrees linger long after the work lands.

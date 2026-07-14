@@ -133,6 +133,20 @@ OUT_B="$(SPRINT_TRUNK=main "$SUT" "$SDB" 2>&1)"
 state_is "$OUT_A" 07 DONE
 state_is "$OUT_B" 07 TODO
 
+# --- Cross-sprint claim collision ---
+# Two sprints may use the same number and slug. Their explicit branch values
+# scope the live claim; claiming sprint "claim-a" must not claim "claim-b".
+SCA="docs/sprints/claim-a"; SCB="docs/sprints/claim-b"; mkdir -p "$SCA" "$SCB"
+printf '%s\n' '---' 'branch: sprint/claim-a/07-same' '---' '# 07-same' > "$SCA/07-same.md"
+printf '%s\n' '---' 'branch: sprint/claim-b/07-same' '---' '# 07-same' > "$SCB/07-same.md"
+git add -A && git commit -q -m "chore: seed cross-sprint claim fixture"
+git branch sprint/claim-a/07-same main
+
+OUT_CA="$(SPRINT_TRUNK=main "$SUT" "$SCA" 2>&1)"
+OUT_CB="$(SPRINT_TRUNK=main "$SUT" "$SCB" 2>&1)"
+state_is "$OUT_CA" 07 DOING
+state_is "$OUT_CB" 07 TODO
+
 # --- Regex metacharacter in Story number must not match a decoy trailer ---
 # Story doc `07.1-numdot.md` (num `07.1`) is never committed. A decoy commit
 # carries the near-miss trailer `Story: 07x1`. An unescaped `.` in the --grep

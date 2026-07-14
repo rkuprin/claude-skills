@@ -8,13 +8,14 @@ ok() { PASS=$((PASS+1)); printf 'ok   - %s\n' "$1"; }
 no() { FAIL=$((FAIL+1)); printf 'FAIL - %s\n' "$1"; }
 has() { case "$2" in *"$3"*) ok "$1";; *) no "$1 (missing: $3)";; esac; }
 
-SPRINT="$(mktemp -d)/2026-07-10-fixture-sprint"; mkdir -p "$SPRINT"
+SPRINT_NAME="2026-07-10-fixture-sprint"
+SPRINT="$(mktemp -d)/$SPRINT_NAME"; mkdir -p "$SPRINT"
 
 story() {  # $1=NN $2=slug, remaining args = extra frontmatter lines (win over defaults via grep -m1)
   local nn="$1" slug="$2"; shift 2
-  { printf -- '---\nstory: %s\ntitle: %s\nconversation: "Story %s: Fixture Case Doc"\n' "$nn" "$slug" "$nn"
+  { printf -- '---\nstory: %s\ntitle: %s\nconversation: "%s · Story %s: Fixture Case Doc"\n' "$nn" "$slug" "$SPRINT_NAME" "$nn"
     local line; for line in "$@"; do printf '%s\n' "$line"; done
-    printf 'sprint: 2026-07-10-fixture-sprint\nexecution: stop-at-pr\nflow: mechanical\nloop: direct\nwave: 1\n'
+    printf 'sprint: %s\nbranch: sprint/%s/%s-%s\nexecution: stop-at-pr\nflow: mechanical\nloop: direct\nwave: 1\n' "$SPRINT_NAME" "$SPRINT_NAME" "$nn" "$slug"
     printf -- '---\n\n## Objective\nFixture objective %s.\n\n## Goal\n\n/goal fixture goal %s\n' "$nn" "$nn"
   } > "$SPRINT/$nn-$slug.md"
 }
@@ -61,6 +62,13 @@ has "direct loop keeps direct depth"       "$OUTPUT" 'the story is fully defined
 has "direction renders no skills"          "$OUTPUT" 'Use skills: none'
 has "settled-by-default wording rendered"  "$OUTPUT" 'settled by default'
 has "handback hard rule rendered"          "$OUTPUT" 'publish the REPLAN event (docs-only, no trailers) and release the claim branch'
+has "kickoff title carries sprint identity" "$OUTPUT" "$SPRINT_NAME · Story 07: Fixture Case Doc"
+has "kickoff names sprint identity"         "$OUTPUT" "Sprint identity: $SPRINT_NAME"
+has "kickoff checks exact claim branch"     "$OUTPUT" "sprint/$SPRINT_NAME/07-tier-b-codex"
+case "$OUTPUT" in
+  *'if sprint/07-* already exists'*) no "bare story-number claim wildcard removed" ;;
+  *) ok "bare story-number claim wildcard removed" ;;
+esac
 case "$OUTPUT" in *"are SETTLED"*) no "old SETTLED wording gone";; *) ok "old SETTLED wording gone";; esac
 
 # ---- Unresolved feedback events: warn on stderr, recap line on stdout ----

@@ -137,12 +137,14 @@ for doc in "${docs[@]}"; do
   title="$(fm_get "$doc" title)"
   conversation="$(fm_get "$doc" conversation)"
   sprint_fm="$(fm_get "$doc" sprint)"
+  branch="$(fm_get "$doc" branch)"
   execution="$(fm_get "$doc" execution)"
   loop="$(fm_get "$doc" loop)"
   flow="$(fm_get "$doc" flow)"
   driver_hint="$(fm_get "$doc" driver_hint)"
   goal="$(goal_line "$doc")"
   doc_rel="$sprint_dir/$(basename "$doc")"
+  [ -n "$branch" ] || branch="sprint/$(basename "$doc" .md)"
 
   case "$execution" in
     autonomous) exec_mode="AUTONOMOUS — merge, deploy, verify on prod." ;;
@@ -165,9 +167,10 @@ for doc in "${docs[@]}"; do
   printf '\n---\n\n## %s — %s\n\n' "$story" "$title"
   printf '**%s**\n\n' "$(launch_line "$doc")"
   printf '```\n'
-  printf '%s\n\n' "${conversation:-Story $story}"
+  printf '%s\n\n' "${conversation:-${sprint_fm:-$sprint_name} · Story $story}"
   printf 'You are executing ONE story end-to-end.\n'
   printf 'EXECUTION MODE: %s\n' "$exec_mode"
+  printf 'Sprint identity: %s. Designated claim branch: `%s`.\n' "${sprint_fm:-$sprint_name}" "$branch"
   printf 'Read first: %s, %s/00-overview.md, %s/STORY-FEEDBACK.md, and repo conventions\n' "$doc_rel" "$sprint_dir" "$sprint_dir"
   printf '(AGENTS.md / CLAUDE.md). If any are absent from this worktree, read them from trunk with\n'
   printf '`git show origin/main:<path>` — never copy them in. Product scope and decisions there are\n'
@@ -177,7 +180,7 @@ for doc in "${docs[@]}"; do
   printf 'Planning depth: %s.\n' "$depth"
   printf 'Use skills: %s\n' "$skills"
   printf 'Hard rules: every commit carries `Story: %s` and `Sprint: %s` (verbatim);\n' "$story" "${sprint_fm:-$sprint_name}"
-  printf 'never `git checkout main`; if sprint/%s-* already exists on any ref the story is taken — stop;\n' "$story"
+  printf 'never `git checkout main`; if designated branch `%s` already exists on any ref the story is taken — stop;\n' "$branch"
   printf 'on handback publish the REPLAN event (docs-only, no trailers) and release the claim branch;\n'
   printf 'never leave prod broken.\n\n'
   printf '%s\n' "${goal:-/goal <missing /goal line in $doc_rel>}"

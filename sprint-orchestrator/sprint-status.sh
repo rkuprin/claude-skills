@@ -3,7 +3,8 @@
 #
 #   DONE   a `Story: NN` trailer AND a matching `Sprint: <dir>` trailer are on the
 #          same commit reachable from trunk (story numbers restart every sprint)
-#   DOING  a sprint/NN-* branch or a worktree pinned to one exists, and not DONE
+#   DOING  the story doc's exact `branch:` exists locally, remotely, or in a
+#          worktree, and not DONE
 #   TODO   neither
 #
 # DONE outranks DOING: merged branches and their worktrees linger.
@@ -36,6 +37,22 @@ escape_bre() {
 
 worktree_branches="$(git worktree list --porcelain | sed -n 's|^branch refs/heads/||p')"
 
+# Read an unquoted or singly/doubly quoted scalar from the first frontmatter
+# block. Older story docs have no `branch:` and fall back to `sprint/<doc-slug>`.
+story_branch() {
+  awk '
+    /^---[[:space:]]*$/ { if (seen) exit; seen=1; next }
+    seen && /^branch:[[:space:]]*/ {
+      sub(/^branch:[[:space:]]*/, "")
+      sub(/[[:space:]]+#.*$/, "")
+      sub(/^[[:space:]]*/, "")
+      sub(/[[:space:]]*$/, "")
+      print
+      exit
+    }
+  ' "$1" | sed -E "s/^\"(.*)\"$/\1/; s/^'(.*)'$/\1/"
+}
+
 claimed_count=0
 for doc in "$sprint_dir"/[0-9]*.md; do
   [ -e "$doc" ] || continue
@@ -49,14 +66,16 @@ for doc in "$sprint_dir"/[0-9]*.md; do
   num="${slug%%-*}"
   num_pattern="$(escape_bre "$num")"
   sprint_pattern="$(escape_bre "$sprint_name")"
+  branch="$(story_branch "$doc")"
+  [ -n "$branch" ] || branch="sprint/$slug"
 
   # Story numbers restart every sprint, so `Story:` alone is not unique — require
   # the `Sprint:` trailer to match this directory's basename on the same commit.
   if [ -n "$(git log "$trunk" --all-match --grep="^Story: ${num_pattern}\$" --grep="^Sprint: ${sprint_pattern}\$" --format=%h -1)" ]; then
     state=DONE
-  elif printf '%s\n' "$worktree_branches" | grep -qxF "sprint/$slug" \
-    || git show-ref --verify --quiet "refs/heads/sprint/$slug" \
-    || git show-ref --verify --quiet "refs/remotes/origin/sprint/$slug"; then
+  elif printf '%s\n' "$worktree_branches" | grep -qxF "$branch" \
+    || git show-ref --verify --quiet "refs/heads/$branch" \
+    || git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
     state=DOING
   else
     state=TODO

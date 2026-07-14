@@ -31,7 +31,7 @@ Story state is never written down. It is computed from git, so it cannot drift.
 | State | Signal |
 |-------|--------|
 | `DONE` | one commit reachable from trunk carries **both** `Story: NN` and `Sprint: <sprint-dir-basename>` |
-| `DOING` | a `sprint/NN-*` branch or a worktree pinned to one exists, and not `DONE` |
+| `DOING` | the story doc's exact `branch:` exists locally, remotely, or in a worktree, and not `DONE` |
 | `TODO` | neither |
 
 Both trailers, on the same commit. `Story: NN` alone is not enough: story numbers restart every
@@ -211,7 +211,7 @@ Each story doc is a prompt for fresh investigation, not a stale implementation s
 ---
 story: 07
 title: <short imperative>
-conversation: "Story 07: Three Descriptive Words"
+conversation: "2026-07-07-report-delivery-sprint · Story 07: Three Descriptive Words"
 sprint: <sprint-name>        # this sprint directory's basename, copied verbatim into every commit's Sprint: trailer
 execution: autonomous        # autonomous | stop-at-pr — copied from 00-overview.md
 flow: mechanical             # mechanical | design-heavy | direction
@@ -220,7 +220,7 @@ driver_hint: codex           # codex | claude | either — affinity from work na
 driver_why: <one line tying the hint to the work's nature>
 tier: B                      # opus (claude) / gpt-5.6-terra (codex) — the letter governs; the comment is advisory
 tier_why: <one line grading the difficulty>
-branch: sprint/07-<slug>
+branch: sprint/<sprint-name>/07-<slug>
 depends_on: []
 wave: 1
 frontend: true               # does any user-visible surface change?
@@ -282,8 +282,10 @@ fire-and-verify — an audit, a migration, a repo-wide sweep where missing somet
 than compute. It implies xhigh depth; never combine it with `effort:`. Interactive or
 redirectable work never gets it (orchestrated workflows cannot pause for input).
 
-`conversation:` is `Story NN: <Three Descriptive Words>`, written by the planner. It matches the
-tracker's card-title convention, so the card and the executor's session share one name.
+`conversation:` is `<sprint-name> · Story NN: <Three Descriptive Words>`, written by the planner.
+It matches the tracker card title, so the card and executor session share one collision-free name.
+`branch:` uses the same sprint basename as a namespace. Claim checks, branch creation, status, and
+claim release all use that exact value — never a bare `sprint/NN-*` pattern.
 
 `execution:` is declared once in `00-overview.md` and copied into every story. A story doc is a
 prompt for a fresh agent; it must not require reading the overview to learn whether it may merge.

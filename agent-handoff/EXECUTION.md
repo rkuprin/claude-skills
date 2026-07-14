@@ -10,9 +10,10 @@ handback" below — never build around a broken premise.
 ## 0. Preflight
 
 - `git fetch origin`
-- If `sprint/{NN}-*` already exists on any ref, the story is taken. STOP and report; never co-opt
-  someone else's branch.
-- `git switch -c sprint/{NN}-{SLUG} origin/main` — NEVER run `git checkout main`: trunk is checked
+- If this story's designated branch — the story doc's exact `branch:` value — already exists on
+  any ref, the story is taken. STOP and report; never co-opt someone else's branch. Story numbers
+  restart every sprint, so a bare `sprint/{NN}-*` match false-positives on previous sprints.
+- `git switch -c "{BRANCH}" origin/main` — use the story doc's exact `branch:` value. NEVER run `git checkout main`: trunk is checked
   out in another worktree and the command fails. Trunk is `origin/main`; if the project uses
   another trunk, `00-overview.md` says so. (`sprint-status.sh` honors `SPRINT_TRUNK`; that
   asymmetry is known and not yours to fix.) Until your first story commit this branch is a
@@ -125,7 +126,7 @@ On hand back:
    `sprint-docs/rp-YYYYMMDD-<n>` branch cut from `origin/main`, not on the claim branch.
    `execution: autonomous`: merge it to trunk now. `stop-at-pr`: open a docs-only PR.
 3. Release the claim — only if the branch is still a pure claim (no story commits): remove your
-   worktree if you created one, then delete the `sprint/{NN}-*` branch. The story reads TODO
+   worktree if you created one, then delete the story doc's exact `branch:` value. The story reads TODO
    again. If story commits already exist (the wrong-premise interrupt fired mid-implementation),
    keep the branch and worktree and name the branch and its last commit in the REPLAN event —
    the story reads DOING until the planner disposes of it.
@@ -200,7 +201,7 @@ Check back at your `/goal`. Surface earlier ONLY for:
 - A REPLAN or DIRECTION event committed WITH story trailers — flips the story's derived state.
 - Naming a dossier `{NN}-dossier.md` — enumerates as a phantom story; the name is
   `dossier-{NN}.md`.
-- Co-opting an existing `sprint/NN-*` branch instead of stopping.
+- Checking or deleting `sprint/NN-*` instead of the story doc's exact sprint-scoped `branch:` value.
 - Force-pushing after a rejected push. Rebase once, retry once, then stop.
 - Deploying from a feature branch instead of merging to trunk first — "live" then ≠ what you
   tested.
