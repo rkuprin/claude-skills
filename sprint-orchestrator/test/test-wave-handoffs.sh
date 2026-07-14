@@ -69,6 +69,18 @@ case "$OUTPUT" in
   *'if sprint/07-* already exists'*) no "bare story-number claim wildcard removed" ;;
   *) ok "bare story-number claim wildcard removed" ;;
 esac
+has "kickoff renders mailbox line"          "$OUTPUT" "Mailbox: ~/.sprint-mail/"
+has "mailbox line names the sprint"         "$OUTPUT" "/$SPRINT_NAME/ — post evidence, questions, and your terminal outcome"
+case "$OUTPUT" in
+  *"Resume grant:"*) no "ordinary kickoffs carry no resume grant" ;;
+  *) ok "ordinary kickoffs carry no resume grant" ;;
+esac
+case "$OUTPUT" in
+  *'These run in parallel'*) no "unconditional parallel sentence removed" ;;
+  *) ok "unconditional parallel sentence removed" ;;
+esac
+has "dispatch constraint rendered"          "$OUTPUT" "merge-order-independent"
+has "hard rule carries grant carve-out"     "$OUTPUT" "stop (unless this kickoff carries a resume grant)"
 case "$OUTPUT" in *"are SETTLED"*) no "old SETTLED wording gone";; *) ok "old SETTLED wording gone";; esac
 
 # ---- Unresolved feedback events: warn on stderr, recap line on stdout ----

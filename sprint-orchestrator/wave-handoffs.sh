@@ -26,6 +26,12 @@ wave="${2:-}"
 
 sprint_name="$(basename "$sprint_dir")"
 
+# Mailbox path namespaced by repo (worktree-safe); mirrors sprint-mail.sh's derivation.
+repo_name="$(git rev-parse --git-common-dir 2>/dev/null)" \
+  && repo_name="$(basename "$(dirname "$(cd "$repo_name" && pwd)")")" \
+  || repo_name="$(basename "$(pwd)")"
+mailbox="~/.sprint-mail/$repo_name/$sprint_name/"
+
 # Lines strictly between the first `---` and the next `---` (the YAML frontmatter).
 frontmatter() { awk 'seen&&/^---[[:space:]]*$/{exit} /^---[[:space:]]*$/{seen=1;next} seen' "$1"; }
 
@@ -129,7 +135,8 @@ for doc in "${docs[@]}"; do
 done
 [ -n "$unresolved" ] \
   && printf '\n> **Unresolved feedback events** — resolve via `/sprint-orchestrator` before kickoff: %s\n' "$unresolved"
-printf '\nThese run in parallel; see `00-overview.md` for the ownership and merge contract.\n'
+printf '\nStories above are dispatch candidates — fire in parallel only those that are ownership-disjoint\n'
+printf 'and merge-order-independent; see `00-overview.md` for ownership and merge order.\n'
 
 # ---- One kickoff per story ------------------------------------------------
 for doc in "${docs[@]}"; do
@@ -171,6 +178,7 @@ for doc in "${docs[@]}"; do
   printf 'You are executing ONE story end-to-end.\n'
   printf 'EXECUTION MODE: %s\n' "$exec_mode"
   printf 'Sprint identity: %s. Designated claim branch: `%s`.\n' "${sprint_fm:-$sprint_name}" "$branch"
+  printf 'Mailbox: %s — post evidence, questions, and your terminal outcome per the contract'"'"'s Mailbox section.\n' "$mailbox"
   printf 'Read first: %s, %s/00-overview.md, %s/STORY-FEEDBACK.md, and repo conventions\n' "$doc_rel" "$sprint_dir" "$sprint_dir"
   printf '(AGENTS.md / CLAUDE.md). If any are absent from this worktree, read them from trunk with\n'
   printf '`git show origin/main:<path>` — never copy them in. Product scope and decisions there are\n'
@@ -180,7 +188,7 @@ for doc in "${docs[@]}"; do
   printf 'Planning depth: %s.\n' "$depth"
   printf 'Use skills: %s\n' "$skills"
   printf 'Hard rules: every commit carries `Story: %s` and `Sprint: %s` (verbatim);\n' "$story" "${sprint_fm:-$sprint_name}"
-  printf 'never `git checkout main`; if designated branch `%s` already exists on any ref the story is taken — stop;\n' "$branch"
+  printf 'never `git checkout main`; if designated branch `%s` already exists on any ref the story is taken — stop (unless this kickoff carries a resume grant);\n' "$branch"
   printf 'on handback publish the REPLAN event (docs-only, no trailers) and release the claim branch;\n'
   printf 'never leave prod broken.\n\n'
   printf '%s\n' "${goal:-/goal <missing /goal line in $doc_rel>}"

@@ -222,6 +222,8 @@ has   "renderer: handback hard rule"         "publish the REPLAN event" "$WHS"
 has   "renderer: unresolved-event warning"   "unresolved feedback events" "$WHS"
 hasnt "renderer: no hard SETTLED wording"    "are SETTLED"        "$WHS"
 hasnt "renderer: no self-directed wording"   "self-directed brainstorm" "$WHS"
+has   "renderer: mailbox line"               "sprint-mail"        "$WHS"
+hasnt "renderer: no unconditional parallel"  "These run in parallel" "$WHS"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
