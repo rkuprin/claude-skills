@@ -192,4 +192,5 @@ the sprint-scoped story and its tracker card. `{SPRINT}` and `{BRANCH}` are the 
 frontmatter values. The sprint is the directory basename verbatim; anything else makes the story
 invisible to sprint status forever.
 `{MAILBOX}` is the literal mail directory — `~/.sprint-mail/<repo-basename>/{SPRINT}/`, with
-the repo basename resolved at render time.
+the repo basename resolved at render time (the git common dir's parent directory, exactly as
+`sprint-mail.sh` derives it).

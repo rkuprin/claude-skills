@@ -176,7 +176,8 @@ truth from the first sprint planned under this skill onward.
 From this repo:
 
 ```bash
-sprint-orchestrator/test/test-sprint-status.sh   # 18 assertions, hermetic git fixtures
+sprint-orchestrator/test/test-sprint-status.sh   # hermetic git fixtures
+sprint-orchestrator/test/test-wave-handoffs.sh   # renderer output pinned against the kickoff template
 sprint-orchestrator/test/test-sprint-mail.sh   # mailbox helper: sequencing, replies, waits
 test/lint-skills.sh                              # invariants both skill files must hold
 ```
