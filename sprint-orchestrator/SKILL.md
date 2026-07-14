@@ -7,13 +7,25 @@ argument-hint: [sprint-dir or raw inputs]
 
 # Sprint Orchestrator
 
-Manual sprint-planning skill for turning raw inputs into independent story handoffs. It plans and hands off; the one sanctioned exception is firing `loop: direct` stories as subagents after the user approves the recap (see Executing Direct Stories In-Session). It never implements stories inline and never declares work done.
+Manual sprint skill: it plans verified story handoffs, dispatches them, supervises the wave to
+conclusion, and integrates the results. In-session execution is sanctioned in exactly two
+shapes — firing approved `loop: direct` stories as subagents after the user approves the recap
+(see Executing Direct Stories In-Session), and rescuing a problem story under an ownership
+transfer (see Supervising the Wave). Everything else is dispatched.
 
 ## Contract
 
 - Treat notes, PDFs, screenshots, and tracker cards as leads. Verify candidates against source truth: code, tests, docs, logs, and approved read-only project tools.
-- Mutate only sprint planning files and tracker sink calls unless the user asks for more.
+- Planning writes touch only sprint planning files and tracker sink calls. Integration adds
+  exactly two more: merging story branches per the story's execution mode, and rescue commits
+  under an ownership transfer — both bound by EXECUTION.md.
 - Keep tracker state out of control flow. Tracker calls are write-only intents resolved by a project binding.
+
+## Point of Contact
+
+The user talks to the orchestrator; executors talk to it through the mailbox. The user enters a
+story session only when the plan routed an interactive (`loop: full`) story there. Cross-story
+decisions, priority calls, and product questions land here, not in executor threads.
 
 ## Story State Is Derived
 
@@ -91,7 +103,8 @@ here; the executor goes straight to a short TDD plan, and the story may be deleg
 transport (subagent, `codex exec`, `claude -p`). Either way the lifecycle contract is identical —
 `loop:` never waives trailers, branch discipline, or gates.
 
-`loop:` is a judgment call, not a tier rule — ask the user when unsure. Brainstorm (`full`) when
+`loop:` is a judgment call, not a tier rule — the planner owns it. The recap shows every
+story's `loop:` before dispatch, so the user can veto there. Brainstorm (`full`) when
 the design space is open (multiple valid approaches with genuinely different trade-offs), when
 investigation could plausibly reshape the approach (novel integration, unfamiliar subsystem, a
 premise this session could only verify shallowly), or when user-facing design judgment is
@@ -154,21 +167,45 @@ recap — the gate exists so a bad plan is seen before it runs.
 - Scheduling is the plan itself: fire only stories whose `depends_on` are DONE and whose
   ownership is disjoint from every in-flight story; shared-hotspot stories run serially in
   `00-overview.md`'s merge order.
-- First failure stops the fleet: report what ran and what failed, leave the failed branch for
-  inspection, no automatic retries.
+- First failure stops the dispatch batch: report what ran and what failed, leave the failed
+  branch for inspection, no automatic retries mid-batch. Disposal, re-dispatch, or rescue
+  afterwards is the integrate step's judgment (see Supervising the Wave).
 - Transport is resolved at handoff time, never at plan time: when Claude capacity is tight, the
   same stories render as `codex exec` prints instead. Never subagent a `loop: full` story (they
   need an interactive session); `frontend: true` stories are a poor fit — their evidence path
   ends in Codex.app visual validation.
 
-## Integration Is Planned Here, Performed Elsewhere
+## Supervising the Wave
 
-Planning decides and records in `00-overview.md`: the merge order, the dependency edges, and the
-shared-file hotspots that force stories to run serially. Sweeping `STORY-FEEDBACK.md` for follow-up
-stories and unresolved product questions is also a plan-session activity.
+Dispatch is not the end of the session — the wave is supervised to conclusion.
 
-Performing the merge in that order, resolving the named hotspots, deploying, and closing the tracker
-card belong to `agent-handoff`'s execution contract (`EXECUTION.md`). Do not restate the lifecycle here.
+Parallel dispatch is constrained by merge order: under `autonomous`, executors merge
+themselves, so fire in parallel only stories that are both ownership-disjoint AND
+merge-order-independent. When merge order matters, use `stop-at-pr` (the supervisor merges in
+order) or dispatch serially.
+
+While the wave runs, watch the mailbox (`sprint-mail.sh list` / `wait`; a reactive watch where
+the harness has one) and sprint status. Answer executor `question`s with the plan's authority;
+`note` redirects are legal only while a story has not concluded. The mailbox is never state:
+DONE is still both trailers on a trunk-reachable commit, and `sprint-status.sh` never reads
+the mailbox.
+
+On each terminal `concluded` outcome, verify before integrating: the diff, the hand-back
+evidence, the story's "Done means". Then:
+
+- `stop-at-pr`, verified good → merge it, in `00-overview.md`'s merge order. The merge method
+  must preserve trailers — merge commit or rebase; squash only if the squash commit message
+  itself carries both trailers. Conflicts: rebase once, retry once, else stop and report. The
+  done-check is `sprint-status.sh` reporting `DONE` after the merge — trailers on the feature
+  branch are not the check. Then deploy and verify per the project's convention (AGENTS.md),
+  and fire `card.done` only after the DONE check passes.
+- `autonomous` → the executor already merged; run the same post-merge DONE check on what
+  landed. A story that landed without trailers is a defect: dispose of it, or re-dispatch a
+  fix under an ownership transfer.
+- problems → judgment, in rising order of cost: a mailbox `note` while the story is still
+  live; re-dispatch under an ownership transfer; rescue inline — take the story over under an
+  ownership transfer and finish it yourself, following EXECUTION.md like any executor:
+  trailers on every commit, ownership bounds, single writer per file.
 
 ## Drivers
 
