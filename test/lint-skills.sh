@@ -94,6 +94,9 @@ has   "orchestrator: planner owns loop call"    "the planner owns it" "$ORCH"
 has   "orchestrator: ownership transfer section" "## Ownership Transfer" "$ORCH"
 has   "orchestrator: never take over live"       "Never take over a live executor" "$ORCH"
 has   "orchestrator: grant grammar"              "resume designated branch" "$ORCH"
+has   "orchestrator: DISPOSED heading"          "## DISPOSED — dp-"  "$ORCH"
+has   "orchestrator: disposed is wave accounting" "wave accounting, never DONE" "$ORCH"
+has   "orchestrator: story-scoped event ids"    "rp-YYYYMMDD-NN-"    "$ORCH"
 
 # --- agent-handoff (SKILL.md) ---
 AH="$HERE/../agent-handoff/SKILL.md"
@@ -183,6 +186,8 @@ has   "contract: outcome enum"               "outcome: <merged | pr-ready | hand
 has   "contract: mailbox degrades"           "degrades to the handback protocol" "$AHEXEC"
 has   "contract: one open question"          "One open question at a time" "$AHEXEC"
 has   "contract: notes read before merge"    "notes before merge or PR" "$AHEXEC"
+has   "contract: story-scoped replan id"        "rp-YYYYMMDD-{NN}-"  "$AHEXEC"
+has   "contract: story-scoped direction id"     "dr-YYYYMMDD-{NN}-"  "$AHEXEC"
 
 # --- claude-reviewer ---
 CR="$HERE/../claude-reviewer/SKILL.md"

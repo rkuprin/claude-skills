@@ -148,7 +148,7 @@ On hand back:
 1. Append a REPLAN event to STORY-FEEDBACK.md. Events are immutable, carry an id, and are never
    edited afterwards:
 
-       ## REPLAN — rp-YYYYMMDD-<n> — Story {NN}
+       ## REPLAN — rp-YYYYMMDD-{NN}-<n> — Story {NN}
        - Premise as written: <quote from the story doc>
        - Contradicting evidence: <file/symbol/command anchors>
        - Blast radius: <affected stories, dependency edges, waves>
@@ -156,7 +156,7 @@ On hand back:
 
 2. Publish it: commit the append as a docs-only commit with NO `Story:`/`Sprint:` trailers — a
    trailered commit reaching trunk would flip this story to DONE — on a
-   `sprint-docs/rp-YYYYMMDD-<n>` branch cut from `origin/main`, not on the claim branch.
+   `sprint-docs/rp-YYYYMMDD-{NN}-<n>` branch cut from `origin/main`, not on the claim branch.
    `execution: autonomous`: merge it to trunk now. `stop-at-pr`: open a docs-only PR.
 3. Release the claim — only if the branch is still a pure claim (no story commits): remove your
    worktree if you created one, then delete the story doc's exact `branch:` value. The story reads TODO
@@ -185,7 +185,7 @@ brainstorm gate is where the operator shapes the direction. Then:
 - Append a DIRECTION event to STORY-FEEDBACK.md (same id scheme, same immutability), in the same
   commit:
 
-      ## DIRECTION — dr-YYYYMMDD-<n> — Story {NN}
+      ## DIRECTION — dr-YYYYMMDD-{NN}-<n> — Story {NN}
       - Dossier: <path>
       - Recommendation: <one line>
 

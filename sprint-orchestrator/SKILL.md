@@ -136,8 +136,9 @@ written against; a doc written today would be stale by its own wave.
 At each wave boundary (the wave's stories read `DONE` in `sprint-status.sh`), the user re-invokes
 this skill on the sprint directory. On ANY re-invocation of an existing sprint dir — wave
 boundary, handback, or a landed direction story — FIRST sweep `STORY-FEEDBACK.md` for unresolved
-feedback events: every `## REPLAN — rp-YYYYMMDD-<n> — Story NN` or
-`## DIRECTION — dr-YYYYMMDD-<n> — Story NN` block with no matching `## RESOLUTION — <id>` block.
+feedback events: every `## REPLAN — rp-YYYYMMDD-NN-<n> — Story NN`,
+`## DIRECTION — dr-YYYYMMDD-NN-<n> — Story NN`, or `## DISPOSED — dp-YYYYMMDD-NN-<n> — Story NN`
+block with no matching `## RESOLUTION — <id>` block.
 Re-verify each against current source truth; rewrite, cut, or split the affected story docs (for
 a DIRECTION dossier: plan the follow-on stories or record why not); then append the resolution as
 its own immutable event — `## RESOLUTION — <id>` with a `- Resolution:` line. Never edit an existing event
@@ -222,6 +223,22 @@ what the preflight refuses. Takeover is legal only through this protocol:
   refuses. Inline rescue states the same grant in-session before its first commit.
 - Single writer: the grant names exactly one successor; at most one authorized owner at any
   moment.
+
+## Disposal Is an Event
+
+A story the wave gives up on — cut, deferred, or reassigned — is recorded as an immutable
+DISPOSED event in `STORY-FEEDBACK.md`, same discipline as REPLAN/DIRECTION:
+
+    ## DISPOSED — dp-YYYYMMDD-NN-<n> — Story NN
+    - Outcome: cut | deferred | reassigned
+    - Cleanup: <branch / worktree / PR disposition>
+    - Reason: <one line>
+
+DISPOSED is wave accounting, never DONE: `sprint-status.sh` keeps reporting git truth, and the
+next planner treats a DISPOSED story as settled intent, not unfinished work. Event IDs of all
+kinds carry the story number — `rp-YYYYMMDD-NN-<n>`, `dr-YYYYMMDD-NN-<n>`, `dp-YYYYMMDD-NN-<n>`
+— so parallel writers cannot collide on same-day IDs. Events already recorded keep their old
+IDs; events are immutable.
 
 ## Drivers
 

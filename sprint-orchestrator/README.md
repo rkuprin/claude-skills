@@ -57,7 +57,7 @@ the sprint directory when a wave lands, and it reassesses progress before writin
 
 `loop: full` stories open with read-only investigation and an interactive brainstorm with you
 before any code; `loop: direct` stories go straight to a short TDD plan. When execution findings
-cross a story's boundary, the executor offers a handback: a `## REPLAN — rp-YYYYMMDD-<n> — Story NN`
+cross a story's boundary, the executor offers a handback: a `## REPLAN — rp-YYYYMMDD-NN-<n> — Story NN`
 event appended to `STORY-FEEDBACK.md`. Direction stories (`flow: direction`) deliver an
 investigation dossier (`dossier-NN.md` — the name deliberately misses the `[0-9]*.md` story glob)
 plus a `## DIRECTION — …` event. Any re-invocation of the skill on the sprint dir resolves
