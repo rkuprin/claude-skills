@@ -207,6 +207,22 @@ evidence, the story's "Done means". Then:
   ownership transfer and finish it yourself, following EXECUTION.md like any executor:
   trailers on every commit, ownership bounds, single writer per file.
 
+## Ownership Transfer
+
+Re-dispatch, rescue, and demotion succession operate on a branch that already exists — exactly
+what the preflight refuses. Takeover is legal only through this protocol:
+
+- Precondition: the current owner is finished — a terminal `concluded` outcome, or a transport
+  confirmed dead (subagent exited; the user closed the session).
+  Never take over a live executor.
+- Record the transfer: branch, worktree path (if any), HEAD SHA, and what remains to be done.
+- The successor's kickoff is a story-execution render carrying an explicit grant line —
+  `Resume grant: resume designated branch {BRANCH} at {SHA} — {WHAT REMAINS}` — and the grant
+  is the ONLY thing that overrides the branch-exists refusal; a kickoff without one still
+  refuses. Inline rescue states the same grant in-session before its first commit.
+- Single writer: the grant names exactly one successor; at most one authorized owner at any
+  moment.
+
 ## Drivers
 
 Codex leans mechanistic, devops, and browser-driving work; Claude leans creative, frontend-heavy,

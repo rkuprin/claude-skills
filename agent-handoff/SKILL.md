@@ -157,6 +157,10 @@ render time; no placeholders left for the executor.
   the branch with zero story commits — already means DOING; trailer-derived status lags it, so a
   TODO reading is never clearance to dispatch (rp-20260712-1). If claimed, report the branch,
   worktree, and HEAD instead of rendering a kickoff.
+- Takeover kickoffs — re-dispatch or rescue authorized by the supervisor's ownership transfer
+  (see `sprint-orchestrator/SKILL.md`) — add one line after `Sprint identity:`:
+  `Resume grant: resume designated branch {BRANCH} at {SHA} — {WHAT REMAINS}`.
+  Ordinary kickoffs never carry it, and for them the pre-render claim check refusal stands unchanged.
 
 ```
 {SPRINT} · Story {NN}: {Three Descriptive Words}

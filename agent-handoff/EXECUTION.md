@@ -13,6 +13,9 @@ handback" below — never build around a broken premise.
 - If this story's designated branch — the story doc's exact `branch:` value — already exists on
   any ref, the story is taken. STOP and report; never co-opt someone else's branch. Story numbers
   restart every sprint, so a bare `sprint/{NN}-*` match false-positives on previous sprints.
+  Sole exception: your kickoff carries a resume grant naming this exact branch and a HEAD SHA.
+  Verify the branch's HEAD matches the grant (mismatch → STOP and report), reuse the branch, and
+  continue from the transfer record instead of branching fresh.
 - `git switch -c "{BRANCH}" origin/main` — use the story doc's exact `branch:` value. NEVER run `git checkout main`: trunk is checked
   out in another worktree and the command fails. Trunk is `origin/main`; if the project uses
   another trunk, `00-overview.md` says so. (`sprint-status.sh` honors `SPRINT_TRUNK`; that
