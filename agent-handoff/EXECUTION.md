@@ -34,11 +34,19 @@ handback" below — never build around a broken premise.
 Your kickoff prompt's planning-depth line says whether this phase applies; `loop: direct`
 stories skip to step 3.
 
-- Your counterparty at this gate is whoever the plan put in the loop: the operator, when they
-  are present in this session (the plan routed an interactive story here); otherwise the sprint
-  supervisor, via a mailbox `question` per the Mailbox section. Never demand an in-thread
-  approval ("reply approved") from a human who is not in this session — no reply within the
-  wait is a handback, not permission to keep waiting.
+- Your counterparty at this gate is the sprint orchestrator, reached through a mailbox
+  `question` per the Mailbox section — the default and first resort for every open decision,
+  every spec or design review, and every approval. Route them all there; the human at your
+  terminal is not your counterparty. The operator is your counterparty only when the plan put
+  them in the loop for an interactive story AND your kickoff names them as present — a dispatched
+  kickoff (one that names a Mailbox and a Mailbox wait line) never does, and the planning-depth
+  line's "brainstorm phase with the operator first" describes the phase, not who answers.
+  Never demand an in-thread approval ("reply approved", "reply 'approve spec'") from a human who
+  is not in this session — route it to the orchestrator instead; no reply within the wait is a
+  handback, not permission to keep waiting.
+- What the story doc, `00-overview.md`, and your kickoff already settled is approved. Do not
+  re-open it as a fresh approval gate: inventing a spec sign-off the plan never asked for, then
+  blocking on it, is the exact stall this gate exists to prevent.
 - Present the investigation findings to your counterparty: what you verified, what surprised
   you, and 2-3 candidate approaches with trade-offs and your recommendation.
 - Decisions in the story doc are settled by default; the counterparty may amend them here.
@@ -264,6 +272,8 @@ interrupt 3 posts `outcome: blocked`.
 - Writing evidence to `/tmp` or into the worktree — both vanish before review.
 - Progress pings mid-run — defeats the single-checkpoint purpose. The brainstorm gate (step 2)
   is the sanctioned exception, and it ends when the counterparty says proceed.
-- Demanding an in-thread approval ("reply approved" / "type approve") from a user who is not
-  this session's counterparty — consult the supervisor via the mailbox instead. Handoff-level
-  decisions are already approved; only the three interrupts and the brainstorm gate stop you.
+- Demanding an in-thread approval ("reply approved" / "type approve" / "reply 'approve spec'")
+  from a user who is not this session's counterparty, or inventing a spec/review sign-off the
+  plan never asked for — route spec reviews and every other review to the sprint orchestrator via
+  the mailbox instead, never to whoever is at your terminal. Handoff-level decisions are already
+  approved; only the three interrupts and the brainstorm gate stop you.

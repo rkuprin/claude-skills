@@ -185,6 +185,10 @@ for doc in "${docs[@]}"; do
   printf 'Sprint identity: %s. Designated claim branch: `%s`.\n' "${sprint_fm:-$sprint_name}" "$branch"
   printf 'Mailbox: %s — post evidence, questions, and your terminal outcome per the contract'"'"'s Mailbox section.\n' "$mailbox"
   printf 'Mailbox wait: %s\n' "$mailwait"
+  printf 'Reviews & approvals: the sprint orchestrator is your only counterparty — route spec reviews,\n'
+  printf 'design sign-off, and every open decision to it via the Mailbox above; never seek approval from\n'
+  printf 'whoever is at this terminal. Decisions in the story doc, 00-overview.md, and this kickoff are\n'
+  printf 'already approved — do not re-open them as a new gate.\n'
   printf 'Read first: %s, %s/00-overview.md, %s/STORY-FEEDBACK.md, and repo conventions\n' "$doc_rel" "$sprint_dir" "$sprint_dir"
   printf '(AGENTS.md / CLAUDE.md). If any are absent from this worktree, read them from trunk with\n'
   printf '`git show origin/main:<path>` — never copy them in. Product scope and decisions there are\n'

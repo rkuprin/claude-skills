@@ -82,6 +82,11 @@ has "codex story renders arm wait line"     "$OUTPUT" "Mailbox wait: post your q
 has "codex arm line ends the turn"          "$OUTPUT" "END YOUR TURN — the armed Stop hook wakes you on the reply"
 has "claude story renders background wait"  "$OUTPUT" "\`~/.claude/skills/sprint-orchestrator/sprint-mail.sh wait $SPRINT 08-{SSS}-reply.md 1800\` (SSS = your question's sequence) as a background task"
 has "mailbox line names the sprint"         "$OUTPUT" "/$SPRINT_NAME/ — post evidence, questions, and your terminal outcome"
+# Reviews & approvals route to the orchestrator, never the terminal — the of.ru "approve spec"
+# stall (July 2026) invented a user-facing spec gate the plan never asked for.
+has "kickoff routes reviews to orchestrator" "$OUTPUT" "the sprint orchestrator is your only counterparty"
+has "kickoff bans terminal approvals"        "$OUTPUT" "never seek approval from"
+has "kickoff marks kickoff decisions approved" "$OUTPUT" "already approved — do not re-open them as a new gate"
 case "$OUTPUT" in
   *"Resume grant:"*) no "ordinary kickoffs carry no resume grant" ;;
   *) ok "ordinary kickoffs carry no resume grant" ;;

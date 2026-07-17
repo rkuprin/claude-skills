@@ -175,6 +175,10 @@ EXECUTION MODE: {AUTONOMOUS — merge, deploy, verify on prod. | STOP AT PR — 
 Sprint identity: {SPRINT}. Designated claim branch: `{BRANCH}`.
 Mailbox: {MAILBOX} — post evidence, questions, and your terminal outcome per the contract's Mailbox section.
 Mailbox wait: {post your question, then `~/.codex/skills/sprint-orchestrator/sprint-mail.sh arm {SPRINT_DIR} {NN}-{SSS}-reply.md 1800` (SSS = your question's sequence) and END YOUR TURN — the armed Stop hook wakes you on the reply; never poll or background the wait. | post your question, then run `~/.claude/skills/sprint-orchestrator/sprint-mail.sh wait {SPRINT_DIR} {NN}-{SSS}-reply.md 1800` (SSS = your question's sequence) as a background task — its completion notification is your wake.}
+Reviews & approvals: the sprint orchestrator is your only counterparty — route spec reviews,
+design sign-off, and every open decision to it via the Mailbox above; never seek approval from
+whoever is at this terminal. Decisions in the story doc, 00-overview.md, and this kickoff are
+already approved — do not re-open them as a new gate.
 Read first: {STORY_DOC}, 00-overview.md, STORY-FEEDBACK.md, and repo conventions
 (AGENTS.md / CLAUDE.md). If any are absent from this worktree, read them from trunk with
 `git show origin/main:<path>` — never copy them in. Product scope and decisions there are
