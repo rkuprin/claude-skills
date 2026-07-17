@@ -256,5 +256,14 @@ has   "installer: verifies trust, not just wiring" "reports '\$verify', not trus
 has   "sprint readme: names the installer"      "install-codex-hook.sh" "$ORCH_README"
 has   "repo readme: names the hook setup"       "install-codex-hook.sh" "$HERE/../README.md"
 
+# --- INSTALL.md (the agent-facing setup guide the README points harnesses at) ---
+INSTALL="$HERE/../INSTALL.md"
+[ -f "$INSTALL" ] && ok "install guide: exists" || no "install guide: exists"
+has   "install guide: links both harness dirs"  "CLAUDE_SKILLS_DIR=~/.codex/skills" "$INSTALL"
+has   "install guide: wires the codex hook"     "install-codex-hook.sh" "$INSTALL"
+has   "install guide: runs the lint"            "test/lint-skills.sh"   "$INSTALL"
+has   "install guide: boundary rule"            "change nothing on this machine beyond what these steps name" "$INSTALL"
+has   "repo readme: points agents at the guide" "Read ~/claude-skills/INSTALL.md and follow it" "$HERE/../README.md"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

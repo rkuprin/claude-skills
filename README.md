@@ -38,8 +38,23 @@ else (like `docs/` and `test/`) is ignored by the installer.
 
 ## Install (including on another machine)
 
+The fastest path: clone, then point your agent at the repo.
+
 ```bash
 git clone https://github.com/rkuprin/claude-skills.git ~/claude-skills
+```
+
+Then tell your agent — Claude Code, Codex, or another harness:
+
+> Read ~/claude-skills/INSTALL.md and follow it.
+
+[`INSTALL.md`](INSTALL.md) is the agent-facing guide: it links every skill into each harness
+present, runs the machine-specific setup (including the sprint mailbox Stop hook on Codex
+machines), verifies with the test suites, and reports back. A human can follow it too.
+
+Doing it by hand instead:
+
+```bash
 cd ~/claude-skills
 ./install.sh                                    # -> ~/.claude/skills/
 CLAUDE_SKILLS_DIR=~/.codex/skills ./install.sh  # -> ~/.codex/skills/  (optional)
@@ -60,9 +75,9 @@ and `sprint-orchestrator/` needs its Codex Stop hook wired once per machine: run
 `sprint-orchestrator/install-codex-hook.sh` (details in
 [`sprint-orchestrator/README.md`](sprint-orchestrator/README.md), "Reactive waits on Codex").
 
-> **If you are a Claude instance setting this up on a new machine:** run `./install.sh`,
-> then open each skill's `README.md` and satisfy its prerequisites. Do not edit the user's
-> global config beyond what a skill's README explicitly calls for; ask first.
+> **If you are an agent setting this up on a new machine:** follow
+> [`INSTALL.md`](INSTALL.md) — it is written for you, verify steps included. Change nothing
+> beyond what its steps name; anything extra needs the user's explicit go first.
 
 ## Adding a new skill
 
