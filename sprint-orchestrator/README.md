@@ -152,7 +152,19 @@ the ending turn on the armed record and, when matching mail lands (or the wait t
 its stderr re-enters the same thread as a continuation prompt. Validated live against
 `codex exec` and Codex Desktop 0.144.x (2026-07-17).
 
-`install.sh` does not wire hooks. Once per machine, add to the `Stop` group of
+`install.sh` does not wire hooks. Once per machine:
+
+```bash
+~/claude-skills/sprint-orchestrator/install-codex-hook.sh
+```
+
+Idempotent: it adds the entry to `~/.codex/hooks.json` (re-pointing it if the clone moved),
+reads the hook's `currentHash` from `codex app-server`, writes it as `trusted_hash` into
+`config.toml`, and re-queries until the hook reports `trusted`. Skipping this is not a soft
+failure — untrusted hooks are skipped **silently**, so `sprint-mail.sh arm` refuses to run
+until `hooks.json` references the hook, naming this installer in its error.
+
+What the installer automates, for when the app-server RPC drifts — add to the `Stop` group of
 `~/.codex/hooks.json`:
 
 ```json

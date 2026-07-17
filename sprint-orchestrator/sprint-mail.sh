@@ -110,6 +110,12 @@ case "$cmd" in
   arm)
     pat="${3:-}"; timeout="${4:-1800}"; since="${5:-}"
     [ -n "$pat" ] || usage
+    # An armed record only works if the Stop hook is wired — otherwise the turn
+    # ends and nothing ever wakes, the exact orphaned-wait failure arm exists to
+    # prevent. Refuse loudly instead of arming a dead wait.
+    hooks_json="${CODEX_HOME:-$HOME/.codex}/hooks.json"
+    grep -q "codex-stop-wait.sh" "$hooks_json" 2>/dev/null \
+      || err "codex Stop hook not wired in $hooks_json — run sprint-orchestrator/install-codex-hook.sh once on this machine, or take the contract's no-wait fallback instead of arming"
     echo "$timeout" | grep -qE '^[0-9]+$' || err "timeout must be whole seconds (got: $timeout)"
     if [ -n "$since" ]; then
       echo "$since" | grep -qE '^[0-9]+$' || err "since must be a unix epoch (got: $since)"

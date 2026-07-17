@@ -243,12 +243,18 @@ hasnt "renderer: no brainstorming skill in kickoffs" 'skills="superpowers:brains
 # --- codex-stop-wait.sh (the Codex Stop hook owning armed mailbox waits) ---
 CSW="$HERE/../sprint-orchestrator/codex-stop-wait.sh"
 SMAIL="$HERE/../sprint-orchestrator/sprint-mail.sh"
+INSTALLER="$HERE/../sprint-orchestrator/install-codex-hook.sh"
 [ -x "$CSW" ] && ok "stop-wait: hook exists and is executable" || no "stop-wait: hook exists and is executable"
 has   "stop-wait: silent pass without a record" "exit 0" "$CSW"
 has   "stop-wait: continuation via exit 2"      "exit 2" "$CSW"
 has   "stop-wait: since-epoch filter"           "since" "$CSW"
 has   "mail: arm usage line"                    "arm <sprint-dir> <name-or-glob(s)>" "$SMAIL"
 has   "mail: disarm usage line"                 "disarm <sprint-dir>" "$SMAIL"
+has   "mail: arm refuses without wired hook"    "install-codex-hook.sh" "$SMAIL"
+[ -x "$INSTALLER" ] && ok "installer: exists and is executable" || no "installer: exists and is executable"
+has   "installer: verifies trust, not just wiring" "reports '\$verify', not trusted" "$INSTALLER"
+has   "sprint readme: names the installer"      "install-codex-hook.sh" "$ORCH_README"
+has   "repo readme: names the hook setup"       "install-codex-hook.sh" "$HERE/../README.md"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

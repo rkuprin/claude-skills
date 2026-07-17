@@ -98,6 +98,15 @@ done
   && ok "counter passes 008/009 into 010" || no "counter passes 008/009 into 010 (got: $last)"
 
 # ---- arm/disarm: cwd-keyed reactive-wait records for the Codex Stop hook ----
+# arm refuses when the Stop hook is not wired (a record nothing consumes is a
+# dead wait); give the fixture a wired CODEX_HOME first.
+export CODEX_HOME="$TMP/codexhome"
+mkdir -p "$CODEX_HOME"
+out="$("$SUT" arm "$SPRINT" "07-009-reply.md" 900 2>&1)"; rc=$?
+[ "$rc" = "2" ] && case "$out" in *install-codex-hook.sh*) true ;; *) false ;; esac \
+  && ok "arm without wired Stop hook refused, names the installer" \
+  || no "arm without wired Stop hook refused, names the installer (rc=$rc out=$out)"
+printf '{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"bash codex-stop-wait.sh"}]}]}}\n' > "$CODEX_HOME/hooks.json"
 WAITS="$SPRINT_MAIL_ROOT/.codex-waits"
 rec="$("$SUT" arm "$SPRINT" "07-009-reply.md" 900)"
 [ -f "$rec" ] && ok "arm writes a record and prints its path" || no "arm writes a record and prints its path (got: $rec)"
