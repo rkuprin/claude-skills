@@ -143,6 +143,36 @@ post `evidence`, one blocking `question` at a time, and a terminal `concluded` o
 exit; the supervisor posts `reply` and `note`. It is never state — story state stays in the
 commit trailers — and when nobody answers, everything degrades to the REPLAN handback protocol.
 
+### Reactive waits on Codex — one-time install
+
+Codex sessions cannot hold `sprint-mail.sh wait`'s poll loop open, so waiting is done by the
+`codex-stop-wait.sh` Stop hook (beside `sprint-mail.sh`): a session posts its question, runs
+`sprint-mail.sh arm <sprint-dir> <reply-file-or-globs> 1800`, and ends its turn; the hook holds
+the ending turn on the armed record and, when matching mail lands (or the wait times out),
+its stderr re-enters the same thread as a continuation prompt. Validated live against
+`codex exec` and Codex Desktop 0.144.x (2026-07-17).
+
+`install.sh` does not wire hooks. Once per machine, add to the `Stop` group of
+`~/.codex/hooks.json`:
+
+```json
+{
+  "type": "command",
+  "command": "bash '<this-repo>/sprint-orchestrator/codex-stop-wait.sh'",
+  "timeout": 1860,
+  "statusMessage": "Waiting for sprint mailbox reply"
+}
+```
+
+and trust it: the desktop app has no `/hooks` command, but `codex app-server` returns the
+hook's `currentHash` from a `hooks/list` request, and writing that hash as
+`trusted_hash` under `[hooks.state."<hooks.json path>:stop:0:<index>"]` in
+`~/.codex/config.toml` is exactly what the TUI's trust flow does. Untrusted hooks are
+skipped silently — if armed waits never hold, check trust first. The hash covers only the
+hooks.json entry, so editing the script itself never needs re-trusting. For the no-hook
+fallback (a single long foreground poll), raise `background_terminal_max_timeout` in
+`config.toml` (milliseconds; default 300000).
+
 ## The rule that makes it work
 
 Every commit the executor makes for a story carries two trailers:
@@ -178,7 +208,8 @@ From this repo:
 ```bash
 sprint-orchestrator/test/test-sprint-status.sh   # hermetic git fixtures
 sprint-orchestrator/test/test-wave-handoffs.sh   # renderer output pinned against the kickoff template
-sprint-orchestrator/test/test-sprint-mail.sh   # mailbox helper: sequencing, replies, waits
+sprint-orchestrator/test/test-sprint-mail.sh   # mailbox helper: sequencing, replies, waits, arm/disarm
+sprint-orchestrator/test/test-codex-stop-wait.sh # Stop hook: wake, timeout, since-epoch filter
 test/lint-skills.sh                              # invariants both skill files must hold
 ```
 
