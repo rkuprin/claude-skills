@@ -144,7 +144,19 @@ Re-verify each against current source truth; rewrite, cut, or split the affected
 a DIRECTION dossier: plan the follow-on stories or record why not); then append the resolution as
 its own immutable event — `## RESOLUTION — <id>` with a `- Resolution:` line. Never edit an existing event
 block. Also check for unmerged `sprint-docs/*` branches or docs-only PRs — an event stuck behind an
-unmerged PR is invisible to this sweep until it lands. Only then read `sprint-status.sh` output and the rest of
+unmerged PR is invisible to this sweep until it lands.
+
+Sweep the mailbox in the same pass for terminal `concluded` outcomes no supervisor processed —
+a prior session may have died between an executor's conclusion and its integration. Integrating
+such a leftover comes BEFORE any planning, but never on inference: the session cannot know
+whether the prior supervisor is really gone; only the operator knows. Ask interactively. The
+operator's confirmation that the session ended satisfies the ownership-transfer precondition and
+makes this session the successor supervisor for that conclusion; then integrate per Supervising
+the Wave — verify the diff, evidence, and "Done means", merge per the story's execution mode,
+run the DONE check. Without that confirmation, leave the conclusion untouched and plan nothing
+that depends on it.
+
+Only then read `sprint-status.sh` output and the rest of
 `STORY-FEEDBACK.md`, give an opinion on sprint progress — what landed, what drifted, what
 feedback changes the remaining plan — re-verify each stub against the now-current code, and
 write the next wave's story docs, cutting or reframing stubs whose premise no longer holds.
