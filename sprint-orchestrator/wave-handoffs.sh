@@ -164,8 +164,10 @@ for doc in "${docs[@]}"; do
     *)      depth="$loop" ;;
   esac
   case "$driver_hint" in
-    codex) contract="~/.codex/skills/agent-handoff/EXECUTION.md" ;;
-    *)     contract="~/.claude/skills/agent-handoff/EXECUTION.md" ;;
+    codex) contract="~/.codex/skills/agent-handoff/EXECUTION.md"
+           mailwait='post your question, then `~/.codex/skills/sprint-orchestrator/sprint-mail.sh arm '"$sprint_dir $story"'-{SSS}-reply.md 1800` (SSS = your question'"'"'s sequence) and END YOUR TURN — the armed Stop hook wakes you on the reply; never poll or background the wait.' ;;
+    *)     contract="~/.claude/skills/agent-handoff/EXECUTION.md"
+           mailwait='post your question, then run `~/.claude/skills/sprint-orchestrator/sprint-mail.sh wait '"$sprint_dir $story"'-{SSS}-reply.md 1800` (SSS = your question'"'"'s sequence) as a background task — its completion notification is your wake.' ;;
   esac
   # design-heavy renders TDD only: the design conversation is the contract's own
   # brainstorm gate. superpowers:brainstorming is never rendered into a dispatched
@@ -182,6 +184,7 @@ for doc in "${docs[@]}"; do
   printf 'EXECUTION MODE: %s\n' "$exec_mode"
   printf 'Sprint identity: %s. Designated claim branch: `%s`.\n' "${sprint_fm:-$sprint_name}" "$branch"
   printf 'Mailbox: %s — post evidence, questions, and your terminal outcome per the contract'"'"'s Mailbox section.\n' "$mailbox"
+  printf 'Mailbox wait: %s\n' "$mailwait"
   printf 'Read first: %s, %s/00-overview.md, %s/STORY-FEEDBACK.md, and repo conventions\n' "$doc_rel" "$sprint_dir" "$sprint_dir"
   printf '(AGENTS.md / CLAUDE.md). If any are absent from this worktree, read them from trunk with\n'
   printf '`git show origin/main:<path>` — never copy them in. Product scope and decisions there are\n'

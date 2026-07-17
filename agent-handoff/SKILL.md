@@ -153,6 +153,10 @@ render time; no placeholders left for the executor.
 - The contract path is spelled for the target harness:
   `~/.codex/skills/agent-handoff/EXECUTION.md` for Codex targets,
   `~/.claude/skills/agent-handoff/EXECUTION.md` for Claude targets.
+- The `Mailbox wait:` line resolves the same way, so the executor's comms are settled before
+  the story starts: Codex targets render the arm-and-end-turn form (the Stop hook owns the
+  wait); Claude targets render the background-task form. `{SPRINT_DIR}` is the literal sprint
+  directory path; `{SSS}` stays literal — it is the question's runtime sequence number.
 - Pre-render claim check: `git fetch origin`, then verify the story's exact `branch:` value exists
   on NO ref and no worktree is pinned to it (`git branch -a`, `git worktree list`). A pure claim —
   the branch with zero story commits — already means DOING; trailer-derived status lags it, so a
@@ -170,6 +174,7 @@ You are executing ONE story end-to-end.
 EXECUTION MODE: {AUTONOMOUS — merge, deploy, verify on prod. | STOP AT PR — DO NOT MERGE OR DEPLOY.}
 Sprint identity: {SPRINT}. Designated claim branch: `{BRANCH}`.
 Mailbox: {MAILBOX} — post evidence, questions, and your terminal outcome per the contract's Mailbox section.
+Mailbox wait: {post your question, then `~/.codex/skills/sprint-orchestrator/sprint-mail.sh arm {SPRINT_DIR} {NN}-{SSS}-reply.md 1800` (SSS = your question's sequence) and END YOUR TURN — the armed Stop hook wakes you on the reply; never poll or background the wait. | post your question, then run `~/.claude/skills/sprint-orchestrator/sprint-mail.sh wait {SPRINT_DIR} {NN}-{SSS}-reply.md 1800` (SSS = your question's sequence) as a background task — its completion notification is your wake.}
 Read first: {STORY_DOC}, 00-overview.md, STORY-FEEDBACK.md, and repo conventions
 (AGENTS.md / CLAUDE.md). If any are absent from this worktree, read them from trunk with
 `git show origin/main:<path>` — never copy them in. Product scope and decisions there are

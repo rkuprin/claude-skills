@@ -77,6 +77,10 @@ case "$OUTPUT" in
   *) ok "bare story-number claim wildcard removed" ;;
 esac
 has "kickoff renders mailbox line"          "$OUTPUT" "Mailbox: ~/.sprint-mail/"
+# Mailbox wait: resolved per target harness — codex arms the Stop hook, claude backgrounds the wait.
+has "codex story renders arm wait line"     "$OUTPUT" "Mailbox wait: post your question, then \`~/.codex/skills/sprint-orchestrator/sprint-mail.sh arm $SPRINT 07-{SSS}-reply.md 1800\`"
+has "codex arm line ends the turn"          "$OUTPUT" "END YOUR TURN — the armed Stop hook wakes you on the reply"
+has "claude story renders background wait"  "$OUTPUT" "\`~/.claude/skills/sprint-orchestrator/sprint-mail.sh wait $SPRINT 08-{SSS}-reply.md 1800\` (SSS = your question's sequence) as a background task"
 has "mailbox line names the sprint"         "$OUTPUT" "/$SPRINT_NAME/ — post evidence, questions, and your terminal outcome"
 case "$OUTPUT" in
   *"Resume grant:"*) no "ordinary kickoffs carry no resume grant" ;;

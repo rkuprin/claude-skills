@@ -117,7 +117,9 @@ sprint-orchestrator skill directory). Files are `NN-SSS-<kind>.md`, append-only,
 - `question` — a blocking question inside this story's scope. Post it, then wait on the reply,
   which reuses your question's sequence — the exact filename `{NN}-{SSS}-reply.md`.
   One open question at a time. A reply that arrives after your wait ended is void — by then
-  you are on the fallback path. How you wait is transport-specific:
+  you are on the fallback path. How you wait is transport-specific — your kickoff's
+  `Mailbox wait:` line carries the form already resolved for your transport; when it is
+  absent, pick your branch here:
   - Codex (Desktop or exec) with the sprint Stop hook installed:
     `sprint-mail.sh arm <sprint-dir> {NN}-{SSS}-reply.md 1800`, then END YOUR TURN with a
     one-line status. The armed hook holds the turn and wakes you when the reply lands or the
