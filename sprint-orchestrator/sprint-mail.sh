@@ -4,6 +4,8 @@
 #   sprint-mail.sh post <sprint-dir> <NN> <kind> [<file>|-]
 #   sprint-mail.sh list <sprint-dir> [<NN>]
 #   sprint-mail.sh wait <sprint-dir> <name-or-glob> [<timeout-seconds>]
+#   sprint-mail.sh arm <sprint-dir> <name-or-glob(s)> [<timeout-seconds>] [<since-epoch>]
+#   sprint-mail.sh disarm <sprint-dir>
 #
 # Mail lives in ${SPRINT_MAIL_ROOT:-~/.sprint-mail}/<repo-basename>/<sprint-basename>/
 # — outside every worktree. It is NEVER state: story state stays git-derived
@@ -14,6 +16,11 @@
 #   reply:            reuses the story's newest unanswered question's SSS
 #   supervisor:       note (own counter)
 # `concluded` bodies must open with:  outcome: merged|pr-ready|handback|blocked|failed|dossier
+#
+# `arm` registers a reactive wait for the Codex Stop hook (codex-stop-wait.sh):
+# one record per session cwd under $MAIL_ROOT/.codex-waits/, four lines —
+# cwd, absolute glob(s), timeout, since-epoch (defaults to now: only mail
+# newer than the arm wakes the turn). `disarm` removes this cwd's record.
 set -euo pipefail
 
 MAIL_ROOT="${SPRINT_MAIL_ROOT:-$HOME/.sprint-mail}"
@@ -24,6 +31,8 @@ usage() {
 usage: sprint-mail.sh post <sprint-dir> <NN> <evidence|question|concluded|reply|note> [<file>|-]
        sprint-mail.sh list <sprint-dir> [<NN>]
        sprint-mail.sh wait <sprint-dir> <name-or-glob> [<timeout-seconds>]
+       sprint-mail.sh arm <sprint-dir> <name-or-glob(s)> [<timeout-seconds>] [<since-epoch>]
+       sprint-mail.sh disarm <sprint-dir>
 EOF
   exit 2
 }
@@ -96,6 +105,43 @@ case "$cmd" in
       done
       [ "$elapsed" -ge "$timeout" ] && exit 1
       sleep "$POLL"; elapsed=$((elapsed + POLL))
+    done
+    ;;
+  arm)
+    pat="${3:-}"; timeout="${4:-1800}"; since="${5:-}"
+    [ -n "$pat" ] || usage
+    echo "$timeout" | grep -qE '^[0-9]+$' || err "timeout must be whole seconds (got: $timeout)"
+    if [ -n "$since" ]; then
+      echo "$since" | grep -qE '^[0-9]+$' || err "since must be a unix epoch (got: $since)"
+    else
+      since="$(date +%s)"
+    fi
+    case "$pat" in
+      */*|*$'\n'*) err "pattern is a mail filename or glob, not a path (got: $pat)" ;;
+    esac
+    waits_dir="$MAIL_ROOT/.codex-waits"
+    mkdir -p "$waits_dir"
+    cwd="$(pwd -P)"
+    for f in "$waits_dir"/*; do
+      [ -f "$f" ] || continue
+      [ "$(sed -n 1p "$f")" = "$cwd" ] \
+        && err "a wait is already armed for $cwd — run 'sprint-mail.sh disarm' first"
+    done
+    abs=""
+    set -f
+    for p in $pat; do abs="$abs${abs:+ }$mail_dir/$p"; done
+    set +f
+    rec="$waits_dir/wait-$$-$(date +%s)"
+    tmp="$waits_dir/.tmp.$$"
+    printf '%s\n%s\n%s\n%s\n' "$cwd" "$abs" "$timeout" "$since" > "$tmp" && mv "$tmp" "$rec"
+    printf '%s\n' "$rec"
+    ;;
+  disarm)
+    waits_dir="$MAIL_ROOT/.codex-waits"
+    cwd="$(pwd -P)"
+    for f in "$waits_dir"/*; do
+      [ -f "$f" ] || continue
+      [ "$(sed -n 1p "$f")" = "$cwd" ] && rm -f "$f"
     done
     ;;
   *) usage ;;

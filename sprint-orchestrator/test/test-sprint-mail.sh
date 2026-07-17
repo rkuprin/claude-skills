@@ -97,6 +97,30 @@ done
 [ "$(basename "$last")" = "09-010-evidence.md" ] \
   && ok "counter passes 008/009 into 010" || no "counter passes 008/009 into 010 (got: $last)"
 
+# ---- arm/disarm: cwd-keyed reactive-wait records for the Codex Stop hook ----
+WAITS="$SPRINT_MAIL_ROOT/.codex-waits"
+rec="$("$SUT" arm "$SPRINT" "07-009-reply.md" 900)"
+[ -f "$rec" ] && ok "arm writes a record and prints its path" || no "arm writes a record and prints its path (got: $rec)"
+[ "$(sed -n 1p "$rec")" = "$(pwd -P)" ] && ok "arm line 1 is canonical cwd" || no "arm line 1 is canonical cwd"
+[ "$(sed -n 2p "$rec")" = "$MDIR/07-009-reply.md" ] && ok "arm line 2 is the absolute mailbox glob" || no "arm line 2 is the absolute mailbox glob (got: $(sed -n 2p "$rec"))"
+[ "$(sed -n 3p "$rec")" = "900" ] && ok "arm line 3 is the timeout" || no "arm line 3 is the timeout"
+sed -n 4p "$rec" | grep -qE '^[0-9]+$' && ok "arm line 4 defaults to a now epoch" || no "arm line 4 defaults to a now epoch"
+"$SUT" arm "$SPRINT" "07-010-reply.md" 900 >/dev/null 2>&1 \
+  && no "second arm for same cwd rejected" || ok "second arm for same cwd rejected"
+"$SUT" disarm "$SPRINT"
+[ ! -f "$rec" ] && ok "disarm removes this cwd's record" || no "disarm removes this cwd's record"
+"$SUT" arm "$SPRINT" "07-*-reply.md 07-*-note.md" 900 7777 >/dev/null \
+  && rec2="$(ls "$WAITS"/wait-* 2>/dev/null | head -1)" \
+  && [ "$(sed -n 2p "$rec2")" = "$MDIR/07-*-reply.md $MDIR/07-*-note.md" ] \
+  && [ "$(sed -n 4p "$rec2")" = "7777" ] \
+  && ok "arm accepts multiple globs unexpanded and an explicit since-epoch" \
+  || no "arm accepts multiple globs unexpanded and an explicit since-epoch"
+"$SUT" disarm "$SPRINT"
+"$SUT" arm "$SPRINT" "sub/dir.md" 900 >/dev/null 2>&1 \
+  && no "path-shaped pattern rejected" || ok "path-shaped pattern rejected"
+"$SUT" arm "$SPRINT" "07-009-reply.md" "soon" >/dev/null 2>&1 \
+  && no "non-numeric timeout rejected" || ok "non-numeric timeout rejected"
+
 # ---- error paths: non-git CWD and missing file arg both exit 2 ----
 mkdir -p "$TMP/nogit" && cd "$TMP/nogit"
 out="$(printf 'x\n' | "$SUT" post "$SPRINT" 07 evidence - 2>&1)"; rc=$?
