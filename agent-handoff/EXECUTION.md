@@ -34,14 +34,19 @@ handback" below — never build around a broken premise.
 Your kickoff prompt's planning-depth line says whether this phase applies; `loop: direct`
 stories skip to step 3.
 
-- Present the investigation findings to the operator: what you verified, what surprised you, and
-  2-3 candidate approaches with trade-offs and your recommendation.
-- Decisions in the story doc are settled by default; the operator may amend them here. Record
-  every amendment in STORY-FEEDBACK.md — the append rides your story commits.
+- Your counterparty at this gate is whoever the plan put in the loop: the operator, when they
+  are present in this session (the plan routed an interactive story here); otherwise the sprint
+  supervisor, via a mailbox `question` per the Mailbox section. Never demand an in-thread
+  approval ("reply approved") from a human who is not in this session — no reply within the
+  wait is a handback, not permission to keep waiting.
+- Present the investigation findings to your counterparty: what you verified, what surprised
+  you, and 2-3 candidate approaches with trade-offs and your recommendation.
+- Decisions in the story doc are settled by default; the counterparty may amend them here.
+  Record every amendment in STORY-FEEDBACK.md — the append rides your story commits.
 - If findings diverge from the story doc, apply "Divergences and handback" below before writing
   any code.
 - This gate is interactive by design. The single-late-checkpoint rule (and the "progress pings"
-  mistake below) applies only AFTER the operator says proceed.
+  mistake below) applies only AFTER the counterparty says proceed.
 
 ## 3. Plan
 
@@ -110,9 +115,18 @@ sprint-orchestrator skill directory). Files are `NN-SSS-<kind>.md`, append-only,
 
 - `evidence` — findings that may affect other stories. Post and keep working; no reply comes.
 - `question` — a blocking question inside this story's scope. Post it, then wait on the reply,
-  which reuses your question's sequence — an exact filename:
-  `sprint-mail.sh wait <sprint-dir> {NN}-{SSS}-reply.md 1800`. One open question at a time. A
-  reply that arrives after your wait timed out is void — by then you are on the fallback path.
+  which reuses your question's sequence — the exact filename `{NN}-{SSS}-reply.md`.
+  One open question at a time. A reply that arrives after your wait ended is void — by then
+  you are on the fallback path. How you wait is transport-specific:
+  - Codex (Desktop or exec) with the sprint Stop hook installed:
+    `sprint-mail.sh arm <sprint-dir> {NN}-{SSS}-reply.md 1800`, then END YOUR TURN with a
+    one-line status. The armed hook holds the turn and wakes you when the reply lands or the
+    wait times out. Arming and ending the turn IS the wait — never poll, never run `wait`
+    under `nohup`/`&`/tmux, never hand-poll in later commands.
+  - Claude: run `sprint-mail.sh wait <sprint-dir> {NN}-{SSS}-reply.md 1800` as a background
+    task; its completion notification is your wake.
+  - Neither available: do not pretend to wait — treat it as no reply and take the fallback
+    path now.
 - `concluded` — posted once, on EVERY exit (below).
 - Check for new `note` messages from the supervisor at each numbered step boundary, and read
   all of your story's notes before merge or PR.
@@ -132,16 +146,15 @@ ownership transfer, not as notes to a session that no longer exists. A preflight
 When investigation or brainstorm findings diverge from the story doc, grade the blast radius:
 
 - **Contained** — the divergence stays inside this story's scope and ownership (the bug is in Y,
-  not X; same shape of fix). Interactive session: settle it with the operator, record it in
-  STORY-FEEDBACK.md, proceed. Non-interactive transport: proceed under a recorded amendment
-  without stopping.
+  not X; same shape of fix). Operator present in this session: settle it with them, record it in
+  STORY-FEEDBACK.md, proceed. Otherwise: proceed under a recorded amendment without stopping.
 - **Cross-boundary** — the divergence invalidates the premise, reshapes other stories, changes
-  merge order or waves, or reveals the story should not exist. Interactive session: present the
-  premise, the contradicting evidence, and the blast radius, then ask the operator:
-  **hand back to sprint-orchestrator now, or continue?** Non-interactive transport: post the
-  premise, evidence, and blast radius as a mailbox `question` and wait on the reply; the
-  supervisor may answer continue (record the amendment and proceed) or instruct handback. No
-  reply within the wait → hand back exactly as below.
+  merge order or waves, or reveals the story should not exist. Operator present in this session:
+  present the premise, the contradicting evidence, and the blast radius, then ask them:
+  **hand back to sprint-orchestrator now, or continue?** Otherwise: post the
+  premise, evidence, and blast radius as a mailbox `question` and wait on the reply per the
+  Mailbox section; the supervisor may answer continue (record the amendment and proceed) or
+  instruct handback. No reply within the wait → hand back exactly as below.
 
 On hand back:
 
@@ -248,4 +261,7 @@ interrupt 3 posts `outcome: blocked`.
   declares it.
 - Writing evidence to `/tmp` or into the worktree — both vanish before review.
 - Progress pings mid-run — defeats the single-checkpoint purpose. The brainstorm gate (step 2)
-  is the sanctioned exception, and it ends when the operator says proceed.
+  is the sanctioned exception, and it ends when the counterparty says proceed.
+- Demanding an in-thread approval ("reply approved" / "type approve") from a user who is not
+  this session's counterparty — consult the supervisor via the mailbox instead. Handoff-level
+  decisions are already approved; only the three interrupts and the brainstorm gate stop you.

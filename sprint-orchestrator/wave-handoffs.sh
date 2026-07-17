@@ -167,8 +167,11 @@ for doc in "${docs[@]}"; do
     codex) contract="~/.codex/skills/agent-handoff/EXECUTION.md" ;;
     *)     contract="~/.claude/skills/agent-handoff/EXECUTION.md" ;;
   esac
+  # design-heavy renders TDD only: the design conversation is the contract's own
+  # brainstorm gate. superpowers:brainstorming is never rendered into a dispatched
+  # kickoff — its user-approval gate points at a human who is not in the loop
+  # (the "Reply 'approved'" stalls recovered from July 2026 Codex sessions).
   skills="superpowers:test-driven-development"
-  [ "$flow" = "design-heavy" ] && skills="superpowers:brainstorming, superpowers:test-driven-development"
   [ "$flow" = "direction" ] && skills="none"
 
   printf '\n---\n\n## %s — %s\n\n' "$story" "$title"

@@ -141,10 +141,11 @@ render time; no placeholders left for the executor.
   fully defined — go straight to a short TDD plan. `loop: direct` also allows a `codex-cli` /
   `claude-cli` / subagent target; `loop: full` stories belong in an interactive session
   (`codex-app` or `claude-session`).
-- The `Use skills:` line comes from the story's `flow:` — `mechanical` →
-  superpowers:test-driven-development; `design-heavy` → superpowers:brainstorming +
-  superpowers:test-driven-development; `flow: direction` → none: the brainstorm is the
-  contract's own gate and the deliverable is a dossier, so no implementation skill applies.
+- The `Use skills:` line comes from the story's `flow:` — `mechanical` and `design-heavy` →
+  superpowers:test-driven-development; `flow: direction` → none: the deliverable is a dossier,
+  so no implementation skill applies. Never render superpowers:brainstorming into a kickoff:
+  the design conversation is the contract's own brainstorm gate, routed to the session's real
+  counterparty, while that skill's approval gate points at a user who may not be in the loop.
 - The story's `driver_hint:` / `driver_why:` frontmatter is the affinity input at the final
   resolution step; capability and the user's explicit say still outrank it.
 - `tier:` / `effort:` / `orchestrate:` resolve to the Launch line per the ladder above; render

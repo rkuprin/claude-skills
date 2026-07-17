@@ -35,6 +35,7 @@ story 18 tier-c-orch-effort 'driver_hint: claude' 'tier: C' 'tier_why: fixture' 
 story 19 bare-legacy
 story 20 full-loop       'driver_hint: claude' 'tier: B' 'tier_why: fixture' 'loop: full'
 story 21 direction-probe 'driver_hint: claude' 'tier: S' 'tier_why: fixture' 'loop: full' 'flow: direction'
+story 22 design-heavy    'driver_hint: claude' 'tier: B' 'tier_why: fixture' 'loop: full' 'flow: design-heavy'
 
 OUTPUT="$("$WH" "$SPRINT" 1 2>&1)" && ok "wave-handoffs runs" || { no "wave-handoffs runs"; printf '%s\n' "$OUTPUT"; }
 
@@ -60,6 +61,12 @@ in_fence="$(printf '%s\n' "$OUTPUT" | awk '/^```/{f=!f;next} f' | grep -c 'Launc
 has "full loop renders interactive depth"  "$OUTPUT" 'run the contract'"'"'s investigation + interactive brainstorm phase with the operator first'
 has "direct loop keeps direct depth"       "$OUTPUT" 'the story is fully defined — go straight to a short TDD plan'
 has "direction renders no skills"          "$OUTPUT" 'Use skills: none'
+# design-heavy renders TDD only — superpowers:brainstorming in a dispatched kickoff
+# is the recovered "Reply 'approved'" stall (its approval gate points at an absent user).
+case "$OUTPUT" in
+  *'superpowers:brainstorming'*) no "design-heavy never renders the brainstorming skill" ;;
+  *) ok "design-heavy never renders the brainstorming skill" ;;
+esac
 has "settled-by-default wording rendered"  "$OUTPUT" 'settled by default'
 has "handback hard rule rendered"          "$OUTPUT" 'publish the REPLAN event (docs-only, no trailers) and release the claim branch'
 has "kickoff title carries sprint identity" "$OUTPUT" "$SPRINT_NAME · Story 07: Fixture Case Doc"

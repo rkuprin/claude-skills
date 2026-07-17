@@ -187,8 +187,13 @@ themselves, so fire in parallel only stories that are both ownership-disjoint AN
 merge-order-independent. When merge order matters, use `stop-at-pr` (the supervisor merges in
 order) or dispatch serially.
 
-While the wave runs, watch the mailbox (`sprint-mail.sh list` / `wait`; a reactive watch where
-the harness has one) and sprint status. Answer executor `question`s with the plan's authority;
+While the wave runs, watch the mailbox reactively — never by hand-polling. On Codex with the
+sprint Stop hook installed: sweep `sprint-mail.sh list`, note the epoch (`date +%s`), then
+`sprint-mail.sh arm <sprint-dir> '*-question.md *-concluded.md' 1800 <epoch>` and end the
+turn — the hook wakes you on new mail or timeout; on each wake sweep ALL new mail, then
+re-arm with the epoch of that sweep until the wave concludes. On Claude: run
+`sprint-mail.sh wait` as a background task and re-arm the same way on each wake. Answer
+executor `question`s with the plan's authority;
 `note` redirects are legal only while a story has not concluded. The mailbox is never state:
 DONE is still both trailers on a trunk-reachable commit, and `sprint-status.sh` never reads
 the mailbox.
