@@ -60,6 +60,12 @@ repo_name() {
 repo="$(repo_name)"
 mail_dir="$MAIL_ROOT/$repo/$(basename "$sprint_dir")"
 
+# Stable per-worktree consumer identity (empty outside a worktree). The cursor
+# and wait records key on this so a consumer that cd's into a subdirectory does
+# not fragment its cursor. One mailbox consumer per worktree.
+consumer="$(git rev-parse --show-toplevel 2>/dev/null)" \
+  && consumer="$(cd "$consumer" && pwd -P)" || consumer=""
+
 next_seq() {  # $1=story  $2=ERE matching the kinds sharing this counter
   local max
   max="$(ls "$mail_dir" 2>/dev/null \
@@ -67,12 +73,11 @@ next_seq() {  # $1=story  $2=ERE matching the kinds sharing this counter
   printf '%03d' "$(( 10#${max:-0} + 1 ))"
 }
 
-cursor_file() {  # per-consumer read-cursor path, keyed by canonical cwd
+cursor_file() {  # per-consumer read-cursor path, keyed by the worktree root
   # Lives inside the mail dir, so it is namespaced per sprint and disposed with
-  # the mailbox. cksum of the cwd is a stable, coreutils-portable, fixed-length
-  # key; a collision among a handful of absolute paths is astronomically
-  # unlikely and the cursor is transient — never sprint state.
-  printf '%s\n' "$mail_dir/.read/$(pwd -P | cksum | cut -d' ' -f1)"
+  # the mailbox. cksum of the worktree root is a stable, coreutils-portable,
+  # fixed-length key; the cursor is transient — never sprint state.
+  printf '%s\n' "$mail_dir/.read/$(printf '%s\n' "$consumer" | cksum | cut -d' ' -f1)"
 }
 
 case "$cmd" in
@@ -170,6 +175,7 @@ case "$cmd" in
   unread)
     pat="${3:-}"
     [ -n "$pat" ] || usage
+    [ -n "$consumer" ] || err "not inside a git worktree — mailbox cursors are keyed per worktree; run from the project worktree"
     [ -d "$mail_dir" ] || exit 0
     cur="$(cursor_file)"
     # oldest-first, same order as `list`; ls omits the dot-cursor and .tmp litter
@@ -186,6 +192,7 @@ case "$cmd" in
   seen)
     shift 2  # drop cmd + sprint_dir; the rest are files (paths or basenames)
     [ "$#" -ge 1 ] || usage
+    [ -n "$consumer" ] || err "not inside a git worktree — mailbox cursors are keyed per worktree; run from the project worktree"
     mkdir -p "$mail_dir/.read"
     cur="$(cursor_file)"
     for f in "$@"; do

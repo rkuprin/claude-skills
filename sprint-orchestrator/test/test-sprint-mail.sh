@@ -181,11 +181,11 @@ dupes="$(cat "$MDIR2/.read/"* 2>/dev/null | grep -c '^05-001-question.md$')"
 # seen created .read/ and a cursor file
 [ -d "$MDIR2/.read" ] && ls "$MDIR2/.read/"* >/dev/null 2>&1 && ok "seen creates .read/ and a cursor file" || no "seen creates .read/ and a cursor file"
 
-# cursor is per-cwd: same mailbox, a different cwd still sees q2 unread
+# cursor is per-worktree: a subdirectory of the same worktree SHARES the cursor
 "$SUT" seen "$SPRINT2" "$q2"
 mkdir -p "$REPO_A/deep/sub"; cd "$REPO_A/deep/sub"
 u_sub="$("$SUT" unread "$SPRINT2" '05-004-question.md')"
-[ "$u_sub" = "$q2" ] && ok "cursor is per-cwd (other cwd still sees q2 unread)" || no "cursor is per-cwd (got: $u_sub)"
+[ -z "$u_sub" ] && ok "cursor is per-worktree (subdir shares the cursor)" || no "cursor is per-worktree (got: $u_sub)"
 cd "$REPO_A"
 
 # cursor is per-sprint: it lives inside each sprint's mail dir
