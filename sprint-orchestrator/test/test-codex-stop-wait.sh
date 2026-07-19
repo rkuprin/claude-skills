@@ -17,10 +17,16 @@ export SPRINT_MAIL_POLL=1
 WAITS="$SPRINT_MAIL_ROOT/.codex-waits"
 MDIR="$SPRINT_MAIL_ROOT/repo/sprint"
 mkdir -p "$WAITS" "$MDIR" "$TMP/cwd"
+git -C "$TMP/cwd" init -q
 cd "$TMP/cwd"
+WTROOT="$(cd "$TMP/cwd" && pwd -P)"
 
-arm() {  # $1=glob(s)  $2=timeout  $3=since
+arm() {  # legacy record: $1=glob(s) $2=timeout $3=since-epoch  (identity = cwd)
   printf '%s\n%s\n%s\n%s\n' "$(pwd -P)" "$1" "$2" "$3" > "$WAITS/.tmp.$$" \
+    && mv "$WAITS/.tmp.$$" "$WAITS/wait-t"
+}
+arm_cursor() {  # new record: $1=glob(s) $2=timeout $3=/abs/cursor  (identity = worktree root)
+  printf '%s\n%s\n%s\n%s\n' "$WTROOT" "$1" "$2" "$3" > "$WAITS/.tmp.$$" \
     && mv "$WAITS/.tmp.$$" "$WAITS/wait-t"
 }
 
@@ -44,18 +50,26 @@ out="$(: | "$SUT" 2>&1)"; rc=$?
   && ok "timeout → exit 2 with fallback message" || no "timeout → exit 2 with fallback message (rc=$rc out=$out)"
 [ ! -f "$WAITS/wait-t" ] && ok "record consumed on timeout" || no "record consumed on timeout"
 
-# ---- since-epoch: mail older than the arm never wakes the turn ----
+# ---- new record: a file already in the cursor does NOT wake (times out) ----
+mkdir -p "$MDIR/.read"
+echo "03-001-question.md" > "$MDIR/.read/cur"          # already seen
+echo body > "$MDIR/03-001-question.md"
+arm_cursor "$MDIR/03-*-question.md" 2 "$MDIR/.read/cur"
+out="$(: | "$SUT" 2>&1)"
+case "$out" in *"timed out"*) ok "cursor: seen file does not wake" ;; *) no "cursor: seen file does not wake (got: $out)" ;; esac
+
+# ---- new record: an unread file matching the glob DOES wake ----
+arm_cursor "$MDIR/03-*-question.md" 30 "$MDIR/.read/cur"
+( sleep 2; echo body > "$MDIR/03-002-question.md" ) &   # not in cursor
+out="$(: | "$SUT" 2>&1)"; rc=$?
+wait
+[ "$rc" = "2" ] && case "$out" in *"03-002-question.md"*) ok "cursor: unread file wakes the turn" ;; *) no "cursor: unread file wakes the turn (got: $out)" ;; esac || no "cursor: unread file wakes (rc=$rc)"
+
+# ---- legacy record still honored: mail older than the epoch does not wake ----
 echo old > "$MDIR/02-001-question.md"
 arm "$MDIR/02-*-question.md" 2 "$(( $(stat -f %m "$MDIR/02-001-question.md") + 1 ))"
 out="$(: | "$SUT" 2>&1)"
-case "$out" in *"timed out"*) ok "pre-arm mail is filtered by since-epoch" ;; *) no "pre-arm mail is filtered by since-epoch (got: $out)" ;; esac
-
-# ---- since-epoch: newer mail matching the same glob does wake it ----
-arm "$MDIR/02-*-question.md" 30 "$(stat -f %m "$MDIR/02-001-question.md")"
-( sleep 2; echo new > "$MDIR/02-002-question.md" ) &
-out="$(: | "$SUT" 2>&1)"; rc=$?
-wait
-case "$out" in *"02-"*"question.md"*) ok "new mail on a glob wakes the turn" ;; *) no "new mail on a glob wakes the turn (got: $out)" ;; esac
+case "$out" in *"timed out"*) ok "legacy: pre-arm mail filtered by since-epoch" ;; *) no "legacy: pre-arm mail filtered by since-epoch (got: $out)" ;; esac
 
 # ---- two records for one cwd: refuse with a remedy, keep both records ----
 arm "$MDIR/x.md" 5 0

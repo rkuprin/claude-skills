@@ -1,42 +1,56 @@
 #!/usr/bin/env bash
 # codex-stop-wait.sh — Codex Stop hook: hold the turn open while an armed
-# sprint-mail wait is pending for this session's cwd.
+# sprint-mail wait is pending for this session.
 #
-# Arm records are written by `sprint-mail.sh arm` (one per session cwd) under
-# ${SPRINT_MAIL_ROOT:-~/.sprint-mail}/.codex-waits/, four lines: canonical
-# session cwd, absolute glob(s) of the awaited mail, timeout seconds, and the
-# arm epoch — only mail whose mtime is at or after that epoch wakes the turn,
-# so files already processed before arming can never re-trigger.
+# Records live under ${SPRINT_MAIL_ROOT:-~/.sprint-mail}/.codex-waits/, four
+# lines. Two formats coexist during the cursor migration (dual-reader):
+#   NEW    — worktree root, absolute glob(s), timeout, ABSOLUTE cursor path.
+#            A file wakes the turn iff its basename is NOT a line in the cursor.
+#   LEGACY — physical cwd, absolute glob(s), timeout, NUMERIC since-epoch.
+#            A file wakes the turn iff its mtime >= since. Kept until in-flight
+#            legacy records drain, then removable.
+# Line 4 discriminates: an absolute path (/...) is NEW; all-digits is LEGACY.
+# Identity matches line 1 against the worktree root (NEW) or the cwd (LEGACY).
 #
-# Exit 0  — no armed wait for this cwd: let the turn end normally.
-# Exit 2  — stderr becomes a synthetic continuation prompt in the same thread
-#           (new mail arrived, the wait timed out, or the arm state is bad).
+# Exit 0  — no armed wait for this session: let the turn end normally.
+# Exit 2  — stderr becomes a synthetic continuation prompt.
 set -u
 
-cat > /dev/null   # drain the Stop payload; cwd comes from the process itself
+cat > /dev/null   # drain the Stop payload
 
 WAITS_DIR="${SPRINT_MAIL_ROOT:-$HOME/.sprint-mail}/.codex-waits"
 [ -d "$WAITS_DIR" ] || exit 0
 
 cwd="$(pwd -P)"
+wtroot="$(git rev-parse --show-toplevel 2>/dev/null)" && wtroot="$(cd "$wtroot" && pwd -P)" || wtroot=""
+
 rec=""
 for f in "$WAITS_DIR"/*; do
   [ -f "$f" ] || continue
-  if [ "$(sed -n 1p "$f")" = "$cwd" ]; then
-    if [ -n "$rec" ]; then
-      echo "codex-stop-wait: two armed waits for $cwd — run sprint-mail.sh disarm, then re-arm once." >&2
-      exit 2
-    fi
-    rec="$f"
+  l1="$(sed -n 1p "$f")"; l4="$(sed -n 4p "$f")"
+  mine=0
+  case "$l4" in
+    /*)          [ -n "$wtroot" ] && [ "$l1" = "$wtroot" ] && mine=1 ;;   # NEW (cursor)
+    ''|*[!0-9]*) : ;;                                                     # malformed
+    *)           [ "$l1" = "$cwd" ] && mine=1 ;;                          # LEGACY (epoch)
+  esac
+  [ "$mine" = 1 ] || continue
+  if [ -n "$rec" ]; then
+    echo "codex-stop-wait: two armed waits for this session — run sprint-mail.sh disarm, then re-arm once." >&2
+    exit 2
   fi
+  rec="$f"
 done
 [ -n "$rec" ] || exit 0
 
 glob="$(sed -n 2p "$rec")"
 timeout="$(sed -n 3p "$rec")"
-since="$(sed -n 4p "$rec")"
+l4="$(sed -n 4p "$rec")"
 case "$timeout" in *[!0-9]*|'') timeout=1800 ;; esac
-case "$since" in *[!0-9]*|'') since=0 ;; esac
+case "$l4" in
+  /*) mode=cursor; cursor="$l4"; since=0 ;;
+  *)  mode=epoch;  cursor="";    since="$l4"; case "$since" in *[!0-9]*|'') since=0 ;; esac ;;
+esac
 
 poll="${SPRINT_MAIL_POLL:-2}"
 elapsed=0
@@ -44,7 +58,11 @@ found=""
 while :; do
   for f in $glob; do
     [ -e "$f" ] || continue
-    [ "$(stat -f %m "$f" 2>/dev/null || echo 0)" -ge "$since" ] || continue
+    if [ "$mode" = cursor ]; then
+      grep -qxF "$(basename "$f")" "$cursor" 2>/dev/null && continue      # already read
+    else
+      [ "$(stat -f %m "$f" 2>/dev/null || echo 0)" -ge "$since" ] || continue
+    fi
     found="${found}${found:+ }$f"
   done
   [ -n "$found" ] && break
