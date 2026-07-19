@@ -189,6 +189,12 @@ recap — the gate exists so a bad plan is seen before it runs.
   same stories render as `codex exec` prints instead. Never subagent a `loop: full` story (they
   need an interactive session); `frontend: true` stories are a poor fit — their evidence path
   ends in Codex.app visual validation.
+- Kickoffs fired as in-session subagents are rendered with the subagent topology
+  (`wave-handoffs.sh <sprint-dir> <wave> --topology subagent`): a subagent never arms a
+  blocking mailbox wait — the Stop hook never fires for it, on either harness — so its
+  `Mailbox wait:` is the non-arming fallback. Only main sessions arm; in-session dispatch of
+  a codex-transport story is `codex exec`, itself a main session. The operator's paste sheet
+  renders with `--topology main-session`.
 
 ## Supervising the Wave
 
@@ -204,9 +210,12 @@ every turn is a cursor sweep: `sprint-mail.sh unread <sprint-dir> '*-question.md
 for the blocking kinds, then `sprint-mail.sh unread <sprint-dir> '*'` for the rest — read them,
 then `sprint-mail.sh seen <sprint-dir> <files>`. That sweep against the durable read-cursor is
 what makes mail never-lost: even if no wake fires, the next turn catches it. Then re-arm as an
-idle nudge and end the turn — on Codex with the sprint Stop hook installed:
-`sprint-mail.sh arm <sprint-dir> '*-question.md *-concluded.md' 1800`, and the hook wakes you on
-new mail or timeout; on Claude: run `sprint-mail.sh wait` as a background task. Re-arm on each
+idle nudge and end the turn — the supervisor is always a main session, so both harnesses arm
+their sprint Stop hook: on Codex
+`sprint-mail.sh arm --harness codex <sprint-dir> '*-question.md *-concluded.md' 1800`; on
+Claude `sprint-mail.sh arm --harness claude <sprint-dir> '*-question.md *-concluded.md' 10800`
+— the idle-wait default under the installed hook's 10860s timeout; targeted reply waits keep
+1800. The hook wakes you on new mail or timeout. Re-arm on each
 wake until the wave concludes — a spurious wake finds nothing unread, a missed wake is caught by
 the next sweep. Answer executor `question`s with the plan's authority; `note` redirects are legal
 only while a story has not concluded. The mailbox is never state: DONE is still both trailers on a
