@@ -6,6 +6,8 @@
 #   sprint-mail.sh wait <sprint-dir> <name-or-glob> [<timeout-seconds>]
 #   sprint-mail.sh arm <sprint-dir> <name-or-glob(s)> [<timeout-seconds>] [<since-epoch>]
 #   sprint-mail.sh disarm <sprint-dir>
+#   sprint-mail.sh unread <sprint-dir> <name-or-glob(s)>
+#   sprint-mail.sh seen <sprint-dir> <file>...
 #
 # Mail lives in ${SPRINT_MAIL_ROOT:-~/.sprint-mail}/<repo-basename>/<sprint-basename>/
 # — outside every worktree. It is NEVER state: story state stays git-derived
@@ -21,6 +23,11 @@
 # one record per session cwd under $MAIL_ROOT/.codex-waits/, four lines —
 # cwd, absolute glob(s), timeout, since-epoch (defaults to now: only mail
 # newer than the arm wakes the turn). `disarm` removes this cwd's record.
+#
+# `unread`/`seen` are a durable per-consumer read-cursor: `unread` lists mail
+# matching the glob(s) minus this cwd's cursor; `seen` appends read basenames.
+# The cursor lives at <mail_dir>/.read/<cksum of cwd>, is namespaced per sprint,
+# and is NEVER state — sprint-status.sh never reads it, deleting it loses nothing.
 set -euo pipefail
 
 MAIL_ROOT="${SPRINT_MAIL_ROOT:-$HOME/.sprint-mail}"
@@ -33,6 +40,8 @@ usage: sprint-mail.sh post <sprint-dir> <NN> <evidence|question|concluded|reply|
        sprint-mail.sh wait <sprint-dir> <name-or-glob> [<timeout-seconds>]
        sprint-mail.sh arm <sprint-dir> <name-or-glob(s)> [<timeout-seconds>] [<since-epoch>]
        sprint-mail.sh disarm <sprint-dir>
+       sprint-mail.sh unread <sprint-dir> <name-or-glob(s)>
+       sprint-mail.sh seen <sprint-dir> <file>...
 EOF
   exit 2
 }
@@ -56,6 +65,14 @@ next_seq() {  # $1=story  $2=ERE matching the kinds sharing this counter
   max="$(ls "$mail_dir" 2>/dev/null \
     | sed -n -E "s/^$1-([0-9]{3})-($2)\.md\$/\1/p" | sort -n | tail -1)"
   printf '%03d' "$(( 10#${max:-0} + 1 ))"
+}
+
+cursor_file() {  # per-consumer read-cursor path, keyed by canonical cwd
+  # Lives inside the mail dir, so it is namespaced per sprint and disposed with
+  # the mailbox. cksum of the cwd is a stable, coreutils-portable, fixed-length
+  # key; a collision among a handful of absolute paths is astronomically
+  # unlikely and the cursor is transient — never sprint state.
+  printf '%s\n' "$mail_dir/.read/$(pwd -P | cksum | cut -d' ' -f1)"
 }
 
 case "$cmd" in
@@ -148,6 +165,32 @@ case "$cmd" in
     for f in "$waits_dir"/*; do
       [ -f "$f" ] || continue
       [ "$(sed -n 1p "$f")" = "$cwd" ] && rm -f "$f"
+    done
+    ;;
+  unread)
+    pat="${3:-}"
+    [ -n "$pat" ] || usage
+    [ -d "$mail_dir" ] || exit 0
+    cur="$(cursor_file)"
+    # oldest-first, same order as `list`; ls omits the dot-cursor and .tmp litter
+    ls -tr "$mail_dir" 2>/dev/null | while IFS= read -r f; do
+      matched=0
+      set -f
+      for p in $pat; do case "$f" in $p) matched=1; break ;; esac; done
+      set +f
+      [ "$matched" = 1 ] || continue
+      grep -qxF "$f" "$cur" 2>/dev/null && continue
+      printf '%s/%s\n' "$mail_dir" "$f"
+    done
+    ;;
+  seen)
+    shift 2  # drop cmd + sprint_dir; the rest are files (paths or basenames)
+    [ "$#" -ge 1 ] || usage
+    mkdir -p "$mail_dir/.read"
+    cur="$(cursor_file)"
+    for f in "$@"; do
+      bn="$(basename "$f")"
+      grep -qxF "$bn" "$cur" 2>/dev/null || printf '%s\n' "$bn" >> "$cur"
     done
     ;;
   *) usage ;;

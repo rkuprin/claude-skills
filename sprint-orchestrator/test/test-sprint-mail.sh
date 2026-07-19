@@ -139,5 +139,60 @@ cd "$REPO_A"
 "$SUT" post "$SPRINT" 07 evidence "$TMP/absent.md" >/dev/null 2>&1; rc=$?
 [ "$rc" = "2" ] && ok "missing file arg exits 2" || no "missing file arg exits 2 (rc=$rc)"
 
+# ---- unread/seen: durable per-consumer read-cursor ----
+cd "$REPO_A"
+SPRINT2="docs/sprints/2026-07-19-cursor-fixture"
+MDIR2="$SPRINT_MAIL_ROOT/repo-alpha/2026-07-19-cursor-fixture"
+q1="$(printf 'q\n'  | "$SUT" post "$SPRINT2" 05 question -)"           # 05-001-question.md
+e1="$(printf 'e\n'  | "$SUT" post "$SPRINT2" 05 evidence -)"           # 05-002-evidence.md
+c1="$(printf 'outcome: pr-ready\nPR\n' | "$SUT" post "$SPRINT2" 05 concluded -)"  # 05-003-concluded.md
+
+# all three unseen, mtime order oldest-first
+u_all="$("$SUT" unread "$SPRINT2" '*')"
+[ "$(printf '%s\n' "$u_all" | grep -c .)" = "3" ] && ok "unread returns all unseen mail" || no "unread returns all unseen mail (got: $u_all)"
+[ "$(printf '%s\n' "$u_all" | head -1)" = "$q1" ] && ok "unread is mtime-ordered oldest-first" || no "unread is mtime-ordered oldest-first (got head: $(printf '%s\n' "$u_all" | head -1))"
+
+# seen excludes
+"$SUT" seen "$SPRINT2" "$q1" "$e1"
+u2="$("$SUT" unread "$SPRINT2" '*')"
+[ "$u2" = "$c1" ] && ok "seen files excluded from unread" || no "seen files excluded from unread (got: $u2)"
+
+# two-glob stale-match guard: with c1 also seen, a blocking-kind sweep is empty
+# until a genuinely new question lands (the old two-glob `wait` false-fired on stale c1)
+"$SUT" seen "$SPRINT2" "$c1"
+u_block="$("$SUT" unread "$SPRINT2" '*-question.md *-concluded.md')"
+[ -z "$u_block" ] && ok "two-glob unread does not false-fire on stale seen mail" || no "two-glob unread false-fired (got: $u_block)"
+q2="$(printf 'q2\n' | "$SUT" post "$SPRINT2" 05 question -)"           # 05-004-question.md
+u_block2="$("$SUT" unread "$SPRINT2" '*-question.md *-concluded.md')"
+[ "$u_block2" = "$q2" ] && ok "two-glob unread surfaces the genuinely new question" || no "two-glob unread new question (got: $u_block2)"
+
+# multiple explicit globs, both already seen → empty
+u_multi="$("$SUT" unread "$SPRINT2" '05-001-question.md 05-002-evidence.md')"
+[ -z "$u_multi" ] && ok "unread accepts multiple globs" || no "unread multiple globs (got: $u_multi)"
+
+# seen is idempotent — no duplicate cursor lines
+"$SUT" seen "$SPRINT2" "$q1"; "$SUT" seen "$SPRINT2" "$q1"
+dupes="$(cat "$MDIR2/.read/"* 2>/dev/null | grep -c '^05-001-question.md$')"
+[ "$dupes" = "1" ] && ok "seen is idempotent" || no "seen is idempotent (got: $dupes)"
+
+# .read/ invisible to list
+"$SUT" list "$SPRINT2" | grep -q '\.read' && no ".read cursor hidden from list" || ok ".read cursor hidden from list"
+
+# seen created .read/ and a cursor file
+[ -d "$MDIR2/.read" ] && ls "$MDIR2/.read/"* >/dev/null 2>&1 && ok "seen creates .read/ and a cursor file" || no "seen creates .read/ and a cursor file"
+
+# cursor is per-cwd: same mailbox, a different cwd still sees q2 unread
+"$SUT" seen "$SPRINT2" "$q2"
+mkdir -p "$REPO_A/deep/sub"; cd "$REPO_A/deep/sub"
+u_sub="$("$SUT" unread "$SPRINT2" '05-004-question.md')"
+[ "$u_sub" = "$q2" ] && ok "cursor is per-cwd (other cwd still sees q2 unread)" || no "cursor is per-cwd (got: $u_sub)"
+cd "$REPO_A"
+
+# cursor is per-sprint: it lives inside each sprint's mail dir
+SPRINT3="docs/sprints/2026-07-19-cursor-fixture-b"
+q3="$(printf 'q\n' | "$SUT" post "$SPRINT3" 05 question -)"
+u3="$("$SUT" unread "$SPRINT3" '*')"
+[ "$u3" = "$q3" ] && ok "cursor is per-sprint (SPRINT2 marks don't leak)" || no "cursor is per-sprint (got: $u3)"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
