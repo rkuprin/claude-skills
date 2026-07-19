@@ -199,6 +199,8 @@ has   "contract: outcome enum"               "outcome: <merged | pr-ready | hand
 has   "contract: mailbox degrades"           "degrades to the handback protocol" "$AHEXEC"
 has   "contract: one open question"          "One open question at a time" "$AHEXEC"
 has   "contract: notes read before merge"    "notes before merge or PR" "$AHEXEC"
+has   "contract: note sweep via unread"      "sprint-mail.sh unread <sprint-dir> '{NN}-*-note.md'" "$AHEXEC"
+has   "contract: read-cursor never state"    "nor the read-cursor" "$AHEXEC"
 has   "contract: codex arm wait"             "sprint-mail.sh arm <sprint-dir> {NN}-{SSS}-reply.md 1800" "$AHEXEC"
 has   "contract: arming is the wait"         "Arming and ending the turn IS the wait" "$AHEXEC"
 has   "contract: orphaned waits banned"      "under \`nohup\`/\`&\`/tmux" "$AHEXEC"

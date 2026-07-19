@@ -138,11 +138,13 @@ sprint-orchestrator skill directory). Files are `NN-SSS-<kind>.md`, append-only,
   - Neither available: do not pretend to wait — treat it as no reply and take the fallback
     path now.
 - `concluded` — posted once, on EVERY exit (below).
-- Check for new `note` messages from the supervisor at each numbered step boundary, and read
-  all of your story's notes before merge or PR.
+- Sweep new `note` messages at each numbered step boundary:
+  `sprint-mail.sh unread <sprint-dir> '{NN}-*-note.md'`, read them, then
+  `sprint-mail.sh seen <sprint-dir> <files>` — the read-cursor means a note is never missed nor
+  re-read. Read all of your story's notes before merge or PR.
 
 The mailbox is never state: DONE is still both trailers on a trunk-reachable commit, and
-`sprint-status.sh` never reads the mailbox. When nobody answers,
+`sprint-status.sh` never reads the mailbox — nor the read-cursor. When nobody answers,
 the mailbox degrades to the handback protocol — nothing new to learn, just faster when it works.
 
 **Terminal outcome.** Every exit posts `concluded`, first line
