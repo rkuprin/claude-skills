@@ -97,43 +97,66 @@ done
 [ "$(basename "$last")" = "09-010-evidence.md" ] \
   && ok "counter passes 008/009 into 010" || no "counter passes 008/009 into 010 (got: $last)"
 
-# ---- arm/disarm: cwd-keyed reactive-wait records for the Codex Stop hook ----
-# arm refuses when the Stop hook is not wired (a record nothing consumes is a
-# dead wait); give the fixture a wired CODEX_HOME first.
+# ---- arm/disarm: --harness selects which harness's Stop reference gates the arm ----
+# arm refuses when the named harness's hook is not referenced (a record nothing
+# consumes is a dead wait); give the fixture a wired CODEX_HOME first.
 export CODEX_HOME="$TMP/codexhome"
 mkdir -p "$CODEX_HOME"
-out="$("$SUT" arm "$SPRINT" "07-009-reply.md" 900 2>&1)"; rc=$?
+out="$("$SUT" arm --harness codex "$SPRINT" "07-009-reply.md" 900 2>&1)"; rc=$?
 [ "$rc" = "2" ] && case "$out" in *install-codex-hook.sh*) true ;; *) false ;; esac \
-  && ok "arm without wired Stop hook refused, names the installer" \
-  || no "arm without wired Stop hook refused, names the installer (rc=$rc out=$out)"
+  && ok "arm --harness codex refused without a wired hook, names the codex installer" \
+  || no "arm --harness codex refused without a wired hook, names the codex installer (rc=$rc out=$out)"
 printf '{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"bash codex-stop-wait.sh"}]}]}}\n' > "$CODEX_HOME/hooks.json"
 WAITS="$SPRINT_MAIL_ROOT/.codex-waits"
-rec="$("$SUT" arm "$SPRINT" "07-009-reply.md" 900)"
+rec="$("$SUT" arm --harness codex "$SPRINT" "07-009-reply.md" 900)"
 [ -f "$rec" ] && ok "arm writes a record and prints its path" || no "arm writes a record and prints its path (got: $rec)"
 [ "$(sed -n 1p "$rec")" = "$(cd "$REPO_A" && pwd -P)" ] && ok "arm line 1 is the worktree root" || no "arm line 1 is the worktree root"
 [ "$(sed -n 2p "$rec")" = "$MDIR/07-009-reply.md" ] && ok "arm line 2 is the absolute mailbox glob" || no "arm line 2 is the absolute mailbox glob (got: $(sed -n 2p "$rec"))"
 [ "$(sed -n 3p "$rec")" = "900" ] && ok "arm line 3 is the timeout" || no "arm line 3 is the timeout"
 case "$(sed -n 4p "$rec")" in "$MDIR/.read/"*) ok "arm line 4 is the cursor path" ;; *) no "arm line 4 is the cursor path (got: $(sed -n 4p "$rec"))" ;; esac
-"$SUT" arm "$SPRINT" "07-010-reply.md" 900 >/dev/null 2>&1 \
-  && no "second arm for same cwd rejected" || ok "second arm for same cwd rejected"
+"$SUT" arm --harness codex "$SPRINT" "07-010-reply.md" 900 >/dev/null 2>&1 \
+  && no "second arm for same worktree rejected" || ok "second arm for same worktree rejected"
 "$SUT" disarm "$SPRINT"
-[ ! -f "$rec" ] && ok "disarm removes this cwd's record" || no "disarm removes this cwd's record"
-"$SUT" arm "$SPRINT" "07-*-reply.md 07-*-note.md" 900 >/dev/null \
+[ ! -f "$rec" ] && ok "disarm removes this worktree's record" || no "disarm removes this worktree's record"
+"$SUT" arm --harness codex "$SPRINT" "07-*-reply.md 07-*-note.md" 900 >/dev/null \
   && rec2="$(ls "$WAITS"/wait-* 2>/dev/null | head -1)" \
   && [ "$(sed -n 2p "$rec2")" = "$MDIR/07-*-reply.md $MDIR/07-*-note.md" ] \
   && case "$(sed -n 4p "$rec2")" in "$MDIR/.read/"*) true ;; *) false ;; esac \
   && ok "arm accepts multiple globs unexpanded, line 4 is the cursor path" \
   || no "arm accepts multiple globs unexpanded, line 4 is the cursor path"
 "$SUT" disarm "$SPRINT"
-"$SUT" arm "$SPRINT" "sub/dir.md" 900 >/dev/null 2>&1 \
+
+# --harness claude verifies the Claude settings reference instead of the Codex one.
+# A wired Claude settings lets --harness claude proceed even with the Codex hook
+# unwired; --harness codex still refuses in that state.
+rm -f "$CODEX_HOME/hooks.json"
+export CLAUDE_CONFIG_DIR="$TMP/claudehome"
+mkdir -p "$CLAUDE_CONFIG_DIR"
+printf '{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"bash claude-stop-wait.sh"}]}]}}\n' > "$CLAUDE_CONFIG_DIR/settings.json"
+rec_cl="$("$SUT" arm --harness claude "$SPRINT" "07-011-reply.md" 900)"
+[ -f "$rec_cl" ] && ok "arm --harness claude proceeds with wired Claude settings, no Codex hook" || no "arm --harness claude proceeds with wired Claude settings (got: $rec_cl)"
+"$SUT" disarm "$SPRINT"
+out="$("$SUT" arm --harness codex "$SPRINT" "07-011-reply.md" 900 2>&1)"; rc=$?
+[ "$rc" = "2" ] && case "$out" in *install-codex-hook.sh*) true ;; *) false ;; esac \
+  && ok "arm --harness codex still refuses when only Claude is wired" \
+  || no "arm --harness codex still refuses when only Claude is wired (rc=$rc out=$out)"
+# restore the Codex wiring for the reaper cases below
+printf '{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"bash codex-stop-wait.sh"}]}]}}\n' > "$CODEX_HOME/hooks.json"
+
+# arm requires --harness; a bare arm is refused naming the flag.
+out="$("$SUT" arm "$SPRINT" "07-009-reply.md" 900 2>&1)"; rc=$?
+[ "$rc" = "2" ] && case "$out" in *"--harness"*) true ;; *) false ;; esac \
+  && ok "arm without --harness refused, names the flag" || no "arm without --harness refused (rc=$rc out=$out)"
+
+"$SUT" arm --harness codex "$SPRINT" "sub/dir.md" 900 >/dev/null 2>&1 \
   && no "path-shaped pattern rejected" || ok "path-shaped pattern rejected"
-"$SUT" arm "$SPRINT" "07-009-reply.md" "soon" >/dev/null 2>&1 \
+"$SUT" arm --harness codex "$SPRINT" "07-009-reply.md" "soon" >/dev/null 2>&1 \
   && no "non-numeric timeout rejected" || ok "non-numeric timeout rejected"
 
 # ---- reaper: arm prunes a dead-identity record before its double-arm check ----
 DEAD="$WAITS/wait-dead"
 printf '/no/such/dir/gone\n%s\n900\n%s\n' "$MDIR/07-*-reply.md" "$MDIR/.read/x" > "$DEAD"
-"$SUT" arm "$SPRINT" "07-050-reply.md" 900 >/dev/null
+"$SUT" arm --harness codex "$SPRINT" "07-050-reply.md" 900 >/dev/null
 [ ! -f "$DEAD" ] && ok "arm prunes a record whose identity dir is gone" || no "arm prunes a dead-identity record"
 "$SUT" disarm "$SPRINT"
 

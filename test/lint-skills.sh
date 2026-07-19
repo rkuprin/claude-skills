@@ -269,11 +269,13 @@ if diff <(sed -n '/^set -u$/,$p' "$CSW") <(sed -n '/^set -u$/,$p' "$CLSW") >/dev
 else
   no "claude-stop-wait: body diverges from codex-stop-wait"
 fi
-has   "mail: arm usage line"                    "arm <sprint-dir> <name-or-glob(s)>" "$SMAIL"
+has   "mail: arm usage line"                    "arm --harness <codex|claude> <sprint-dir> <name-or-glob(s)>" "$SMAIL"
 has   "mail: disarm usage line"                 "disarm <sprint-dir>" "$SMAIL"
 has   "mail: disarm --stale"                    "disarm <sprint-dir> [--stale]" "$SMAIL"
 has   "mail: worktree-root cursor key"          "keyed by the worktree root" "$SMAIL"
 has   "mail: arm refuses without wired hook"    "install-codex-hook.sh" "$SMAIL"
+has   "mail: arm claude branch names installer" "install-claude-hook.sh" "$SMAIL"
+has   "mail: arm requires --harness"            "arm requires --harness" "$SMAIL"
 has   "mail: unread usage line"                 "unread <sprint-dir> <name-or-glob(s)>" "$SMAIL"
 has   "mail: seen usage line"                   "seen <sprint-dir> <file>..." "$SMAIL"
 [ -x "$INSTALLER" ] && ok "installer: exists and is executable" || no "installer: exists and is executable"

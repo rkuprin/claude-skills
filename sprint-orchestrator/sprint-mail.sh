@@ -4,7 +4,7 @@
 #   sprint-mail.sh post <sprint-dir> <NN> <kind> [<file>|-]
 #   sprint-mail.sh list <sprint-dir> [<NN>]
 #   sprint-mail.sh wait <sprint-dir> <name-or-glob> [<timeout-seconds>]
-#   sprint-mail.sh arm <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
+#   sprint-mail.sh arm --harness <codex|claude> <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
 #   sprint-mail.sh disarm <sprint-dir> [--stale]
 #   sprint-mail.sh unread <sprint-dir> <name-or-glob(s)>
 #   sprint-mail.sh seen <sprint-dir> <file>...
@@ -19,10 +19,12 @@
 #   supervisor:       note (own counter)
 # `concluded` bodies must open with:  outcome: merged|pr-ready|handback|blocked|failed|dossier
 #
-# `arm` registers a reactive wait for the Codex Stop hook (codex-stop-wait.sh):
-# one record per session cwd under $MAIL_ROOT/.codex-waits/, four lines —
-# cwd, absolute glob(s), timeout, since-epoch (defaults to now: only mail
-# newer than the arm wakes the turn). `disarm` removes this cwd's record.
+# `arm --harness codex|claude` registers a reactive wait for that harness's Stop
+# hook (codex-stop-wait.sh / claude-stop-wait.sh): one record per worktree under
+# $MAIL_ROOT/.codex-waits/, four lines — worktree root, absolute glob(s), timeout,
+# absolute cursor path. `--harness` selects which harness's Stop reference must
+# already exist (a reference is not proof the hook is active — installers own
+# that). `disarm` removes this worktree's record.
 #
 # `unread`/`seen` are a durable per-consumer read-cursor: `unread` lists mail
 # matching the glob(s) minus this cwd's cursor; `seen` appends read basenames.
@@ -38,7 +40,7 @@ usage() {
 usage: sprint-mail.sh post <sprint-dir> <NN> <evidence|question|concluded|reply|note> [<file>|-]
        sprint-mail.sh list <sprint-dir> [<NN>]
        sprint-mail.sh wait <sprint-dir> <name-or-glob> [<timeout-seconds>]
-       sprint-mail.sh arm <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
+       sprint-mail.sh arm --harness <codex|claude> <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
        sprint-mail.sh disarm <sprint-dir> [--stale]
        sprint-mail.sh unread <sprint-dir> <name-or-glob(s)>
        sprint-mail.sh seen <sprint-dir> <file>...
@@ -47,7 +49,21 @@ EOF
 }
 err() { echo "sprint-mail: $1" >&2; exit 2; }
 
-cmd="${1:-}"; sprint_dir="${2:-}"
+cmd="${1:-}"
+# `arm` takes a required --harness <codex|claude> immediately after the command
+# (the kickoff always knows the target harness). Pull it out before positional
+# parsing so sprint-dir/glob/timeout stay positional exactly like every other
+# subcommand.
+harness=""
+if [ "$cmd" = "arm" ] && [ "${2:-}" = "--harness" ]; then
+  harness="${3:-}"
+  case "$harness" in
+    codex|claude) ;;
+    *) err "arm --harness needs 'codex' or 'claude' (got: ${harness:-<empty>})" ;;
+  esac
+  shift 3; set -- arm "$@"
+fi
+sprint_dir="${2:-}"
 [ -n "$cmd" ] && [ -n "$sprint_dir" ] || usage
 
 repo_name() {
@@ -145,13 +161,24 @@ case "$cmd" in
   arm)
     pat="${3:-}"; timeout="${4:-1800}"
     [ -n "$pat" ] || usage
+    [ -n "$harness" ] || err "arm requires --harness <codex|claude> immediately after 'arm' — the kickoff names the target harness"
     [ -n "$consumer" ] || err "not inside a git worktree — mailbox waits are keyed per worktree; run from the project worktree"
-    # An armed record only works if the Stop hook is wired — otherwise the turn
-    # ends and nothing ever wakes, the exact orphaned-wait failure arm exists to
-    # prevent. Refuse loudly instead of arming a dead wait.
-    hooks_json="${CODEX_HOME:-$HOME/.codex}/hooks.json"
-    grep -q "codex-stop-wait.sh" "$hooks_json" 2>/dev/null \
-      || err "codex Stop hook not wired in $hooks_json — run sprint-orchestrator/install-codex-hook.sh once on this machine, or take the contract's no-wait fallback instead of arming"
+    # An armed record only works if the named harness's Stop hook is wired —
+    # otherwise the turn ends and nothing ever wakes, the exact orphaned-wait
+    # failure arm exists to prevent. A textual reference is NOT proof the hook is
+    # active (Claude: disableAllHooks / managed policy; Codex: silent-skip until
+    # trusted) — the installers own activation; arm only verifies the reference
+    # exists in the expected place. Refuse loudly instead of arming a dead wait.
+    case "$harness" in
+      codex)
+        ref="${CODEX_HOME:-$HOME/.codex}/hooks.json"
+        grep -q "codex-stop-wait.sh" "$ref" 2>/dev/null \
+          || err "codex Stop hook not referenced in $ref — run sprint-orchestrator/install-codex-hook.sh once on this machine, or take the contract's no-wait fallback instead of arming" ;;
+      claude)
+        cfg="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+        grep -q "claude-stop-wait.sh" "$cfg/settings.json" "$cfg/settings.local.json" 2>/dev/null \
+          || err "claude Stop hook not referenced in $cfg/settings.json — run sprint-orchestrator/install-claude-hook.sh once on this machine, or take the contract's no-wait fallback instead of arming" ;;
+    esac
     echo "$timeout" | grep -qE '^[0-9]+$' || err "timeout must be whole seconds (got: $timeout)"
     case "$pat" in
       */*|*$'\n'*) err "pattern is a mail filename or glob, not a path (got: $pat)" ;;
