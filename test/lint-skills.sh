@@ -280,6 +280,11 @@ has   "mail: unread usage line"                 "unread <sprint-dir> <name-or-gl
 has   "mail: seen usage line"                   "seen <sprint-dir> <file>..." "$SMAIL"
 [ -x "$INSTALLER" ] && ok "installer: exists and is executable" || no "installer: exists and is executable"
 has   "installer: verifies trust, not just wiring" "reports '\$verify', not trusted" "$INSTALLER"
+CLINSTALLER="$HERE/../sprint-orchestrator/install-claude-hook.sh"
+[ -x "$CLINSTALLER" ] && ok "claude installer: exists and is executable" || no "claude installer: exists and is executable"
+has   "claude installer: preserves co-installed hooks" "PRESERVING any co-installed" "$CLINSTALLER"
+has   "claude installer: 10860 timeout"                '"timeout": 10860' "$CLINSTALLER"
+has   "claude installer: no trust dance"               "No trust dance" "$CLINSTALLER"
 has   "sprint readme: names the installer"      "install-codex-hook.sh" "$ORCH_README"
 has   "repo readme: names the hook setup"       "install-codex-hook.sh" "$HERE/../README.md"
 
