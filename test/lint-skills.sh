@@ -257,6 +257,18 @@ has   "stop-wait: silent pass without a record" "exit 0" "$CSW"
 has   "stop-wait: continuation via exit 2"      "exit 2" "$CSW"
 has   "stop-wait: cursor reader"                "mode=cursor" "$CSW"
 has   "stop-wait: legacy epoch reader"          "mode=epoch" "$CSW"
+CLSW="$HERE/../sprint-orchestrator/claude-stop-wait.sh"
+[ -x "$CLSW" ] && ok "claude-stop-wait: hook exists and is executable" || no "claude-stop-wait: hook exists and is executable"
+has   "claude-stop-wait: Stop-only main sessions" "MAIN-session" "$CLSW"
+has   "claude-stop-wait: silent pass without a record" "exit 0" "$CLSW"
+has   "claude-stop-wait: continuation via exit 2"      "exit 2" "$CLSW"
+# The two hook bodies (from `set -u` onward) must stay byte-identical: one source
+# of truth for the wake logic. Only the leading harness header may differ.
+if diff <(sed -n '/^set -u$/,$p' "$CSW") <(sed -n '/^set -u$/,$p' "$CLSW") >/dev/null 2>&1; then
+  ok "claude-stop-wait: body in sync with codex-stop-wait"
+else
+  no "claude-stop-wait: body diverges from codex-stop-wait"
+fi
 has   "mail: arm usage line"                    "arm <sprint-dir> <name-or-glob(s)>" "$SMAIL"
 has   "mail: disarm usage line"                 "disarm <sprint-dir>" "$SMAIL"
 has   "mail: disarm --stale"                    "disarm <sprint-dir> [--stale]" "$SMAIL"
