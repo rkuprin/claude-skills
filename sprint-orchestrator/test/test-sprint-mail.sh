@@ -110,25 +110,39 @@ printf '{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"bash codex-stop
 WAITS="$SPRINT_MAIL_ROOT/.codex-waits"
 rec="$("$SUT" arm "$SPRINT" "07-009-reply.md" 900)"
 [ -f "$rec" ] && ok "arm writes a record and prints its path" || no "arm writes a record and prints its path (got: $rec)"
-[ "$(sed -n 1p "$rec")" = "$(pwd -P)" ] && ok "arm line 1 is canonical cwd" || no "arm line 1 is canonical cwd"
+[ "$(sed -n 1p "$rec")" = "$(cd "$REPO_A" && pwd -P)" ] && ok "arm line 1 is the worktree root" || no "arm line 1 is the worktree root"
 [ "$(sed -n 2p "$rec")" = "$MDIR/07-009-reply.md" ] && ok "arm line 2 is the absolute mailbox glob" || no "arm line 2 is the absolute mailbox glob (got: $(sed -n 2p "$rec"))"
 [ "$(sed -n 3p "$rec")" = "900" ] && ok "arm line 3 is the timeout" || no "arm line 3 is the timeout"
-sed -n 4p "$rec" | grep -qE '^[0-9]+$' && ok "arm line 4 defaults to a now epoch" || no "arm line 4 defaults to a now epoch"
+case "$(sed -n 4p "$rec")" in "$MDIR/.read/"*) ok "arm line 4 is the cursor path" ;; *) no "arm line 4 is the cursor path (got: $(sed -n 4p "$rec"))" ;; esac
 "$SUT" arm "$SPRINT" "07-010-reply.md" 900 >/dev/null 2>&1 \
   && no "second arm for same cwd rejected" || ok "second arm for same cwd rejected"
 "$SUT" disarm "$SPRINT"
 [ ! -f "$rec" ] && ok "disarm removes this cwd's record" || no "disarm removes this cwd's record"
-"$SUT" arm "$SPRINT" "07-*-reply.md 07-*-note.md" 900 7777 >/dev/null \
+"$SUT" arm "$SPRINT" "07-*-reply.md 07-*-note.md" 900 >/dev/null \
   && rec2="$(ls "$WAITS"/wait-* 2>/dev/null | head -1)" \
   && [ "$(sed -n 2p "$rec2")" = "$MDIR/07-*-reply.md $MDIR/07-*-note.md" ] \
-  && [ "$(sed -n 4p "$rec2")" = "7777" ] \
-  && ok "arm accepts multiple globs unexpanded and an explicit since-epoch" \
-  || no "arm accepts multiple globs unexpanded and an explicit since-epoch"
+  && case "$(sed -n 4p "$rec2")" in "$MDIR/.read/"*) true ;; *) false ;; esac \
+  && ok "arm accepts multiple globs unexpanded, line 4 is the cursor path" \
+  || no "arm accepts multiple globs unexpanded, line 4 is the cursor path"
 "$SUT" disarm "$SPRINT"
 "$SUT" arm "$SPRINT" "sub/dir.md" 900 >/dev/null 2>&1 \
   && no "path-shaped pattern rejected" || ok "path-shaped pattern rejected"
 "$SUT" arm "$SPRINT" "07-009-reply.md" "soon" >/dev/null 2>&1 \
   && no "non-numeric timeout rejected" || ok "non-numeric timeout rejected"
+
+# ---- reaper: arm prunes a dead-identity record before its double-arm check ----
+DEAD="$WAITS/wait-dead"
+printf '/no/such/dir/gone\n%s\n900\n%s\n' "$MDIR/07-*-reply.md" "$MDIR/.read/x" > "$DEAD"
+"$SUT" arm "$SPRINT" "07-050-reply.md" 900 >/dev/null
+[ ! -f "$DEAD" ] && ok "arm prunes a record whose identity dir is gone" || no "arm prunes a dead-identity record"
+"$SUT" disarm "$SPRINT"
+
+# ---- reaper: disarm --stale sweeps an expired record ----
+OLD="$WAITS/wait-old"
+printf '%s\n%s\n1\n%s\n' "$(cd "$REPO_A" && pwd -P)" "$MDIR/07-*-reply.md" "$MDIR/.read/x" > "$OLD"
+touch -t 202607140000 "$OLD"   # backdate well past 2x its 1s timeout
+"$SUT" disarm "$SPRINT" --stale
+[ ! -f "$OLD" ] && ok "disarm --stale sweeps an expired record" || no "disarm --stale sweeps an expired record"
 
 # ---- error paths: non-git CWD and missing file arg both exit 2 ----
 mkdir -p "$TMP/nogit" && cd "$TMP/nogit"

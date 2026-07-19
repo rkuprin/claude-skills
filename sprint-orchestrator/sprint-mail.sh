@@ -4,8 +4,8 @@
 #   sprint-mail.sh post <sprint-dir> <NN> <kind> [<file>|-]
 #   sprint-mail.sh list <sprint-dir> [<NN>]
 #   sprint-mail.sh wait <sprint-dir> <name-or-glob> [<timeout-seconds>]
-#   sprint-mail.sh arm <sprint-dir> <name-or-glob(s)> [<timeout-seconds>] [<since-epoch>]
-#   sprint-mail.sh disarm <sprint-dir>
+#   sprint-mail.sh arm <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
+#   sprint-mail.sh disarm <sprint-dir> [--stale]
 #   sprint-mail.sh unread <sprint-dir> <name-or-glob(s)>
 #   sprint-mail.sh seen <sprint-dir> <file>...
 #
@@ -38,8 +38,8 @@ usage() {
 usage: sprint-mail.sh post <sprint-dir> <NN> <evidence|question|concluded|reply|note> [<file>|-]
        sprint-mail.sh list <sprint-dir> [<NN>]
        sprint-mail.sh wait <sprint-dir> <name-or-glob> [<timeout-seconds>]
-       sprint-mail.sh arm <sprint-dir> <name-or-glob(s)> [<timeout-seconds>] [<since-epoch>]
-       sprint-mail.sh disarm <sprint-dir>
+       sprint-mail.sh arm <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
+       sprint-mail.sh disarm <sprint-dir> [--stale]
        sprint-mail.sh unread <sprint-dir> <name-or-glob(s)>
        sprint-mail.sh seen <sprint-dir> <file>...
 EOF
@@ -78,6 +78,19 @@ cursor_file() {  # per-consumer read-cursor path, keyed by the worktree root
   # the mailbox. cksum of the worktree root is a stable, coreutils-portable,
   # fixed-length key; the cursor is transient — never sprint state.
   printf '%s\n' "$mail_dir/.read/$(printf '%s\n' "$consumer" | cksum | cut -d' ' -f1)"
+}
+
+prune_stale() {  # $1=waits_dir — drop records whose identity dir is gone or which are long expired
+  local wd="$1" f id ts age now
+  now="$(date +%s)"
+  for f in "$wd"/*; do
+    [ -f "$f" ] || continue
+    id="$(sed -n 1p "$f")"
+    [ -d "$id" ] || { rm -f "$f"; continue; }               # dead worktree/cwd → orphan
+    ts="$(sed -n 3p "$f")"; case "$ts" in ''|*[!0-9]*) ts=1800 ;; esac
+    age=$(( now - $(stat -f %m "$f" 2>/dev/null || echo "$now") ))
+    [ "$age" -gt $(( ts * 2 )) ] && rm -f "$f"               # long past budget → stale
+  done
 }
 
 case "$cmd" in
@@ -130,8 +143,9 @@ case "$cmd" in
     done
     ;;
   arm)
-    pat="${3:-}"; timeout="${4:-1800}"; since="${5:-}"
+    pat="${3:-}"; timeout="${4:-1800}"
     [ -n "$pat" ] || usage
+    [ -n "$consumer" ] || err "not inside a git worktree — mailbox waits are keyed per worktree; run from the project worktree"
     # An armed record only works if the Stop hook is wired — otherwise the turn
     # ends and nothing ever wakes, the exact orphaned-wait failure arm exists to
     # prevent. Refuse loudly instead of arming a dead wait.
@@ -139,37 +153,34 @@ case "$cmd" in
     grep -q "codex-stop-wait.sh" "$hooks_json" 2>/dev/null \
       || err "codex Stop hook not wired in $hooks_json — run sprint-orchestrator/install-codex-hook.sh once on this machine, or take the contract's no-wait fallback instead of arming"
     echo "$timeout" | grep -qE '^[0-9]+$' || err "timeout must be whole seconds (got: $timeout)"
-    if [ -n "$since" ]; then
-      echo "$since" | grep -qE '^[0-9]+$' || err "since must be a unix epoch (got: $since)"
-    else
-      since="$(date +%s)"
-    fi
     case "$pat" in
       */*|*$'\n'*) err "pattern is a mail filename or glob, not a path (got: $pat)" ;;
     esac
     waits_dir="$MAIL_ROOT/.codex-waits"
     mkdir -p "$waits_dir"
-    cwd="$(pwd -P)"
+    prune_stale "$waits_dir"
     for f in "$waits_dir"/*; do
       [ -f "$f" ] || continue
-      [ "$(sed -n 1p "$f")" = "$cwd" ] \
-        && err "a wait is already armed for $cwd — run 'sprint-mail.sh disarm' first"
+      [ "$(sed -n 1p "$f")" = "$consumer" ] \
+        && err "a wait is already armed for this worktree — run 'sprint-mail.sh disarm' first"
     done
     abs=""
     set -f
     for p in $pat; do abs="$abs${abs:+ }$mail_dir/$p"; done
     set +f
+    cur="$(cursor_file)"
     rec="$waits_dir/wait-$$-$(date +%s)"
     tmp="$waits_dir/.tmp.$$"
-    printf '%s\n%s\n%s\n%s\n' "$cwd" "$abs" "$timeout" "$since" > "$tmp" && mv "$tmp" "$rec"
+    printf '%s\n%s\n%s\n%s\n' "$consumer" "$abs" "$timeout" "$cur" > "$tmp" && mv "$tmp" "$rec"
     printf '%s\n' "$rec"
     ;;
   disarm)
     waits_dir="$MAIL_ROOT/.codex-waits"
-    cwd="$(pwd -P)"
+    if [ "${3:-}" = "--stale" ]; then prune_stale "$waits_dir"; exit 0; fi
+    [ -n "$consumer" ] || err "not inside a git worktree — mailbox waits are keyed per worktree"
     for f in "$waits_dir"/*; do
       [ -f "$f" ] || continue
-      [ "$(sed -n 1p "$f")" = "$cwd" ] && rm -f "$f"
+      [ "$(sed -n 1p "$f")" = "$consumer" ] && rm -f "$f"
     done
     ;;
   unread)
