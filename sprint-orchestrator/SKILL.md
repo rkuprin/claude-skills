@@ -199,16 +199,18 @@ themselves, so fire in parallel only stories that are both ownership-disjoint AN
 merge-order-independent. When merge order matters, use `stop-at-pr` (the supervisor merges in
 order) or dispatch serially.
 
-While the wave runs, watch the mailbox reactively — never by hand-polling. On Codex with the
-sprint Stop hook installed: sweep `sprint-mail.sh list`, note the epoch (`date +%s`), then
-`sprint-mail.sh arm <sprint-dir> '*-question.md *-concluded.md' 1800 <epoch>` and end the
-turn — the hook wakes you on new mail or timeout; on each wake sweep ALL new mail, then
-re-arm with the epoch of that sweep until the wave concludes. On Claude: run
-`sprint-mail.sh wait` as a background task and re-arm the same way on each wake. Answer
-executor `question`s with the plan's authority;
-`note` redirects are legal only while a story has not concluded. The mailbox is never state:
-DONE is still both trailers on a trunk-reachable commit, and `sprint-status.sh` never reads
-the mailbox.
+While the wave runs, watch the mailbox reactively — never by hand-polling. The first action of
+every turn is a cursor sweep: `sprint-mail.sh unread <sprint-dir> '*-question.md *-concluded.md'`
+for the blocking kinds, then `sprint-mail.sh unread <sprint-dir> '*'` for the rest — read them,
+then `sprint-mail.sh seen <sprint-dir> <files>`. That sweep against the durable read-cursor is
+what makes mail never-lost: even if no wake fires, the next turn catches it. Then re-arm as an
+idle nudge and end the turn — on Codex with the sprint Stop hook installed:
+`sprint-mail.sh arm <sprint-dir> '*-question.md *-concluded.md' 1800`, and the hook wakes you on
+new mail or timeout; on Claude: run `sprint-mail.sh wait` as a background task. Re-arm on each
+wake until the wave concludes — a spurious wake finds nothing unread, a missed wake is caught by
+the next sweep. Answer executor `question`s with the plan's authority; `note` redirects are legal
+only while a story has not concluded. The mailbox is never state: DONE is still both trailers on a
+trunk-reachable commit, and `sprint-status.sh` never reads the mailbox — nor the read-cursor.
 
 On each terminal `concluded` outcome, verify before integrating: the diff, the hand-back
 evidence, the story's "Done means". Then:
