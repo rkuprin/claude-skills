@@ -153,10 +153,15 @@ render time; no placeholders left for the executor.
 - The contract path is spelled for the target harness:
   `~/.codex/skills/agent-handoff/EXECUTION.md` for Codex targets,
   `~/.claude/skills/agent-handoff/EXECUTION.md` for Claude targets.
-- The `Mailbox wait:` line resolves the same way, so the executor's comms are settled before
-  the story starts: Codex targets render the arm-and-end-turn form (the Stop hook owns the
-  wait); Claude targets render the background-task form. `{SPRINT_DIR}` is the literal sprint
-  directory path; `{SSS}` stays literal — it is the question's runtime sequence number.
+- The `Mailbox wait:` line resolves on harness × topology, so the executor's comms are
+  settled before the story starts. Every paste target is a main session: Codex targets render
+  the codex arm-and-end-turn form, Claude targets (claude-cli, claude-session) render the
+  claude arm-and-end-turn form (`arm --harness claude …`). An in-session subagent dispatch
+  (allowed for `loop: direct` only) renders the non-arming fallback instead, on either
+  harness — the Stop hook never fires for a subagent, so it must not pretend to wait; a
+  `direct` story that genuinely needs a blocking reply is mis-scoped and must be
+  re-planned as a main-session story. `{SPRINT_DIR}` is the literal sprint directory path; `{SSS}` stays
+  literal — it is the question's runtime sequence number.
 - Pre-render claim check: `git fetch origin`, then verify the story's exact `branch:` value exists
   on NO ref and no worktree is pinned to it (`git branch -a`, `git worktree list`). A pure claim —
   the branch with zero story commits — already means DOING; trailer-derived status lags it, so a
@@ -174,7 +179,7 @@ You are executing ONE story end-to-end.
 EXECUTION MODE: {AUTONOMOUS — merge, deploy, verify on prod. | STOP AT PR — DO NOT MERGE OR DEPLOY.}
 Sprint identity: {SPRINT}. Designated claim branch: `{BRANCH}`.
 Mailbox: {MAILBOX} — post evidence, questions, and your terminal outcome per the contract's Mailbox section.
-Mailbox wait: {post your question, then `~/.codex/skills/sprint-orchestrator/sprint-mail.sh arm {SPRINT_DIR} {NN}-{SSS}-reply.md 1800` (SSS = your question's sequence) and END YOUR TURN — the armed Stop hook wakes you on the reply; never poll or background the wait. | post your question, then run `~/.claude/skills/sprint-orchestrator/sprint-mail.sh wait {SPRINT_DIR} {NN}-{SSS}-reply.md 1800` (SSS = your question's sequence) as a background task — its completion notification is your wake.}
+Mailbox wait: {post your question, then `~/.codex/skills/sprint-orchestrator/sprint-mail.sh arm --harness codex {SPRINT_DIR} {NN}-{SSS}-reply.md 1800` (SSS = your question's sequence) and END YOUR TURN — the armed Stop hook wakes you on the reply; never poll or background the wait. | post your question, then `~/.claude/skills/sprint-orchestrator/sprint-mail.sh arm --harness claude {SPRINT_DIR} {NN}-{SSS}-reply.md 1800` (SSS = your question's sequence) and END YOUR TURN — the armed Stop hook wakes you on the reply; never poll or background the wait. | you are an in-session subagent — the Stop hook never fires for you, so you cannot end your turn and be woken. Do not pretend to wait: if you post a blocking question, treat it as no reply and take the contract's fallback path now.}
 Reviews & approvals: the sprint orchestrator is your only counterparty — route spec reviews,
 design sign-off, and every open decision to it via the Mailbox above; never seek approval from
 whoever is at this terminal. Decisions in the story doc, 00-overview.md, and this kickoff are

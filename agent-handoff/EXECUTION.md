@@ -129,14 +129,16 @@ sprint-orchestrator skill directory). Files are `NN-SSS-<kind>.md`, append-only,
   `Mailbox wait:` line carries the form already resolved for your transport; when it is
   absent, pick your branch here:
   - Codex (Desktop or exec) with the sprint Stop hook installed:
-    `sprint-mail.sh arm <sprint-dir> {NN}-{SSS}-reply.md 1800`, then END YOUR TURN with a
-    one-line status. The armed hook holds the turn and wakes you when the reply lands or the
-    wait times out. Arming and ending the turn IS the wait — never poll, never run `wait`
-    under `nohup`/`&`/tmux, never hand-poll in later commands.
-  - Claude: run `sprint-mail.sh wait <sprint-dir> {NN}-{SSS}-reply.md 1800` as a background
-    task; its completion notification is your wake.
-  - Neither available: do not pretend to wait — treat it as no reply and take the fallback
-    path now.
+    `sprint-mail.sh arm --harness codex <sprint-dir> {NN}-{SSS}-reply.md 1800`, then END
+    YOUR TURN with a one-line status. The armed hook holds the turn and wakes you when the
+    reply lands or the wait times out. Arming and ending the turn IS the wait — never poll,
+    never run `wait` under `nohup`/`&`/tmux, never hand-poll in later commands.
+  - Claude, MAIN session only, with the sprint Stop hook installed (install-claude-hook.sh):
+    `sprint-mail.sh arm --harness claude <sprint-dir> {NN}-{SSS}-reply.md 1800`, then END
+    YOUR TURN with a one-line status — same semantics as the Codex form.
+  - An in-session subagent (either harness — the Stop hook never fires for a subagent, so
+    you cannot end your turn and be woken), or neither hook available: do not pretend to
+    wait — treat it as no reply and take the fallback path now.
 - `concluded` — posted once, on EVERY exit (below).
 - Sweep new `note` messages at each numbered step boundary:
   `sprint-mail.sh unread <sprint-dir> '{NN}-*-note.md'`, read them, then
