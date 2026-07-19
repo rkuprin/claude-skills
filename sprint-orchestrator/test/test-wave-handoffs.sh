@@ -36,8 +36,9 @@ story 19 bare-legacy
 story 20 full-loop       'driver_hint: claude' 'tier: B' 'tier_why: fixture' 'loop: full'
 story 21 direction-probe 'driver_hint: claude' 'tier: S' 'tier_why: fixture' 'loop: full' 'flow: direction'
 story 22 design-heavy    'driver_hint: claude' 'tier: B' 'tier_why: fixture' 'loop: full' 'flow: design-heavy'
+story 30 full-only-w3    'wave: 3' 'driver_hint: claude' 'tier: B' 'tier_why: fixture' 'loop: full'
 
-OUTPUT="$("$WH" "$SPRINT" 1 2>&1)" && ok "wave-handoffs runs" || { no "wave-handoffs runs"; printf '%s\n' "$OUTPUT"; }
+OUTPUT="$("$WH" "$SPRINT" 1 --topology main-session 2>&1)" && ok "wave-handoffs runs" || { no "wave-handoffs runs"; printf '%s\n' "$OUTPUT"; }
 
 has "B/codex resolves terra xhigh"    "$OUTPUT" 'Launch: gpt-5.6-terra · xhigh (tier B)'
 has "C/claude deviation renders medium" "$OUTPUT" 'Launch: sonnet · medium (tier C)'
@@ -77,10 +78,14 @@ case "$OUTPUT" in
   *) ok "bare story-number claim wildcard removed" ;;
 esac
 has "kickoff renders mailbox line"          "$OUTPUT" "Mailbox: ~/.sprint-mail/"
-# Mailbox wait: resolved per target harness — codex arms the Stop hook, claude backgrounds the wait.
-has "codex story renders arm wait line"     "$OUTPUT" "Mailbox wait: post your question, then \`~/.codex/skills/sprint-orchestrator/sprint-mail.sh arm $SPRINT 07-{SSS}-reply.md 1800\`"
+# Mailbox wait: resolved per harness × topology — every main-session form arms and ends the turn.
+has "codex story renders arm wait line"     "$OUTPUT" "Mailbox wait: post your question, then \`~/.codex/skills/sprint-orchestrator/sprint-mail.sh arm --harness codex $SPRINT 07-{SSS}-reply.md 1800\`"
 has "codex arm line ends the turn"          "$OUTPUT" "END YOUR TURN — the armed Stop hook wakes you on the reply"
-has "claude story renders background wait"  "$OUTPUT" "\`~/.claude/skills/sprint-orchestrator/sprint-mail.sh wait $SPRINT 08-{SSS}-reply.md 1800\` (SSS = your question's sequence) as a background task"
+has "claude story renders arm wait line"    "$OUTPUT" "\`~/.claude/skills/sprint-orchestrator/sprint-mail.sh arm --harness claude $SPRINT 08-{SSS}-reply.md 1800\`"
+case "$OUTPUT" in
+  *'as a background task'*) no "no background-task wait rendered" ;;
+  *) ok "no background-task wait rendered" ;;
+esac
 has "mailbox line names the sprint"         "$OUTPUT" "/$SPRINT_NAME/ — post evidence, questions, and your terminal outcome"
 # Reviews & approvals route to the orchestrator, never the terminal — the of.ru "approve spec"
 # stall (July 2026) invented a user-facing spec gate the plan never asked for.
@@ -99,6 +104,32 @@ has "dispatch constraint rendered"          "$OUTPUT" "merge-order-independent"
 has "hard rule carries grant carve-out"     "$OUTPUT" "stop (unless this kickoff carries a resume grant)"
 has "hard rule keeps exact-branch clause"   "$OUTPUT" "check, create, and release only that exact branch"
 case "$OUTPUT" in *"are SETTLED"*) no "old SETTLED wording gone";; *) ok "old SETTLED wording gone";; esac
+
+# ---- topology: required input, fail-closed ----
+"$WH" "$SPRINT" 1 >/dev/null 2>&1 && no "missing --topology refused" || ok "missing --topology refused"
+"$WH" "$SPRINT" 1 --topology desk >/dev/null 2>&1 && no "unknown topology refused" || ok "unknown topology refused"
+
+# ---- subagent pass: non-arming fallback, loop: direct only ----
+SERR="$(mktemp)"
+SUB="$("$WH" "$SPRINT" 1 --topology subagent 2>"$SERR")"
+# The load-bearing pin: a rendered subagent kickoff never arms — either harness.
+case "$SUB" in *'arm --harness'*) no "subagent kickoffs never contain arm --harness" ;; *) ok "subagent kickoffs never contain arm --harness" ;; esac
+case "$SUB" in *'sprint-mail.sh arm'*) no "subagent kickoffs carry no arm command at all" ;; *) ok "subagent kickoffs carry no arm command at all" ;; esac
+has "subagent fallback wording rendered"  "$SUB" "Do not pretend to wait"
+has "subagent form names the topology"    "$SUB" "you are an in-session subagent"
+has "subagent header names the audience"  "$SUB" "kickoff for an in-session subagent"
+has "subagent pass renders direct codex story"  "$SUB" "## 07 — tier-b-codex"
+has "subagent pass renders direct claude story" "$SUB" "## 08 — tier-c-deviation"
+case "$SUB" in *'## 20 — full-loop'*) no "subagent pass skips loop: full stories" ;; *) ok "subagent pass skips loop: full stories" ;; esac
+SERRTXT="$(cat "$SERR")"
+has "skip note names the full story"      "$SERRTXT" "20-full-loop.md"
+has "skip note says render main-session"  "$SERRTXT" "render it main-session"
+
+# ---- subagent pass with zero direct stories: exit 2, says why ----
+Z="$("$WH" "$SPRINT" 3 --topology subagent 2>&1)"; rc=$?
+[ "$rc" = "2" ] && case "$Z" in *"only 'loop: direct'"*) true ;; *) false ;; esac \
+  && ok "zero-direct subagent pass exits 2 naming the filter" \
+  || no "zero-direct subagent pass exits 2 naming the filter (rc=$rc out=$Z)"
 
 # ---- Unresolved feedback events: warn on stderr, recap line on stdout ----
 cat > "$SPRINT/STORY-FEEDBACK.md" <<'EOF'
@@ -130,7 +161,7 @@ cat > "$SPRINT/STORY-FEEDBACK.md" <<'EOF'
 EOF
 
 WERR="$(mktemp)"
-WOUT="$("$WH" "$SPRINT" 1 2>"$WERR")"
+WOUT="$("$WH" "$SPRINT" 1 --topology main-session 2>"$WERR")"
 WERRTXT="$(cat "$WERR")"
 has "warning names unresolved replan id"    "$WERRTXT" 'rp-20260702-01 (Story 07)'
 has "warning names unresolved direction id" "$WERRTXT" 'dr-20260702-02 (Story 09)'
@@ -151,7 +182,7 @@ cat >> "$SPRINT/STORY-FEEDBACK.md" <<'EOF'
 - Resolution: fixture
 EOF
 RERR="$(mktemp)"
-"$WH" "$SPRINT" 1 >/dev/null 2>"$RERR"
+"$WH" "$SPRINT" 1 --topology main-session >/dev/null 2>"$RERR"
 [ -s "$RERR" ] && no "no warning when all events resolved (got: '$(cat "$RERR")')" || ok "no warning when all events resolved"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
