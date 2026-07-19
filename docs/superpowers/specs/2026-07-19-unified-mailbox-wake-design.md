@@ -101,8 +101,24 @@ record exists now):
 - **Line 4 is an absolute path → new record.** Wake on unread-against-that-cursor; match identity on
   line 1 as the worktree root.
 
-The legacy branch is retained until in-flight records drain (they are consumed on wake/timeout), then
-it is dead code a later change may remove. Both hook suites get explicit legacy-record cases.
+The legacy branch is retained until in-flight records drain, then it is dead code a later change may
+remove. Both hook suites get explicit legacy-record cases.
+
+**Consumption alone does not drain orphans.** Codex found the on-disk legacy record already 43h past
+its budget with a line-1 cwd that no longer exists — since legacy matching needs the hook's exact
+`pwd`, no future hook can ever run there to consume it. So a **stale/orphan reaper** is required, not
+optional:
+
+- A record is *stale* if its identity path (line 1) is no longer an existing directory, **or** its
+  age exceeds its timeout by a margin (both hooks and `arm` can `stat` the record mtime).
+- `arm` prunes stale records (any identity) before its double-arm check, so a dead predecessor never
+  blocks a fresh arm; `disarm` gains `--stale` to sweep them; `install-claude-hook.sh` runs a
+  one-time sweep so the pre-existing orphan is cleared at install. Pruning an orphan is always safe —
+  it helps no one.
+
+This is migration-aware duplicate detection: today `arm`/`disarm` match only exact physical cwd, so a
+record armed from a subdirectory or a dead worktree is invisible to them; the reaper's
+existence-and-age test replaces that exact-match blind spot.
 
 ### 3. The unified wake predicate (epoch retirement, new records)
 
@@ -152,15 +168,27 @@ record nothing will consume" claim is dropped.
 
 ### 7. Prose, lint, tests
 
-**Prose** (main-session Claude only; subagent kickoffs keep a non-arming form):
+**Topology-aware rendering — the subagent form is enforced, not just asserted.** The `Mailbox wait:`
+selection is a 2×2 over **{harness: codex | claude} × {topology: main-session | subagent}**, where
+topology is a render input the orchestrator supplies at dispatch (it already decides which stories
+run as in-session subagents). Only three cells render **arm-and-end-turn**: `(codex, *)` and
+`(claude, main-session)`. The fourth cell — **`(claude, subagent)` — renders the non-arming
+fallback**: an in-session Claude subagent cannot end-and-be-woken, so its `Mailbox wait:` line is the
+existing "do not pretend to wait — treat it as no reply and take the fallback path now" form; a
+`direct` story that genuinely needs a blocking reply is mis-scoped and must be re-planned as a
+main-session story. `wave-handoffs.sh` and the `agent-handoff` mailbox-wait selection gain the
+topology branch (today they branch on harness/`driver_hint` only). A lint pin asserts a rendered
+Claude *subagent* kickoff never contains `arm --harness claude`.
+
+**Prose** (main-session Claude only; subagent kickoffs render the non-arming fallback):
 
 - `agent-handoff/EXECUTION.md` — the Claude branch of `Mailbox wait:` flips to
-  `sprint-mail.sh arm --harness claude <sprint-dir> {NN}-{SSS}-reply.md 1800`, end the turn. A note
-  states this is for main-session executors; subagent executors do not arm.
+  `sprint-mail.sh arm --harness claude <sprint-dir> {NN}-{SSS}-reply.md 1800`, end the turn, **for a
+  main-session executor**; the subagent case takes the fallback path and does not arm.
 - `sprint-orchestrator/SKILL.md` — the Claude wave-watch re-arm line becomes `arm --harness claude …`
-  and end the turn, with the budget note.
-- `agent-handoff/SKILL.md`, `sprint-orchestrator/wave-handoffs.sh` — rendered `Mailbox wait:` Claude
-  form → arm-and-end-turn with `--harness`; renderer mirrors the contract.
+  and end the turn (the supervisor is always a main session), with the budget note.
+- `agent-handoff/SKILL.md`, `sprint-orchestrator/wave-handoffs.sh` — the rendered `Mailbox wait:`
+  Claude form branches on topology per above; renderer mirrors the contract.
 
 **`test/lint-skills.sh`** (same commit as pinned prose): update `"stop-wait: since-epoch filter"` to
 pin the **dual-reader** — the cursor-path branch is present *and* the legacy-epoch branch is retained
@@ -168,21 +196,26 @@ pin the **dual-reader** — the cursor-path branch is present *and* the legacy-e
 `--harness`, drops `[<since-epoch>]`; new pins —
 `claude-stop-wait.sh` exists/executable, silent-pass + continuation, `arm --harness` refusal per
 harness, `install-claude-hook.sh` exists and preserves co-installed hooks, `INSTALL.md` + both
-READMEs name the Claude hook, EXECUTION/SKILL arm-and-end-turn wording, renderer Claude form.
+READMEs name the Claude hook, EXECUTION/SKILL arm-and-end-turn wording, renderer Claude form, **a
+rendered Claude subagent kickoff has no `arm --harness claude`** (topology enforcement), and
+`disarm --stale` exists.
 
 **Tests:**
 
 - `test-sprint-mail.sh` — cursor keyed by worktree root: **a subdirectory of the same worktree now
   shares the cursor** (inverts the current per-`pwd` case). 4-line record incl. cursor path;
   `--harness` selects the wiring check (wired Claude settings lets `--harness claude` proceed with no
-  Codex hook, refuses `--harness codex`).
+  Codex hook, refuses `--harness codex`). **Reaper:** `arm` prunes a record whose line-1 dir no
+  longer exists (and one past its budget) before its double-arm check; `disarm --stale` sweeps them.
 - `test-codex-stop-wait.sh` — since-epoch cases → cursor cases; plus a **legacy-record** case (numeric
   line 4 still applies epoch semantics). `arm()` helper writes four lines.
 - `test-claude-stop-wait.sh` (new) — no-record pass-through, unread arrival → exit 2, timeout → exit 2
   fallback, double-arm refusal, foreign-record pass-through, and a legacy-record case.
 - `test-install-claude-hook.sh` (new) — fresh install wires `Stop`, idempotency, stale-path
   repointing, and **preserves a pre-existing unrelated `Stop` hook**.
-- `test-wave-handoffs.sh` — update the pin that asserts the old Claude background-wait form.
+- `test-wave-handoffs.sh` — update the pin that asserts the old Claude background-wait form; **add a
+  topology case: a Claude subagent kickoff renders the non-arming fallback (no `arm`), a Claude
+  main-session kickoff renders arm-and-end-turn.**
 
 ### 8. Interruptibility — the live gate (plan's first task, can still reshape the budget)
 
@@ -195,23 +228,23 @@ plan's first task; the co-installed iTerm `Stop` hook makes clean interruption m
 ## Implementation phasing (one spec, one plan)
 
 Codex's phasing, kept as plan ordering: **(1)** shared/version-compatible record semantics — the
-worktree-root identity, the 4-line record, and the dual-reader — land first and keep both hooks green
-on legacy and new records; **(2)** the Claude hook, installer, and `--harness`; **(3)** prose, lint,
-READMEs, `INSTALL.md`. The interruptibility gate (§8) is task 1 of phase 2 and can veto the budget
-before any prose changes.
+worktree-root identity, the 4-line record, the dual-reader, and the stale/orphan reaper — land first
+and keep both hooks green on legacy and new records; **(2)** the Claude hook, installer, and
+`--harness`; **(3)** prose, lint, READMEs, `INSTALL.md`, and the topology-aware rendering branch. The
+interruptibility gate (§8) is task 1 of phase 2 and can veto the budget before any prose changes.
 
 ## Files touched
 
 | File | Change |
 |---|---|
-| `sprint-orchestrator/sprint-mail.sh` | `cursor_file` keyed by canonical worktree root (affects `unread`/`seen`, incl. `main`); `arm --harness`, 4-line record with cursor path, epoch dropped from writes |
+| `sprint-orchestrator/sprint-mail.sh` | `cursor_file` keyed by canonical worktree root (affects `unread`/`seen`, incl. `main`); `arm --harness`, 4-line record with cursor path, epoch dropped from writes; stale/orphan reaper in `arm`; `disarm --stale` |
 | `sprint-orchestrator/codex-stop-wait.sh` | dual-reader: legacy numeric line 4 → epoch semantics, new path line 4 → unread-against-cursor; header update |
 | `sprint-orchestrator/claude-stop-wait.sh` | new — `Stop`-only Claude hook; cursor-based + dual-reader; no `stop_hook_active` branch |
 | `sprint-orchestrator/install-claude-hook.sh` | new — append to `Stop` preserving co-installed hooks; `timeout: 10860` |
 | `sprint-orchestrator/SKILL.md` | Claude wave-watch re-arm → `arm --harness claude`; budget note |
 | `agent-handoff/EXECUTION.md` | Claude `Mailbox wait:` → arm-and-end-turn with `--harness`; main-session-only note |
 | `agent-handoff/SKILL.md` | rendered `Mailbox wait:` Claude form → arm-and-end-turn |
-| `sprint-orchestrator/wave-handoffs.sh` | renderer mirrors the new Claude wait form |
+| `sprint-orchestrator/wave-handoffs.sh` | topology-aware Claude wait form (main-session arms; subagent renders the non-arming fallback) |
 | `INSTALL.md` | install, verify, test, report the Claude hook |
 | `sprint-orchestrator/test/test-sprint-mail.sh` | worktree-root cursor (subdir shares); 4-line record; `--harness` refuse cases |
 | `sprint-orchestrator/test/test-codex-stop-wait.sh` | cursor cases + legacy-record case; `arm()` helper 4 lines |
