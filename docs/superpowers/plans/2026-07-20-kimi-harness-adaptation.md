@@ -2,9 +2,9 @@
 
 > **For agentic workers:** Execute task-by-task; steps use checkbox (`- [ ]`) tracking. **Tasks 1
 > and 7 are NOT subagent-safe** — they are live validations in real Kimi sessions and need the
-> human operator. The rest are inline-safe. **Worktree caution:** `sprint-orchestrator/sprint-mail.sh`
-> has a pre-existing uncommitted one-line fix (`prune_stale` if-form) that is NOT part of this
-> plan — leave that line untouched; ideally the operator commits it separately first.
+> human operator. The rest are inline-safe. **Note:** the `prune_stale` `set -e` fix that sat
+> uncommitted in `sprint-orchestrator/sprint-mail.sh` is now landed (572a1f1, with regression
+> test) — Task 2 builds on top of it.
 
 **Goal:** Make Kimi Code CLI a full third harness for `sprint-orchestrator` — planner, supervisor,
 and story executor — with cron-scheduled mailbox sweeps as its wait mechanism, an `arm` refusal
@@ -207,8 +207,13 @@ sprint.
 - **Lint lockstep:** every prose task carries its pins in the same commit. A pin added without
   its prose, or prose without its pin, fails the repo's own rule even when the lint passes.
 - **Do not touch:** both stop-wait hooks, both installers, `agents/openai.yaml`,
-  `sprint-status.sh`, the ladder tables, and the uncommitted `prune_stale` line in
-  `sprint-mail.sh`.
+  `sprint-status.sh`, and the ladder tables.
+- **Mailbox namespace is cwd-derived (backlog wart A, NOT fixed here):** `sprint-mail.sh`
+  namespaces the mailbox by the *caller's* git repo — a session cd'd into a submodule posts to
+  a different mailbox (the 2026-07-20 story-09 incident). The Kimi cron forms say "from the
+  worktree" / "from the project root": keep the probe fixture and all rendered kimi prose in
+  plain, non-submodule repo layouts. The defect itself is backlog —
+  `docs/superpowers/specs/2026-07-20-mailbox-namespace-and-integrity-backlog.md`.
 - **If Task 1 amends the wait forms:** the amended wording propagates to Tasks 3, 4, and 5 in
   lockstep — the three render sites and EXECUTION.md must carry byte-identical forms, and the
   shared lint fragment `Kimi has no Stop-hook wait` must survive any amendment.
