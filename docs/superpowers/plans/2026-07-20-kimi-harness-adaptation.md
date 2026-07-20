@@ -30,6 +30,12 @@ pinned prose and its lint change together).
 
 ### Task 1: Live probe — `/goal` × parked cron wait (operator + main session)
 
+**Outcome (2026-07-20): DONE — mechanism validated with amendments.** An active goal starves
+cron delivery (fires held indefinitely through four windows); a blocked goal is the park
+(continuations stop, held fires deliver immediately, `coalescedCount=3`); self-resume via
+`UpdateGoal active` in the cron prompt works without user deferral; deadline judgment must use
+epochs. Folded into spec rev 3 §1/§9; Tasks 3–5 embed the amended forms.
+
 **Manual live validation, not a code change.** It produces a recorded result that can amend the
 spec's §1 wait-form wording before any prose embeds it. Run in a scratch repo; never in a real
 sprint.

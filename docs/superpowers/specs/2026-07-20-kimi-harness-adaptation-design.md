@@ -1,6 +1,7 @@
 # Kimi as a third sprint-orchestrator harness: cron-scheduled mailbox waits — design
 
-Date: 2026-07-20 (rev 2, after the Codex gate)
+Date: 2026-07-20 (rev 3 — rev 2 after the Codex gate; rev 3 amends the §1 forms per the §9
+live-probe findings)
 Skills touched: `sprint-orchestrator`, `agent-handoff` (plus repo `README.md`, `CLAUDE.md` —
 `AGENTS.md` is a symlink to it — `INSTALL.md`, `test/lint-skills.sh`)
 Source: 2026-07-20 session — assessment of sprint-orchestrator against the Kimi Code CLI harness,
@@ -50,7 +51,9 @@ already exists on this machine); hooks are `[[hooks]]` entries in `~/.kimi-code/
 timeout 1–600s, fail-open on error/timeout; cron tasks are session-scoped, fire only while the
 session is idle, persist across exit and **revive on session resume**, coalesce missed fires, and
 auto-delete after 7 days with one final `stale: true` fire; goal mode auto-continues a session
-across turns; tool calls run behind the session's permission settings.
+across turns; tool calls run behind the session's permission settings. Two load-bearing
+interactions were verified **live** (§9 probe): goal-mode continuation turns starve cron
+delivery, and a blocked goal idles the session so fires land.
 
 ## Goals
 
@@ -99,30 +102,40 @@ Rendered into `sprint-orchestrator/SKILL.md` "Supervising the Wave" beside the t
 > minutes) whose prompt reads: "Supervisor sweep for \<sprint-dir\>: run
 > `~/.agents/skills/sprint-orchestrator/sprint-mail.sh unread <sprint-dir> '*-question.md *-concluded.md'`
 > then `~/.agents/skills/sprint-orchestrator/sprint-mail.sh unread <sprint-dir> '*'` from the
-> project root, read and `seen` everything, act per Supervising the Wave. When every story is
-> DONE or DISPOSED, delete this cron task. If this fire arrives marked stale (7-day expiry) and
-> the wave is still running, re-create the same task before ending the turn. Otherwise end the
-> turn." The recurring task replaces the arm/re-arm loop — one task per wave, not one per wake.
+> project root, read and `seen` everything. If you found mail: resume the goal with UpdateGoal
+> active, act per Supervising the Wave, then mark the goal blocked again before ending the turn
+> if the wave is still running. When every story is DONE or DISPOSED, delete this cron task. If
+> this fire arrives marked stale (7-day expiry) and the wave is still running, re-create the same
+> task. Otherwise end the turn — the goal stays blocked." Then mark your goal blocked: an active
+> goal's continuation turns starve cron delivery (fires land only at idle), so the blocked state
+> IS the park. The recurring task replaces the arm/re-arm loop — one task per wave, not one per
+> wake.
 
 **Executor targeted reply wait** (replaces `arm … {NN}-{SSS}-reply.md 1800`). Rendered as the
 kimi variant of the kickoff's `Mailbox wait:` line (agent-handoff template, wave-handoffs
 renderer) and mirrored in `agent-handoff/EXECUTION.md`:
 
-> you are a Kimi session — Kimi has no Stop-hook wait. Post your question and note the post time,
-> then use your CronCreate tool to schedule a recurring check (every 3 minutes) whose prompt
-> reads: "Sprint mailbox wait for {NN}-{SSS}-reply.md: run
+> you are a Kimi session — Kimi has no Stop-hook wait. Post your question and note the post
+> time, then use your CronCreate tool to schedule a recurring check (every 3 minutes) whose
+> prompt reads: "Sprint mailbox wait for {NN}-{SSS}-reply.md: run
 > `~/.agents/skills/sprint-orchestrator/sprint-mail.sh unread {SPRINT_DIR} '{NN}-{SSS}-reply.md'`
-> from the worktree. If the reply landed at or before \<deadline — literal local timestamp, post
-> time + 1800s, judged by the reply file's mtime\>: read it, mark it `seen`, delete this cron
-> task, and continue the story. If it landed later, or the deadline has passed with no reply:
-> delete this cron task and take the contract's no-reply fallback. Otherwise end the turn." Then
-> END YOUR TURN — the cron nudge wakes you; never poll or background the wait.
+> from the worktree. If the reply landed at or before \<deadline — a literal epoch, post time +
+> 1800s; compare against `stat -f %m` of the reply file\>: read it, mark it `seen`, delete this
+> cron task with CronDelete, then resume the waiter's goal with UpdateGoal active and continue.
+> If it landed later, or the deadline has passed with no reply: delete this cron task and take
+> the contract's no-reply fallback. Otherwise end the turn — the goal stays blocked." Then mark
+> your goal blocked — this is the designed wait protocol, not a failure: the blocker is an
+> external condition (the mailbox reply) and the cron task is the wake. An active goal's
+> continuation turns starve cron delivery (fires land only at idle), so the blocked state IS the
+> park. Then END YOUR TURN — the cron nudge wakes you; never poll or background the wait.
 
 `{NN}`, `{SPRINT_DIR}` resolve at render time; `{SSS}` stays literal (the runtime question
-sequence), exactly as in the codex/claude forms. The executor writes the literal deadline into
-the cron prompt when creating the task, and the check compares the reply file's mtime against
-that deadline — a reply that arrived late is void even when discovered before the next sweep,
-and one that arrived in time is valid even when discovered after it.
+sequence), exactly as in the codex/claude forms. The executor computes the deadline epoch once
+(`date +%s` + 1800) and writes it literally into the cron prompt, and the check compares the
+reply file's `stat -f %m` epoch against it — no timezone reasoning in the loop (a probe session
+nearly fumbled local-vs-UTC mtime formatting; epochs remove the class). A reply that arrived
+late is void even when discovered before the next sweep, and one that arrived in time is valid
+even when discovered after it.
 
 Correctness rests on the durable read-cursor, unchanged: a missed nudge is caught by the next
 one, and a forgotten cron degrades to today's no-wake fallback (next-turn cursor sweep). Both
@@ -235,20 +248,28 @@ Wave')
 Exit 2, no record written. The usage lines stay `arm --harness <codex|claude>` (lint-pinned,
 unchanged); the header comment gains one line stating Kimi sessions wait via cron sweeps.
 
-### 9. Required pre-implementation probe: `/goal` × parked cron wait
+### 9. Probe results: `/goal` × parked cron wait (2026-07-20, live scratch session)
 
 Every kickoff ends in `/goal`, and Kimi goal mode auto-continues a session across turns — so
-"END YOUR TURN" may not leave the session idle, and the interaction between an active goal and
-a parked cron wait is undocumented. Before the prose lands, run a live probe in a scratch Kimi
-session with an active `/goal`:
+the spec's original "END YOUR TURN and idle" assumption needed live verification. A two-cycle
+scratch probe (`/tmp/kimi-probe`, fixture story + mailbox) settled it:
 
-1. end the turn with a cron wait armed — does goal mode park, or auto-continue into busywork?
-2. does the cron fire arrive, and does the sweep run unattended under the §2 permission posture?
-3. on reply, does the goal resume cleanly to completion?
+1. **An active goal starves cron delivery.** Continuation turns arrived every ~15–50s; the
+   session never idled, and the cron fire was held indefinitely — `nextFireAt` stayed pinned at
+   the first due time through four fire windows. A cron wait inside an active goal never fires.
+2. **A blocked goal is the park.** Marking the goal blocked stopped the continuations instantly;
+   the held fires delivered within seconds (`coalescedCount=3` — coalescing is benign: the
+   cursor sweep only cares about latest state). Marking blocked on a *first* wait needed no
+   audit history when the prompt framed it as the designed wait protocol.
+3. **Self-resume works.** On an on-time reply the session ran read → `seen` → CronDelete →
+   `UpdateGoal active` with no user deferral, driven only by the cron prompt's instruction.
+4. **Deadline judgment must use epochs.** The probe session nearly misjudged an mtime comparison
+   across local/UTC formats; the §1 form compares `stat -f %m` against a literal deadline epoch.
 
-Outcomes decide whether the §1 wait forms need an explicit goal-handling clause (e.g. marking
-the goal blocked/paused while waiting, and who resumes it). The probe result amends this spec
-before implementation; the two forms above are the baseline wording.
+The §1 forms above carry the amendments: mark-blocked as part of the wait, `UpdateGoal active`
+in the reply branch, "the goal stays blocked" in the keep-waiting branch, epoch deadlines. The
+deadline path (180s, no reply → self-delete + fallback) exercised the same already-proven
+mechanics.
 
 ### 10. Tests and lint
 
@@ -286,8 +307,8 @@ Full suite at the end: `test/lint-skills.sh`, `codex/test/test.sh`, all
 
 ### 11. Live verification (operator)
 
-1. The §9 probe (pre-implementation).
+1. ~~The §9 probe~~ — done 2026-07-20, findings folded into §1 (rev 3).
 2. Fresh Kimi session → `/skill:sprint-orchestrator` loads the skill; it never auto-fires
    (absent from the model's listing).
 3. End-to-end: a scratch sprint with one `loop: direct` story executed by a Kimi main session —
-   question posted, cron wake, reply seen, cron deleted.
+   question posted, goal blocked, cron wake, reply seen, goal resumed, cron deleted.
