@@ -465,3 +465,34 @@ as the reference line."
 **Placeholder scan:** none — every code step carries complete code.
 
 **Type/name consistency:** `detect_harness`, `SPRINT_MAIL_ASSUME_HARNESS` (values `codex|claude|kimi|none`), `supervise --harness <codex|claude|kimi>`, sweep glob `'*-question.md *-concluded.md'`, budgets 1800/10800 — identical across tasks, tests, prose, and lint pins. The supervisor timeout text in Task 3 names `sprint-mail.sh supervise`, which Task 2 creates and Task 4's prose prescribes — consistent.
+
+---
+
+## Corrections applied during execution
+
+The plan text above is as-written; the landed code differs in these places
+(each verified by its task reviewer; commits in parentheses):
+
+1. **Task 1, detect_harness** (9e0b8db, e933844): the per-command-line match is
+   factored into a pure `classify_cmd()` that `detect_harness` calls (makes the
+   shipped code unit-testable via sed-extraction). argv[0] basename is derived
+   in-shell (`${cmd%% *}` + `${base##*/}`) — the plan's `basename "$(awk …)"`
+   invocation hits macOS `basename` option-parsing on login-shell argv[0]
+   (`-zsh`). Match list extended: `kimi-code` → kimi (the Kimi CLI's real
+   process name), `Codex*` basename and `Codex Framework` paths → codex
+   (Codex.app helpers present as `Codex (Renderer)`/`Codex (Service)`).
+   `SPRINT_MAIL_ASSUME_HARNESS` also accepts `none` (forces no detection; the
+   deterministic silence path in tests).
+2. **Task 2, Step 1** (8493f9b): the supervise test block is inserted
+   immediately BEFORE the pass/fail summary in `test-sprint-mail.sh`, not
+   "at the end of the file" — appending after the summary would leave the new
+   tests uncounted.
+3. **Task 3, Step 1** (6877549): the supervisor-glob timeout test needs one
+   setup line before its arm, identical in both hook test files:
+   `rm -f "$MDIR"/*-question.md "$MDIR"/*-concluded.md` — earlier tests leave
+   question fixtures in `$MDIR` that would wake the legacy wait instead of
+   timing it out.
+4. **Task 4, Step 1 prose** (a1950cf): two forced, word-preserving reflows —
+   ". The supervisor" became "— the supervisor" (the lint pin greps the
+   lowercase string), and the `recurring cron` line was reflowed so the pin's
+   two words sit on one line.
