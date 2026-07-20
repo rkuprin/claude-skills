@@ -286,5 +286,39 @@ classify codex  "node /Users/x/.nvm/versions/node/v22/bin/codex exec"           
 classify claude "/Users/x/.local/bin/claude"                                        "classify: claude path → claude"
 classify ""     "bash some/random/script.sh"                                        "classify: unrelated script → empty"
 
+# ---- supervise: kimi prints the cron park, arms nothing ----
+out="$(SPRINT_MAIL_ASSUME_HARNESS=none "$SUT" supervise --harness kimi "$SPRINT" 2>&1)"; rc=$?
+[ "$rc" = "0" ] && ok "supervise kimi exits 0" || no "supervise kimi exits 0 (rc=$rc)"
+case "$out" in *"docs/sprints/2026-07-14-fixture-sprint"*) ok "kimi payload carries the resolved sprint dir" ;; *) no "kimi payload carries the resolved sprint dir (got: $out)" ;; esac
+case "$out" in *"CronList"*"CronCreate"*) ok "kimi payload orders CronList before CronCreate" ;; *) no "kimi payload orders CronList before CronCreate" ;; esac
+case "$out" in *"ending the turn is the park"*) ok "kimi payload carries the goal-less fallback" ;; *) no "kimi payload carries the goal-less fallback" ;; esac
+case "$out" in *"CronDelete"*) ok "kimi payload names CronDelete on conclusion" ;; *) no "kimi payload names CronDelete on conclusion" ;; esac
+[ -z "$(ls "$WAITS"/wait-* 2>/dev/null)" ] \
+  && ok "supervise kimi arms no wait record" || no "supervise kimi arms no wait record"
+
+# ---- supervise: codex arms the sweep wait idempotently ----
+SPRINT_MAIL_ASSUME_HARNESS=none "$SUT" supervise --harness codex "$SPRINT" >/dev/null
+rec_s="$(ls "$WAITS"/wait-* 2>/dev/null | head -1)"
+[ -n "$rec_s" ] && [ "$(sed -n 2p "$rec_s")" = "$MDIR/*-question.md $MDIR/*-concluded.md" ] \
+  && ok "supervise codex arms the supervisor sweep glob" || no "supervise codex arms the supervisor sweep glob (got: $(sed -n 2p "$rec_s" 2>/dev/null))"
+[ "$(sed -n 3p "$rec_s")" = "1800" ] && ok "supervise codex budget is 1800" || no "supervise codex budget is 1800"
+out="$(SPRINT_MAIL_ASSUME_HARNESS=none "$SUT" supervise --harness codex "$SPRINT" 2>&1)"; rc=$?
+[ "$rc" = "0" ] && case "$out" in *"already armed"*) true ;; *) false ;; esac \
+  && ok "supervise re-run is idempotent on glob match" || no "supervise re-run is idempotent on glob match (rc=$rc out=$out)"
+[ "$(ls "$WAITS"/wait-* | wc -l | tr -d ' ')" = "1" ] \
+  && ok "still exactly one record" || no "still exactly one record"
+"$SUT" disarm "$SPRINT"
+"$SUT" arm --harness codex "$SPRINT" "07-030-reply.md" 900 >/dev/null
+out="$(SPRINT_MAIL_ASSUME_HARNESS=none "$SUT" supervise --harness codex "$SPRINT" 2>&1)"; rc=$?
+[ "$rc" = "2" ] && case "$out" in *"already armed"*"disarm"*) true ;; *) false ;; esac \
+  && ok "supervise refuses behind a different wait" || no "supervise refuses behind a different wait (rc=$rc out=$out)"
+"$SUT" disarm "$SPRINT"
+
+# ---- supervise: claude budget is 10800 ----
+SPRINT_MAIL_ASSUME_HARNESS=none "$SUT" supervise --harness claude "$SPRINT" >/dev/null
+rec_c="$(ls "$WAITS"/wait-* 2>/dev/null | head -1)"
+[ "$(sed -n 3p "$rec_c")" = "10800" ] && ok "supervise claude budget is 10800" || no "supervise claude budget is 10800"
+"$SUT" disarm "$SPRINT"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

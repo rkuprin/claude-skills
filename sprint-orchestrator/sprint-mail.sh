@@ -5,6 +5,7 @@
 #   sprint-mail.sh list <sprint-dir> [<NN>]
 #   sprint-mail.sh wait <sprint-dir> <name-or-glob> [<timeout-seconds>]
 #   sprint-mail.sh arm --harness <codex|claude> <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
+#   sprint-mail.sh supervise --harness <codex|claude|kimi> <sprint-dir>
 #   sprint-mail.sh disarm <sprint-dir> [--stale]
 #   sprint-mail.sh unread <sprint-dir> <name-or-glob(s)>
 #   sprint-mail.sh seen <sprint-dir> <file>...
@@ -47,6 +48,7 @@ usage: sprint-mail.sh post <sprint-dir> <NN> <evidence|question|concluded|reply|
        sprint-mail.sh list <sprint-dir> [<NN>]
        sprint-mail.sh wait <sprint-dir> <name-or-glob> [<timeout-seconds>]
        sprint-mail.sh arm --harness <codex|claude> <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
+       sprint-mail.sh supervise --harness <codex|claude|kimi> <sprint-dir>
        sprint-mail.sh disarm <sprint-dir> [--stale]
        sprint-mail.sh unread <sprint-dir> <name-or-glob(s)>
        sprint-mail.sh seen <sprint-dir> <file>...
@@ -56,20 +58,32 @@ EOF
 err() { echo "sprint-mail: $1" >&2; exit 2; }
 
 cmd="${1:-}"
-# `arm` takes a required --harness <codex|claude> immediately after the command
-# (the kickoff always knows the target harness). Pull it out before positional
-# parsing so sprint-dir/glob/timeout stay positional exactly like every other
-# subcommand.
+# `arm` and `supervise` take a required --harness flag immediately after the
+# command (the kickoff always knows the target harness). Pull it out before
+# positional parsing so sprint-dir/glob/timeout stay positional exactly like
+# every other subcommand. arm accepts codex|claude; supervise also accepts
+# kimi (it prints a cron park instead of arming).
 harness=""
-if [ "$cmd" = "arm" ] && [ "${2:-}" = "--harness" ]; then
-  harness="${3:-}"
-  case "$harness" in
-    codex|claude) ;;
-    kimi) err "arm refuses kimi — Kimi has no Stop-hook wait; a Kimi session waits via a recurring cron sweep (see the kickoff's Mailbox wait line or sprint-orchestrator/SKILL.md 'Supervising the Wave')" ;;
-    *) err "arm --harness needs 'codex' or 'claude' (got: ${harness:-<empty>})" ;;
-  esac
-  shift 3; set -- arm "$@"
-fi
+case "$cmd" in
+  arm|supervise)
+    [ "${2:-}" = "--harness" ] \
+      || err "$cmd requires --harness <codex|claude> immediately after '$cmd' — the kickoff names the target harness"
+    harness="${3:-}"
+    if [ "$cmd" = "supervise" ]; then
+      case "$harness" in
+        codex|claude|kimi) ;;
+        *) err "supervise --harness needs 'codex', 'claude', or 'kimi' (got: ${harness:-<empty>})" ;;
+      esac
+    else
+      case "$harness" in
+        codex|claude) ;;
+        kimi) err "arm refuses kimi — Kimi has no Stop-hook wait; a Kimi session waits via a recurring cron sweep (see the kickoff's Mailbox wait line or sprint-orchestrator/SKILL.md 'Supervising the Wave')" ;;
+        *) err "arm --harness needs 'codex' or 'claude' (got: ${harness:-<empty>})" ;;
+      esac
+    fi
+    shift 3; set -- "$cmd" "$@"
+    ;;
+esac
 sprint_dir="${2:-}"
 [ -n "$cmd" ] && [ -n "$sprint_dir" ] || usage
 
@@ -255,6 +269,41 @@ case "$cmd" in
     tmp="$waits_dir/.tmp.$$"
     printf '%s\n%s\n%s\n%s\n' "$consumer" "$abs" "$timeout" "$cur" > "$tmp" && mv "$tmp" "$rec"
     printf '%s\n' "$rec"
+    ;;
+  supervise)
+    [ -n "$consumer" ] || err "not inside a git worktree — mailbox waits are keyed per worktree; run from the project worktree"
+    case "$harness" in
+      codex|claude)
+        globs='*-question.md *-concluded.md'
+        budget=1800; [ "$harness" = "claude" ] && budget=10800
+        abs=""
+        set -f
+        for p in $globs; do abs="$abs${abs:+ }$mail_dir/$p"; done
+        set +f
+        waits_dir="$MAIL_ROOT/.codex-waits"
+        for f in "$waits_dir"/*; do
+          [ -f "$f" ] || continue
+          [ "$(sed -n 1p "$f")" = "$consumer" ] || continue
+          if [ "$(sed -n 2p "$f")" = "$abs" ]; then
+            printf 'already armed: %s\n' "$f"
+            exit 0
+          fi
+          err "a different wait is already armed for this worktree ($(sed -n 2p "$f")) — run 'sprint-mail.sh disarm' first"
+        done
+        exec "$0" arm --harness "$harness" "$sprint_dir" "$globs" "$budget"
+        ;;
+      kimi)
+        cat <<EOF
+Kimi supervisor park for $sprint_dir — Kimi has no Stop hook, so the wait is a recurring cron sweep. Do this now:
+
+1. CronList. If a sweep task for this sprint already exists, stop — do not create a duplicate.
+2. Otherwise CronCreate (recurring):
+   cron: */5 * * * *
+   prompt: "Supervisor sweep for $sprint_dir: from the project root run \`~/.agents/skills/sprint-orchestrator/sprint-mail.sh unread $sprint_dir '*-question.md *-concluded.md'\` then \`~/.agents/skills/sprint-orchestrator/sprint-mail.sh unread $sprint_dir '*'\` — read everything found, then \`seen\` it. If you found mail: act per the sprint-orchestrator skill's Supervising section (resume your goal with UpdateGoal active if you have one). When every story is DONE or DISPOSED, delete this cron task with CronDelete. If this fire arrives marked stale (7-day expiry) and the wave is still running, re-create the same task. Otherwise end the turn."
+3. End your turn. With an active goal, mark it blocked first — the blocked state IS the park (an active goal's continuation turns starve cron delivery). With no active goal, simply ending the turn is the park — cron fires land whenever the session is idle.
+EOF
+        ;;
+    esac
     ;;
   disarm)
     waits_dir="$MAIL_ROOT/.codex-waits"
