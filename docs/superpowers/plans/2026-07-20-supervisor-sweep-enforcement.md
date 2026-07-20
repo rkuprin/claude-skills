@@ -496,3 +496,9 @@ The plan text above is as-written; the landed code differs in these places
    ". The supervisor" became "— the supervisor" (the lint pin greps the
    lowercase string), and the `recurring cron` line was reflowed so the pin's
    two words sit on one line.
+5. **Task 2, supervise idempotency** (final whole-branch review): supervise's
+   codex|claude path now runs `prune_stale "$waits_dir"` before the glob-match
+   loop, matching arm's ordering — the plan's `supervise)` case omitted it, so
+   a sweep record whose hook never fired (older than 2× its timeout, identity
+   dir alive — the dead-park signature) would have been ratified
+   "already armed" forever.

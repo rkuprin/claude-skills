@@ -281,6 +281,7 @@ case "$cmd" in
         for p in $globs; do abs="$abs${abs:+ }$mail_dir/$p"; done
         set +f
         waits_dir="$MAIL_ROOT/.codex-waits"
+        prune_stale "$waits_dir"
         for f in "$waits_dir"/*; do
           [ -f "$f" ] || continue
           [ "$(sed -n 1p "$f")" = "$consumer" ] || continue

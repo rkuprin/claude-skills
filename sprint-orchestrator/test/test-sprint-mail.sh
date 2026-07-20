@@ -320,5 +320,25 @@ rec_c="$(ls "$WAITS"/wait-* 2>/dev/null | head -1)"
 [ "$(sed -n 3p "$rec_c")" = "10800" ] && ok "supervise claude budget is 10800" || no "supervise claude budget is 10800"
 "$SUT" disarm "$SPRINT"
 
+# ---- supervise: a stale sweep record is pruned, not ratified as "already armed" ----
+# Regression for the final whole-branch review finding: supervise's glob-match
+# early-exit ran without prune_stale, so a sweep record whose hook never fired
+# (older than 2x its timeout, identity dir alive — the dead-park signature) was
+# ratified "already armed" forever. supervise must prune before matching, same
+# as arm.
+STALE_REC="$WAITS/wait-stale-sweep"
+printf '%s\n%s\n2\n%s\n' "$(cd "$REPO_A" && pwd -P)" "$MDIR/*-question.md $MDIR/*-concluded.md" "$MDIR/.read/x" > "$STALE_REC"
+touch -t "$(date -v-10S '+%Y%m%d%H%M.%S')" "$STALE_REC"   # age past 2x its 2s timeout
+out="$(SPRINT_MAIL_ASSUME_HARNESS=none "$SUT" supervise --harness codex "$SPRINT" 2>&1)"; rc=$?
+[ "$rc" = "0" ] && case "$out" in *"already armed"*) false ;; *) true ;; esac \
+  && ok "supervise prunes a stale sweep record instead of ratifying it" \
+  || no "supervise prunes a stale sweep record instead of ratifying it (rc=$rc out=$out)"
+[ ! -f "$STALE_REC" ] && ok "stale sweep record is gone" || no "stale sweep record is gone"
+rec_p="$(ls "$WAITS"/wait-* 2>/dev/null | head -1)"
+[ "$(sed -n 3p "$rec_p")" = "1800" ] && ok "supervise re-armed a fresh 1800 sweep record" || no "supervise re-armed a fresh 1800 sweep record (got: $(sed -n 3p "$rec_p" 2>/dev/null))"
+[ "$(ls "$WAITS"/wait-* | wc -l | tr -d ' ')" = "1" ] \
+  && ok "exactly one record after stale prune" || no "exactly one record after stale prune"
+"$SUT" disarm "$SPRINT"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
