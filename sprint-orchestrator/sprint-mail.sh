@@ -27,6 +27,10 @@
 # that). `disarm` removes this worktree's record. Kimi sessions do not arm —
 # Kimi has no Stop-hook wait; they wait via recurring cron sweeps (see
 # sprint-orchestrator/SKILL.md 'Supervising the Wave').
+# `arm` also warns (never refuses) when the session it runs in looks like a
+# different harness than --harness names — detection walks the ancestor chain's
+# full command lines, nearest harness ancestor wins. SPRINT_MAIL_ASSUME_HARNESS
+# (codex|claude|kimi|none) overrides detection; it exists for tests.
 #
 # `unread`/`seen` are a durable per-consumer read-cursor: `unread` lists mail
 # matching the glob(s) minus this cwd's cursor; `seen` appends read basenames.
@@ -97,6 +101,34 @@ cursor_file() {  # per-consumer read-cursor path, keyed by the worktree root
   # the mailbox. cksum of the worktree root is a stable, coreutils-portable,
   # fixed-length key; the cursor is transient — never sprint state.
   printf '%s\n' "$mail_dir/.read/$(printf '%s\n' "$consumer" | cksum | cut -d' ' -f1)"
+}
+
+# detect_harness — best-effort identification of the harness whose session this
+# process runs in, for the arm mismatch warning. The codex CLI presents as
+# `node …/bin/codex` (comm alone reads `node`), so match argv[0]'s basename AND
+# the full command line; Codex.app helpers carry a capital-C `Codex` name. The
+# NEAREST harness ancestor wins: a codex exec executor spawned by a Kimi
+# supervisor nests under kimi-code, and it is the codex session that arms.
+detect_harness() {
+  local assume="${SPRINT_MAIL_ASSUME_HARNESS:-}"
+  [ "$assume" = "none" ] && return 0
+  [ -n "$assume" ] && { printf '%s\n' "$assume"; return 0; }
+  local pid="$$" ppid cmd base
+  while [ -n "$pid" ] && [ "$pid" != "1" ]; do
+    ppid="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')"
+    [ -n "$ppid" ] || break
+    cmd="$(ps -o command= -p "$ppid" 2>/dev/null)" || break
+    base="$(basename "$(printf '%s\n' "$cmd" | awk '{print $1}')")"
+    case "$base" in
+      codex|claude|kimi|Codex) printf '%s\n' "$base" | tr 'A-Z' 'a-z'; return 0 ;;
+    esac
+    case "$cmd" in
+      */bin/codex\ *|*/bin/codex)   printf 'codex\n';  return 0 ;;
+      */bin/claude\ *|*/bin/claude) printf 'claude\n'; return 0 ;;
+      */bin/kimi\ *|*/bin/kimi)     printf 'kimi\n';   return 0 ;;
+    esac
+    pid="$ppid"
+  done
 }
 
 prune_stale() {  # $1=waits_dir — drop records whose identity dir is gone or which are long expired
@@ -182,6 +214,10 @@ case "$cmd" in
         grep -q "claude-stop-wait.sh" "$cfg/settings.json" "$cfg/settings.local.json" 2>/dev/null \
           || err "claude Stop hook not referenced in $cfg/settings.json — run sprint-orchestrator/install-claude-hook.sh once on this machine, or take the contract's no-wait fallback instead of arming" ;;
     esac
+    detected="$(detect_harness)"
+    if [ -n "$detected" ] && [ "$detected" != "$harness" ]; then
+      echo "sprint-mail: warning: arming --harness $harness but the nearest harness ancestor looks like $detected — the wait record is harness-agnostic and will still fire; check the kickoff's harness matches this session" >&2
+    fi
     echo "$timeout" | grep -qE '^[0-9]+$' || err "timeout must be whole seconds (got: $timeout)"
     case "$pat" in
       */*|*$'\n'*) err "pattern is a mail filename or glob, not a path (got: $pat)" ;;

@@ -156,6 +156,20 @@ out="$("$SUT" arm --harness kimi "$SPRINT" "07-009-reply.md" 900 2>&1)"; rc=$?
 [ -z "$(ls "$WAITS"/wait-* 2>/dev/null)" ] \
   && ok "kimi refusal writes no wait record" || no "kimi refusal writes no wait record"
 
+# ---- arm mismatch warning: SPRINT_MAIL_ASSUME_HARNESS drives detection ----
+out="$(SPRINT_MAIL_ASSUME_HARNESS=kimi "$SUT" arm --harness codex "$SPRINT" "07-020-reply.md" 900 2>&1)"; rc=$?
+[ "$rc" = "0" ] && case "$out" in *"warning: arming --harness codex"*"looks like kimi"*) true ;; *) false ;; esac \
+  && ok "mismatch warns on stderr and still arms" || no "mismatch warns on stderr and still arms (rc=$rc out=$out)"
+"$SUT" disarm "$SPRINT"
+
+out="$(SPRINT_MAIL_ASSUME_HARNESS=codex "$SUT" arm --harness codex "$SPRINT" "07-020-reply.md" 900 2>&1)"
+case "$out" in *"warning:"*) no "matching harness stays silent" ;; *) ok "matching harness stays silent" ;; esac
+"$SUT" disarm "$SPRINT"
+
+out="$(SPRINT_MAIL_ASSUME_HARNESS=none "$SUT" arm --harness codex "$SPRINT" "07-020-reply.md" 900 2>&1)"
+case "$out" in *"warning:"*) no "no detection stays silent" ;; *) ok "no detection stays silent" ;; esac
+"$SUT" disarm "$SPRINT"
+
 "$SUT" arm --harness codex "$SPRINT" "sub/dir.md" 900 >/dev/null 2>&1 \
   && no "path-shaped pattern rejected" || ok "path-shaped pattern rejected"
 "$SUT" arm --harness codex "$SPRINT" "07-009-reply.md" "soon" >/dev/null 2>&1 \
