@@ -212,29 +212,22 @@ While the wave runs, watch the mailbox reactively — never by hand-polling. The
 every turn is a cursor sweep: `sprint-mail.sh unread <sprint-dir> '*-question.md *-concluded.md'`
 for the blocking kinds, then `sprint-mail.sh unread <sprint-dir> '*'` for the rest — read them,
 then `sprint-mail.sh seen <sprint-dir> <files>`. That sweep against the durable read-cursor is
-what makes mail never-lost: even if no wake fires, the next turn catches it. Then re-arm as an
-idle nudge and end the turn — the supervisor is always a main session, so each harness waits in
-its own way: on Codex
-`sprint-mail.sh arm --harness codex <sprint-dir> '*-question.md *-concluded.md' 1800`; on
-Claude `sprint-mail.sh arm --harness claude <sprint-dir> '*-question.md *-concluded.md' 10800`
-— the idle-wait default under the installed hook's 10860s timeout; targeted reply waits keep
-1800. The hook wakes you on new mail or timeout. On Kimi there is no Stop hook to arm — the
-wait is a recurring cron sweep. Create ONE cron task (CronCreate, every 5 minutes) whose prompt
-reads: "Supervisor sweep for <sprint-dir>: run
-`~/.agents/skills/sprint-orchestrator/sprint-mail.sh unread <sprint-dir> '*-question.md *-concluded.md'`
-then `~/.agents/skills/sprint-orchestrator/sprint-mail.sh unread <sprint-dir> '*'` from the
-project root, read and `seen` everything. If you found mail: resume the goal with UpdateGoal
-active, act per this section, then mark the goal blocked again before ending the turn if the
-wave is still running. When every story is DONE or DISPOSED, delete this cron task. If this
-fire arrives marked stale (7-day expiry) and the wave is still running, re-create the same
-task. Otherwise end the turn — the goal stays blocked." Then mark your goal blocked: an active
-goal's continuation turns starve cron delivery (fires land only at idle), so the blocked state
-IS the park. The recurring task replaces the arm/re-arm loop — one task per wave, not one per
-wake. The Kimi session must run with a permission posture that lets the mailbox commands and
-cron management execute unattended (an auto permission mode or session-approved allow rules) —
-a sweep that stalls on an approval panel wakes no one. Re-arm on each
-wake until the wave concludes — a spurious wake finds nothing unread, a missed wake is caught by
-the next sweep. Answer executor `question`s with the plan's authority; `note` redirects are legal
+what makes mail never-lost: even if no wake fires, the next turn catches it. Then park the turn with ONE command — `sprint-mail.sh supervise --harness <your harness>
+<sprint-dir>` — and follow its output — the supervisor is always a main session, so each harness
+waits in its own way: for Codex and Claude, supervise idempotently arms the sweep wait
+(`arm --harness codex <sprint-dir> '*-question.md *-concluded.md' 1800`;
+`arm --harness claude <sprint-dir> '*-question.md *-concluded.md' 10800` — the idle-wait default
+under the installed hook's 10860s timeout; targeted reply waits keep 1800) and the Stop hook
+wakes you on new mail or timeout. On Kimi there is no Stop hook to arm — the wait is a
+recurring cron sweep, and supervise prints the exact task: CronList first, CronCreate only if
+no sweep task exists, then end the turn — with an active goal, mark it blocked (the blocked
+state IS the park: an active goal's continuation turns starve cron delivery, fires land only at
+idle); with no active goal, simply ending the turn is the park. The recurring task replaces the
+arm/re-arm loop — one task per wave, not one per wake; CronDelete it when the wave concludes.
+The Kimi session must run with a permission posture that lets the mailbox commands and cron
+management execute unattended (an auto permission mode or session-approved allow rules) — a
+sweep that stalls on an approval panel wakes no one. Re-arm on each wake until the wave
+concludes — a spurious wake finds nothing unread, a missed wake is caught by the next sweep. Answer executor `question`s with the plan's authority; `note` redirects are legal
 only while a story has not concluded. The mailbox is never state: DONE is still both trailers on a
 trunk-reachable commit, and `sprint-status.sh` never reads the mailbox — nor the read-cursor.
 
