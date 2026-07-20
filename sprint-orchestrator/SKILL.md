@@ -322,8 +322,10 @@ counts as a planner.
 
 ## Drivers
 
-Codex leans mechanistic, devops, and browser-driving work; Claude leans creative, frontend-heavy,
-ambiguous work. Frontend visual validation renders only in Codex.app. Capability outranks affinity
+Codex leans well-documented, difficult-but-straightforward work where creativity is not welcome
+and attention and diligence are — mechanistic sweeps, devops, browser-driving. Fable (Claude) and
+Kimi lean creative, exploratory, decision-heavy, ambiguous work. Frontend visual validation
+renders only in Codex.app. Capability outranks affinity
 — a frontend story implemented on Claude still ends with a visual-validation handoff to Codex.app;
 affinity routes stages, not just whole stories. Beyond these lines, use judgment.
 
@@ -334,15 +336,17 @@ affinity.
 ## The Ladder
 
 `tier:` grades the work's difficulty; `driver_hint:` grades its nature. Tier picks the row,
-driver the column. S and A have one cell each, so they bind the harness at plan time; B and C
-stay late-bound. Tiers are the operator's routing policy, not an empirical ordering.
+driver the column. A has one cell, so it binds the harness at plan time; S binds Claude-or-Kimi
+(`kimi-k3` sits between fable and sol in capability and is fable's designed substitute when
+Claude capacity is out — a handoff-time capacity swap, never a `driver_hint`); B and C stay
+late-bound. Tiers are the operator's routing policy, not an empirical ordering.
 
-| Tier | Claude (`--model`) | Codex (`-m`) | Depth default |
-|------|--------------------|--------------|---------------|
-| S | `fable` | — | high (xhigh only when capability-limited) |
-| A | — | `gpt-5.6-sol` | xhigh |
-| B | `opus` | `gpt-5.6-terra` | xhigh |
-| C | `sonnet` | `gpt-5.6-luna` | high |
+| Tier | Claude (`--model`) | Codex (`-m`) | Kimi | Depth default |
+|------|--------------------|--------------|------|---------------|
+| S | `fable` | — | `kimi-k3` | high (xhigh only when capability-limited) |
+| A | — | `gpt-5.6-sol` | — | xhigh |
+| B | `opus` | `gpt-5.6-terra` | — | xhigh |
+| C | `sonnet` | `gpt-5.6-luna` | — | high |
 
 Depth scale, literal on both harnesses: `low | medium | high | xhigh | max`. Depth defaults are
 operator policy for today's model generation — effort levels do not port across models; revisit

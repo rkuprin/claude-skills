@@ -18,10 +18,15 @@ ask names surfaces or screenshots → visual-validation; anything else → task.
 Targets: `codex-app` | `codex-cli` | `claude-cli` | `claude-session` | `kimi`. Resolve in order: required
 capability → the user's explicit say → current availability (ask the user if unknown — Claude and
 Codex subscriptions deplete independently) → affinity. Affinity, in two lines: Codex leans
-mechanistic, devops, and browser-driving work; Claude leans creative, frontend-heavy, ambiguous
-work. Capability outranks affinity: anything that must show rendered screenshots targets
+well-documented, difficult-but-straightforward work where creativity is not welcome and attention
+and diligence are — mechanistic sweeps, devops, browser-driving; Fable (Claude) and Kimi lean
+creative, exploratory, decision-heavy, ambiguous work. Capability outranks affinity: anything that
+must show rendered screenshots targets
 `codex-app` — the CLI cannot render images and is never a silent substitute. If Codex.app capacity
 is unavailable, visual work is blocked; say so instead of downgrading.
+
+Before any codex kickoff, ask: does this need a browser, or a human in the loop for any other
+reason? If neither, it runs as a CLI command — target `codex-cli` (`codex exec`), not `codex-app`.
 
 ## Model and effort — the Launch line
 
@@ -32,15 +37,18 @@ what gets pasted into the executor:
     Launch: Codex.app · gpt-5.6-terra · xhigh   (tier B — same-tier alternative: opus on Claude)
 
 CLI targets get a recommended base invocation instead — you complete repo and prompt transport:
-`codex exec -m gpt-5.6-terra -c model_reasoning_effort=xhigh` /
-`claude --model opus --effort xhigh`.
+`codex exec --dangerously-bypass-approvals-and-sandbox -m gpt-5.6-terra -c model_reasoning_effort=xhigh` /
+`claude --model opus --effort xhigh`. Non-interactive codex sessions run in bypass mode —
+`--dangerously-bypass-approvals-and-sandbox` (skip all confirmations, no sandbox) is the codex
+CLI's wording for Claude's bypass-permissions mode: a `codex exec` run has no operator at the
+terminal, so an approval prompt would only stall it.
 
-| Tier | Claude (`--model`) | Codex (`-m`) | Depth default |
-|------|--------------------|--------------|---------------|
-| S | `fable` | — | high (xhigh only when capability-limited) |
-| A | — | `gpt-5.6-sol` | xhigh |
-| B | `opus` | `gpt-5.6-terra` | xhigh |
-| C | `sonnet` | `gpt-5.6-luna` | high |
+| Tier | Claude (`--model`) | Codex (`-m`) | Kimi | Depth default |
+|------|--------------------|--------------|------|---------------|
+| S | `fable` | — | `kimi-k3` | high (xhigh only when capability-limited) |
+| A | — | `gpt-5.6-sol` | — | xhigh |
+| B | `opus` | `gpt-5.6-terra` | — | xhigh |
+| C | `sonnet` | `gpt-5.6-luna` | — | high |
 
 Resolve model and effort from the story's `tier:` × `driver_hint:` against this ladder at render
 time — the tier letter governs, not the story's inline comment. An absent `effort:` means the
@@ -51,12 +59,16 @@ story bumps to Terra. A doc without `tier:` (pre-convention): infer a tier from 
 nature using the grading in `sprint-orchestrator/SKILL.md`, use the current cell default, assume
 no orchestration — and say so in the one-line mode/target statement. Never render a blank Launch
 line. Depth defaults are operator policy for today's model generation; revisit when a generation
-changes. Kimi targets render no ladder cell — a Kimi session runs its configured model:
-`Launch: Kimi session · model per session config (tier {X} advisory — the ladder has no Kimi cell)`.
+changes. Kimi targets render the ladder's Kimi cell where one exists — tier S only: `kimi-k3`
+sits between fable and sol in capability and is fable's designed substitute when Claude capacity
+is out. A tier-S Kimi target renders `Launch: Kimi session · kimi-k3 · high (tier S)`; other
+tiers have no Kimi cell and run the session's configured model:
+`Launch: Kimi session · model per session config (tier {X} advisory — the ladder has a Kimi cell only at tier S)`.
 
-The Launch line is a recommendation — you decide at paste time. One swap worth knowing: when
+The Launch line is a recommendation — you decide at paste time. Two swaps worth knowing: when
 Claude capacity is free, a B story can run `fable` at low/medium instead of `opus` at xhigh —
-early evidence says that matches for similar burn.
+early evidence says that matches for similar burn; and when fable is at capacity, an S story
+moves to `kimi-k3` — the designed substitute, not a drop to tier A.
 
 ## The prompt shape (every mode)
 

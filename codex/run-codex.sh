@@ -81,10 +81,11 @@ git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
 ensure_overlay
 mkdir -p "$out_dir"
 events="$out_dir/events.jsonl"; last="$out_dir/last.txt"; sid_file="$out_dir/session_id.txt"
-overrides=( -c "approval_policy=never"
-            -c "sandbox_workspace_write.network_access=true"
-            -c "model=$model"
+overrides=( -c "model=$model"
             -c "model_reasoning_effort=$effort" )
+# Posture (fixed): --dangerously-bypass-approvals-and-sandbox — the codex CLI's bypass mode
+# (skip all confirmations, no sandbox). A non-interactive run has no operator at the terminal,
+# so an approval prompt would only stall it.
 
 # On a failed run, exit 42 with a marker file if events.jsonl shows a Codex account
 # usage-limit error — distinct from a real failure so callers don't have to grep
@@ -101,7 +102,7 @@ check_usage_limit() {
 case "$cmd" in
   run)
     CODEX_HOME="$OVERLAY" codex exec --json --output-last-message "$last" \
-      -C "$repo" --sandbox workspace-write \
+      -C "$repo" --dangerously-bypass-approvals-and-sandbox \
       "${overrides[@]}" - < "$prompt_file" > "$events" \
       || { check_usage_limit; die "codex exec failed — see $events"; }
     sid="$(extract_session_id "$events")" || die "could not extract thread_id from $events"
@@ -109,10 +110,10 @@ case "$cmd" in
     ;;
   resume)
     [ -n "$session_id" ] || die "missing --session-id"
-    # resume rejects --sandbox and -C: set sandbox via -c, cd into the repo.
+    # resume rejects -C: cd into the repo instead. The bypass flag is accepted on both.
     ( cd "$repo" && CODEX_HOME="$OVERLAY" codex exec resume "$session_id" --json \
         --output-last-message "$last" \
-        -c "sandbox_mode=workspace-write" "${overrides[@]}" - < "$prompt_file" ) > "$events" \
+        --dangerously-bypass-approvals-and-sandbox "${overrides[@]}" - < "$prompt_file" ) > "$events" \
         || { check_usage_limit; die "codex exec resume failed — see $events"; }
     printf '%s\n' "$session_id" > "$sid_file"
     ;;

@@ -160,6 +160,13 @@ ah_rows="$(grep -E '^\| [SABC] \|' "$AH")"
 [ -n "$orch_rows" ] && [ "$orch_rows" = "$ah_rows" ] \
   && ok "ladder: orchestrator and handoff tables in sync" \
   || no "ladder: orchestrator and handoff tables diverge"
+# kimi-k3 sits between fable and sol: the S row's Kimi cell, fable's capacity substitute.
+printf '%s\n' "$orch_rows" | grep -qF '| S | `fable` | — | `kimi-k3` |' \
+  && ok "ladder: S row carries the kimi-k3 cell" || no "ladder: S row carries the kimi-k3 cell"
+hasnt "orchestrator: no stale no-Kimi-cell wording" "the ladder has no Kimi cell" "$ORCH"
+hasnt "handoff: no stale no-Kimi-cell wording"     "the ladder has no Kimi cell" "$AH"
+has   "handoff: codex cli-vs-app question"       "does this need a browser, or a human in the loop" "$AH"
+has   "handoff: codex-cli base invocation bypasses" "--dangerously-bypass-approvals-and-sandbox" "$AH"
 has   "handoff: interactive depth line"      "investigation + interactive brainstorm phase with the operator first" "$AH"
 hasnt "handoff: no self-directed wording"    "self-directed brainstorm" "$AH"
 has   "handoff: settled by default"          "settled by default" "$AH"
@@ -257,6 +264,11 @@ has   "codex: explicit flags on run"       '--model "$MODEL" --effort "$EFFORT"'
 grep -qE 'gpt-5\.6-terra. at .xhigh' "$CX" \
   && ok "codex: terra lane pinned to xhigh" || no "codex: terra lane pinned to xhigh"
 has   "codex wrapper: usage names xhigh default" "xhigh (default)" "$CXSH"
+# Non-interactive codex sessions run unattended in bypass mode — the codex CLI's wording for
+# Claude's bypass-permissions mode is --dangerously-bypass-approvals-and-sandbox.
+has   "codex wrapper: bypass posture"        "--dangerously-bypass-approvals-and-sandbox" "$CXSH"
+hasnt "codex wrapper: no sandbox posture left" "workspace-write" "$CXSH"
+has   "codex readme: bypass posture"         "--dangerously-bypass-approvals-and-sandbox" "$HERE/../codex/README.md"
 
 # --- wave-handoffs.sh (renderer must mirror agent-handoff/SKILL.md's template) ---
 WHS="$HERE/../sprint-orchestrator/wave-handoffs.sh"
@@ -275,6 +287,7 @@ has   "renderer: claude arm carries --harness"  "arm --harness claude" "$WHS"
 has   "renderer: subagent fallback form"        "Do not pretend to wait" "$WHS"
 has   "renderer: topology is a required input"  "--topology <main-session|subagent>" "$WHS"
 has   "renderer: --target flag"                 "--target <codex|claude|kimi>" "$WHS"
+has   "renderer: kimi-k3 is the S-tier Kimi cell" 'k_model="kimi-k3"' "$WHS"
 has   "renderer: kimi wait form"                "Kimi has no Stop-hook wait" "$WHS"
 hasnt "renderer: no kimi hook installer"        "install-kimi-hook" "$WHS"
 hasnt "renderer: no background-task wait"       "as a background task" "$WHS"

@@ -34,7 +34,9 @@ codex-home/config.toml -> ~/.codex/config.toml   # inherit model default + per-p
 and runs `CODEX_HOME=codex-home codex exec …`. So the charter applies **only on skill runs**;
 your direct `codex` invocations are unaffected.
 
-Posture (fixed): `--sandbox workspace-write`, `-c approval_policy=never`, network on.
+Posture (fixed): `--dangerously-bypass-approvals-and-sandbox` — the codex CLI's bypass mode
+(skip all confirmations, no sandbox): a non-interactive run has no operator at the terminal,
+so an approval prompt would only stall it.
 Model and effort are routed per run by lane: contained → `gpt-5.6-terra` at `xhigh`;
 premise-critical → `gpt-5.6-sol` at `xhigh`; escalation (`max`/`ultra`, Sol only) needs a
 stated justification; the floor is Terra, never Luna. `--model`/`--effort` override per run.

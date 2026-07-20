@@ -193,7 +193,8 @@ has "kimi wait form blocks the goal"        "$KIMI" "Then mark your goal blocked
 has "kimi wait form resumes via UpdateGoal" "$KIMI" "resume the waiter's goal with UpdateGoal active"
 has "kimi wait form uses an epoch deadline" "$KIMI" "stat -f %m"
 has "kimi target renders the ~/.agents contract path" "$KIMI" "Execution contract: ~/.agents/skills/agent-handoff/EXECUTION.md"
-has "kimi target renders the advisory Launch line" "$KIMI" "Launch: Kimi session · model per session config (tier B advisory — the ladder has no Kimi cell)"
+has "kimi target renders the advisory Launch line" "$KIMI" "Launch: Kimi session · model per session config (tier B advisory — the ladder has a Kimi cell only at tier S)"
+has "kimi tier S renders the kimi-k3 cell"      "$KIMI" "Launch: Kimi session · kimi-k3 · high (tier S)"
 has "kimi sheet header notes the override"  "$KIMI" '**`--target kimi` applied**'
 case "$KIMI" in *'arm --harness'*) no "kimi sheet contains no arm --harness" ;; *) ok "kimi sheet contains no arm --harness" ;; esac
 case "$KIMI" in *'~/.claude/skills/agent-handoff/EXECUTION.md'*) no "kimi sheet carries no claude contract path" ;; *) ok "kimi sheet carries no claude contract path" ;; esac

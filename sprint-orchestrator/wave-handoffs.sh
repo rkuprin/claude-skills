@@ -77,16 +77,16 @@ goal_line() { grep -m1 '^/goal ' "$1" || true; }
 # ---- Launch line: tier row × driver column, resolved against today's ladder ----
 # Keep this table in sync with the ladder in SKILL.md (test-wave-handoffs.sh pins the output).
 launch_line() {   # $1 = story doc path, $2 = optional --target override -> prints one operator-facing Launch line
-  local doc="$1" override="${2:-}" tier effort orchestrate driver marker="" c_model x_model depth c_eff x_eff
+  local doc="$1" override="${2:-}" tier effort orchestrate driver marker="" c_model x_model k_model depth c_eff x_eff
   tier="$(fm_get "$doc" tier)"; effort="$(fm_get "$doc" effort)"
   orchestrate="$(fm_get "$doc" orchestrate)"; driver="$(fm_get "$doc" driver_hint)"
   if [ -z "$tier" ]; then tier="B"; marker=" — tier unset, default B assumed"; fi
   case "$tier" in
-    S) c_model="fable";  x_model="";              depth="high"  ;;
-    A) c_model="";       x_model="gpt-5.6-sol";   depth="xhigh" ;;
-    B) c_model="opus";   x_model="gpt-5.6-terra"; depth="xhigh" ;;
-    C) c_model="sonnet"; x_model="gpt-5.6-luna";  depth="high"  ;;
-    *) c_model="opus";   x_model="gpt-5.6-terra"; depth="xhigh"
+    S) c_model="fable";  x_model="";              k_model="kimi-k3"; depth="high"  ;;
+    A) c_model="";       x_model="gpt-5.6-sol";   k_model="";        depth="xhigh" ;;
+    B) c_model="opus";   x_model="gpt-5.6-terra"; k_model="";        depth="xhigh" ;;
+    C) c_model="sonnet"; x_model="gpt-5.6-luna";  k_model="";        depth="high"  ;;
+    *) c_model="opus";   x_model="gpt-5.6-terra"; k_model="";        depth="xhigh"
        marker=" — unknown tier '$tier', default B assumed"; tier="B" ;;
   esac
   [ -n "$effort" ] && depth="$effort"
@@ -96,9 +96,14 @@ launch_line() {   # $1 = story doc path, $2 = optional --target override -> prin
     [ "$x_model" = "gpt-5.6-luna" ] && x_model="gpt-5.6-terra"   # Luna has no ultra
     [ -n "$effort" ] && marker="$marker — effort ignored, orchestrate implies xhigh"
   fi
-  # A kimi --target renders no ladder cell at all — a Kimi session runs its configured model.
+  # A kimi --target renders the ladder's Kimi cell where one exists — tier S only (kimi-k3,
+  # fable's capacity substitute); other tiers run the session's configured model.
   if [ "$override" = "kimi" ]; then
-    printf 'Launch: Kimi session · model per session config (tier %s advisory — the ladder has no Kimi cell%s)\n' "$tier" "$marker"
+    if [ -n "$k_model" ]; then
+      printf 'Launch: Kimi session · %s · %s (tier %s%s)\n' "$k_model" "$depth" "$tier" "$marker"
+    else
+      printf 'Launch: Kimi session · model per session config (tier %s advisory — the ladder has a Kimi cell only at tier S%s)\n' "$tier" "$marker"
+    fi
     return
   fi
   [ -n "$override" ] && driver="$override"

@@ -11,7 +11,7 @@ re-run the installer."
 |---|---|
 | [`codex`](codex/) | Summons OpenAI Codex as an independent second perspective |
 | [`claude-reviewer`](claude-reviewer/) | The mirror of `codex`: Codex summons Claude Code as an independent reviewer |
-| [`sprint-orchestrator`](sprint-orchestrator/) | Plans verified story handoffs, supervises the wave, and integrates results; story state derived from git. Planner: Claude (Fable, else Opus) or Kimi |
+| [`sprint-orchestrator`](sprint-orchestrator/) | Plans verified story handoffs, supervises the wave, and integrates results; story state derived from git. Planner: Fable (kimi-k3 at capacity, else Opus) |
 | [`agent-handoff`](agent-handoff/) | Hands bounded work to another agent — task, visual-validation, and story-execution modes |
 
 `sprint-orchestrator` and `agent-handoff` are companions: one plans, the other hands off.
