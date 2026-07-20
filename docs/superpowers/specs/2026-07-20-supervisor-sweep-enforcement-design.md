@@ -11,6 +11,18 @@ locked in the brainstorm:
 - **Approach: hybrid subcommand + slim prose** (over prose-only hardening, which repeats the exact
   failure mode being fixed, and over full tooling, which grows `sprint-mail.sh` past the need).
 
+Codex gate: one pass, 2026-07-20 (terra/xhigh). The run was killed at its 30-minute timeout after
+converging but before writing its final report; the verdict and findings below are taken from its
+event stream. Verdict: **implement with amendments** — the spec's premises all verified against
+the code (hook bodies byte-identical by lint pin, four-line record format, record deleted on
+fire), but four policy defects needed fixing, all accepted and folded in below: the kimi
+idempotency check must gate CronCreate itself, not live inside the cron task (§1); "already
+armed" idempotency must match the armed record's glob, never blanket-skip (§1); process
+detection needs nearest-ancestor-wins on full command lines, since `codex` presents as
+`node …/bin/codex` and Codex subprocesses nest under `kimi-code` (§2); combined globs like
+`"07-*-reply.md 07-*-note.md"` exist in the wild (test-sprint-mail.sh:121) and need a branch
+precedence rule (§3).
+
 ## Problem
 
 Three defects observed in one live wave, in descending order of blast radius.
@@ -55,13 +67,20 @@ New subcommand. The supervisor runs it after every mailbox sweep, replacing the 
 sentences in prose.
 
 - **codex**: arms `'*-question.md *-concluded.md'` with budget 1800 (today's codex supervisor
-  form). **claude**: same glob, budget 10800. Both are idempotent: if a wait is already armed for
-  this worktree, print "already armed" and exit 0 (no disarm-first dance on re-arm).
+  form). **claude**: same glob, budget 10800. Both are idempotent **on glob match only**: if the
+  record already armed for this worktree carries exactly the supervise sweep glob, print "already
+  armed" and exit 0 (no disarm-first dance on re-arm). If the armed record carries a **different**
+  glob (e.g. a reply-wait from a rescue turn in the same worktree), `supervise` fails loudly like
+  `arm` does today ("a wait is already armed for this worktree — run disarm first") — a blanket
+  "already armed" would silently drop the supervisor sweep behind somebody else's wait.
 - **kimi**: arms nothing (no hook exists to fire). Prints the complete, ready-to-paste CronCreate
   call to stdout: the cron expression (every 5 minutes), the full sweep prompt with `<sprint-dir>`
   already resolved, and these behaviors baked into the printed text:
-  - "CronList first — if this sweep task already exists, do nothing" (idempotency; bash cannot
-    see the session's cron store, so the check is delegated to the model via the printed prompt).
+  - Idempotency as an **explicit two-step ordering**: "First CronList. Only if no sweep task for
+    this sprint exists, CronCreate the task below." The check gates task **creation**; the cron
+    prompt body itself carries no existence check — a test inside the fired task cannot prevent
+    the duplicate from being created. (Bash cannot see the session's cron store, so the check is
+    delegated to the model via the printed instructions.)
   - The blocked-goal park **and the goal-less fallback**: "if you have an active goal, mark it
     blocked — the blocked state is the park; if you have no active goal, simply ending the turn
     is the park — cron fires land whenever the session is idle." (Finding 1's exact hole.)
@@ -82,13 +101,19 @@ sentences in prose.
 ### §2 arm harness-mismatch warning
 
 In `arm`, after the existing hook-reference verification, walk the parent process chain from `$$`
-(`ps -o ppid= -o comm=`) looking for a `codex`, `claude`, or `kimi` binary.
+looking for a harness ancestor.
 
+- Detection reads the **full command line** (`ps -o command=`) of each ancestor, basename-matched
+  against the known executable names `codex`, `claude`, `kimi` — never `comm` alone: the `codex`
+  CLI presents as `node …/bin/codex`, and `comm` would read `node`. The **nearest** harness
+  ancestor wins: a `codex exec` executor spawned by a Kimi supervisor nests under `kimi-code`, and
+  it is the codex session that arms — distance ordering is what keeps that case correct.
 - Confident detection **and** detected ≠ `--harness` → print a loud stderr warning naming both,
   **then arm anyway**. The wait record is harness-agnostic by design; 04a's accidental success was
   useful, and refusal would break legitimate cross-harness launches. The warning exists so the
   mismatch surfaces in the session's own output at the moment it happens.
-- No harness detected in the chain → silence. Never cry wolf in plain shells or tests.
+- No harness detected, or any ambiguity in the chain → silence. Never cry wolf in plain shells or
+  tests.
 - `SPRINT_MAIL_ASSUME_HARNESS=<codex|claude|kimi>` env var overrides process detection —
   test-only hook, documented as such in the script's header comment, making the warning path
   deterministic under any test runner.
@@ -96,15 +121,20 @@ In `arm`, after the existing hook-reference verification, walk the parent proces
 ### §3 Timeout wake text branches on the armed glob
 
 In `codex-stop-wait.sh` **and** `claude-stop-wait.sh`, the no-mail timeout branch picks its
-message from the glob stored in the wait record (line 2):
+message from the glob stored in the wait record (line 2), evaluated in this precedence order:
 
-- glob contains `-reply.md` → question-wait timeout: current text unchanged (no-reply fallback,
-  post terminal `concluded`).
-- glob contains `-note.md` → dependency park: "the gate you parked on is still closed — re-arm
-  the same wait and keep parking, unless the dependency's premise changed; do NOT post a terminal
-  `concluded` merely because the wait expired."
-- glob contains `-question.md` or `-concluded.md` (supervisor sweep form) → current "sweep, then
-  re-arm if the wave is still running" text.
+1. glob contains `-reply.md` → question-wait timeout: current text unchanged (no-reply fallback,
+   post terminal `concluded`). This wins even when the record combines globs — combined records
+   like `"07-*-reply.md 07-*-note.md"` are real (test-sprint-mail.sh:121) and are question-waits
+   at heart; the note match is opportunistic, the reply is the blocking need.
+2. glob contains `-note.md` (and no `-reply.md`) → dependency park: "the gate you parked on is
+   still closed — re-arm the same wait and keep parking, unless the dependency's premise changed;
+   do NOT post a terminal `concluded` merely because the wait expired."
+3. glob contains `-question.md` or `-concluded.md` (supervisor sweep form) → current "sweep, then
+   re-arm if the wave is still running" text.
+
+A glob matching none of the three falls through to the question-wait text (today's behavior —
+unknown patterns keep the strict fallback).
 
 The mail-found path is unchanged in both hooks.
 
@@ -130,15 +160,18 @@ waits, kickoff rendering, and the mailbox format do not change.
 All bash + grep, matching repo convention; run beside `test/lint-skills.sh` and the existing
 `sprint-orchestrator/test/` suites.
 
-1. `supervise --harness kimi <sprint-dir>` output contains: the resolved sprint dir, `CronList`,
-   the goal-less fallback wording, `CronDelete`, and does **not** create a `.codex-waits` record.
-2. `supervise --harness codex` arms once; a second invocation exits 0 with "already armed" and
-   exactly one record exists.
+1. `supervise --harness kimi <sprint-dir>` output contains: the resolved sprint dir, the
+   CronList-before-CronCreate ordering, the goal-less fallback wording, `CronDelete`, and does
+   **not** create a `.codex-waits` record.
+2. `supervise --harness codex` arms once; a second invocation with the same sweep glob exits 0
+   with "already armed" and exactly one record exists; a second invocation after replacing the
+   record with a **different** glob fails loudly and exits non-zero.
 3. `arm` with `SPRINT_MAIL_ASSUME_HARNESS` set opposite to `--harness` warns on stderr and still
    arms; with matching values, no warning; unset and no harness in the process chain, no warning.
-4. Hook timeout branches (both stop hooks): temp `SPRINT_MAIL_ROOT`, hand-written wait records
-   with `-reply.md` / `-note.md` / supervisor globs, `SPRINT_MAIL_POLL=1`, ~2s timeout → assert
-   the matching stderr branch each time.
+4. Hook timeout branches (both stop hooks): temp `SPRINT_MAIL_ROOT`, hand-written wait records,
+   `SPRINT_MAIL_POLL=1`, ~2s timeout → assert the matching stderr branch for: `-reply.md` glob,
+   combined `"-reply.md … -note.md"` glob (reply text wins), `-note.md`-only glob (park text),
+   supervisor glob (sweep/re-arm text), and an unmatched glob (falls through to reply text).
 
 ## Non-goals
 
