@@ -1,6 +1,6 @@
 ---
 name: sprint-orchestrator
-description: Manual sprint command that plans verified story handoffs, dispatches them, supervises the wave to conclusion, and integrates results. Invoke explicitly with /sprint-orchestrator (Claude) or $sprint-orchestrator (Codex).
+description: "Manual sprint command that plans verified story handoffs, dispatches them, supervises the wave to conclusion, and integrates results. Invoke explicitly with /sprint-orchestrator (Claude), $sprint-orchestrator (Codex), or /skill:sprint-orchestrator (Kimi)."
 disable-model-invocation: true
 argument-hint: [sprint-dir or raw inputs]
 ---
@@ -64,6 +64,7 @@ the repo root. It is the same script reached via either agent's skills directory
 ```bash
 ~/.claude/skills/sprint-orchestrator/sprint-status.sh docs/sprints/<sprint>   # Claude
 ~/.codex/skills/sprint-orchestrator/sprint-status.sh docs/sprints/<sprint>    # Codex
+~/.agents/skills/sprint-orchestrator/sprint-status.sh docs/sprints/<sprint>   # Kimi
 ```
 
 Stories are enumerated from files matching `[0-9]*.md`, skipping `00-*`. Suffixed numbers such as
@@ -118,7 +119,7 @@ C usually reads `direct`.
 2. Verify every candidate against current source truth. If a premise is stale, already shipped, impossible, or out of scope, cut or reframe it and record why.
 3. Split surviving work into stories by blast radius, file ownership, and dependency order. Prefer serial stories for shared hotspots over optimistic parallelism.
 4. Write `00-overview.md`, `STORY-FEEDBACK.md`, and one story doc per current-wave survivor; record deferred waves as stubs in the overview.
-5. Ask the user how Claude/Codex capacity looks right now; note the answer in `00-overview.md` as plan-time context. Capacity never changes a `driver_hint` — it informs the recap's routing suggestions and the handoff-time resolution.
+5. Ask the user how Claude/Codex/Kimi capacity looks right now; note the answer in `00-overview.md` as plan-time context. Capacity never changes a `driver_hint` — it informs the recap's routing suggestions and the handoff-time resolution.
 6. Recap open stories with kickoff prompts, any unresolved product questions, and the pending wave checkpoint, if any.
 7. If the user approves at the recap, execute chosen `loop: direct` stories as subagents (see
    Executing Direct Stories In-Session); otherwise every story goes out as a rendered handoff.
@@ -191,10 +192,12 @@ recap — the gate exists so a bad plan is seen before it runs.
   ends in Codex.app visual validation.
 - Kickoffs fired as in-session subagents are rendered with the subagent topology
   (`wave-handoffs.sh <sprint-dir> <wave> --topology subagent`): a subagent never arms a
-  blocking mailbox wait — the Stop hook never fires for it, on either harness — so its
+  blocking mailbox wait — the Stop hook never fires for it, on any harness — so its
   `Mailbox wait:` is the non-arming fallback. Only main sessions arm; in-session dispatch of
-  a codex-transport story is `codex exec`, itself a main session. The operator's paste sheet
-  renders with `--topology main-session`.
+  a codex-transport story is `codex exec`, itself a main session. On Kimi the in-session
+  transport is the Agent tool — same topology, same non-arming fallback. The operator's paste
+  sheet renders with `--topology main-session` (plus `--target kimi` when the batch goes to
+  Kimi sessions).
 
 ## Supervising the Wave
 
@@ -210,12 +213,26 @@ every turn is a cursor sweep: `sprint-mail.sh unread <sprint-dir> '*-question.md
 for the blocking kinds, then `sprint-mail.sh unread <sprint-dir> '*'` for the rest — read them,
 then `sprint-mail.sh seen <sprint-dir> <files>`. That sweep against the durable read-cursor is
 what makes mail never-lost: even if no wake fires, the next turn catches it. Then re-arm as an
-idle nudge and end the turn — the supervisor is always a main session, so both harnesses arm
-their sprint Stop hook: on Codex
+idle nudge and end the turn — the supervisor is always a main session, so each harness waits in
+its own way: on Codex
 `sprint-mail.sh arm --harness codex <sprint-dir> '*-question.md *-concluded.md' 1800`; on
 Claude `sprint-mail.sh arm --harness claude <sprint-dir> '*-question.md *-concluded.md' 10800`
 — the idle-wait default under the installed hook's 10860s timeout; targeted reply waits keep
-1800. The hook wakes you on new mail or timeout. Re-arm on each
+1800. The hook wakes you on new mail or timeout. On Kimi there is no Stop hook to arm — the
+wait is a recurring cron sweep. Create ONE cron task (CronCreate, every 5 minutes) whose prompt
+reads: "Supervisor sweep for <sprint-dir>: run
+`~/.agents/skills/sprint-orchestrator/sprint-mail.sh unread <sprint-dir> '*-question.md *-concluded.md'`
+then `~/.agents/skills/sprint-orchestrator/sprint-mail.sh unread <sprint-dir> '*'` from the
+project root, read and `seen` everything. If you found mail: resume the goal with UpdateGoal
+active, act per this section, then mark the goal blocked again before ending the turn if the
+wave is still running. When every story is DONE or DISPOSED, delete this cron task. If this
+fire arrives marked stale (7-day expiry) and the wave is still running, re-create the same
+task. Otherwise end the turn — the goal stays blocked." Then mark your goal blocked: an active
+goal's continuation turns starve cron delivery (fires land only at idle), so the blocked state
+IS the park. The recurring task replaces the arm/re-arm loop — one task per wave, not one per
+wake. The Kimi session must run with a permission posture that lets the mailbox commands and
+cron management execute unattended (an auto permission mode or session-approved allow rules) —
+a sweep that stalls on an approval panel wakes no one. Re-arm on each
 wake until the wave concludes — a spurious wake finds nothing unread, a missed wake is caught by
 the next sweep. Answer executor `question`s with the plan's authority; `note` redirects are legal
 only while a story has not concluded. The mailbox is never state: DONE is still both trailers on a
@@ -246,6 +263,11 @@ what the preflight refuses. Takeover is legal only through this protocol:
 - Precondition: the current owner is finished — a terminal `concluded` outcome, or a transport
   confirmed dead (subagent exited; the user closed the session).
   Never take over a live executor.
+- Kimi death is explicit, never inferred: a Kimi session's cron tasks persist across exit and
+  revive on `kimi resume`, so a closed window is not death. Take over a Kimi transport only
+  when its cron task is deleted and its goal ended/blocked — or the operator commits the
+  session will never be resumed. A resumed old supervisor also races its successor on the
+  read-cursor (keyed by worktree, not session): it can consume and `seen` mail first.
 - Record the transfer: branch, worktree path (if any), HEAD SHA, and what remains to be done.
 - The successor's kickoff is a story-execution render carrying an explicit grant line —
   `Resume grant: resume designated branch {BRANCH} at {SHA} — {WHAT REMAINS}` — and the grant
@@ -288,7 +310,8 @@ session, then stop:
     merged or disposed — and the next planner handoff rendered.
 
 The `/goal` targets the NEXT wave boundary — a goal that ends at dispatch would recreate the
-plan-and-exit behavior this lifecycle replaces.
+plan-and-exit behavior this lifecycle replaces. `/goal` is native on all three harnesses, so
+the handoff pastes cleanly into Claude, Codex, or Kimi.
 
 **Early unblock.** If only a leftover story holds the wave and nothing in wave N+1 depends on
 it, render the planner handoff now and demote yourself: from that moment, answer no mailbox
