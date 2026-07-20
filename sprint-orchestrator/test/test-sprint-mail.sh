@@ -167,6 +167,19 @@ touch -t 202607140000 "$OLD"   # backdate well past 2x its 1s timeout
 "$SUT" disarm "$SPRINT" --stale
 [ ! -f "$OLD" ] && ok "disarm --stale sweeps an expired record" || no "disarm --stale sweeps an expired record"
 
+# ---- reaper: a LIVE foreign record must not kill arm ----
+# Regression for the 2026-07-20 mid-wave incident: prune_stale ended its loop body
+# with a false-evaluating `&&` test, so under set -e any live foreign wait record
+# killed every subsequent arm before it wrote its record.
+LIVE="$WAITS/wait-live-foreign"
+printf '%s\n%s\n900\n%s\n' "$(cd "$REPO_B" && pwd -P)" "$MDIR/07-*-reply.md" "$MDIR/.read/x" > "$LIVE"
+rec_live="$("$SUT" arm --harness codex "$SPRINT" "07-060-reply.md" 900)" \
+  && [ -f "$rec_live" ] \
+  && ok "arm survives a live foreign wait record (prune_stale set -e regression)" \
+  || no "arm survives a live foreign wait record (prune_stale set -e regression)"
+[ -f "$LIVE" ] && ok "live foreign record is left in place" || no "live foreign record is left in place"
+"$SUT" disarm "$SPRINT"; rm -f "$LIVE"
+
 # ---- error paths: non-git CWD and missing file arg both exit 2 ----
 mkdir -p "$TMP/nogit" && cd "$TMP/nogit"
 out="$(printf 'x\n' | "$SUT" post "$SPRINT" 07 evidence - 2>&1)"; rc=$?

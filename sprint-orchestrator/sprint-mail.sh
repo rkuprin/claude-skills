@@ -105,7 +105,7 @@ prune_stale() {  # $1=waits_dir — drop records whose identity dir is gone or w
     [ -d "$id" ] || { rm -f "$f"; continue; }               # dead worktree/cwd → orphan
     ts="$(sed -n 3p "$f")"; case "$ts" in ''|*[!0-9]*) ts=1800 ;; esac
     age=$(( now - $(stat -f %m "$f" 2>/dev/null || echo "$now") ))
-    [ "$age" -gt $(( ts * 2 )) ] && rm -f "$f"               # long past budget → stale
+    if [ "$age" -gt $(( ts * 2 )) ]; then rm -f "$f"; fi     # long past budget → stale (if-form: a false && would kill set -e)
   done
 }
 
