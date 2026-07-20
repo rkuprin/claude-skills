@@ -71,9 +71,11 @@ so a Claude-oriented skill will also appear in Codex's list, and vice versa.
 **Some skills need extra, machine-specific setup** (a CLI tool, an API login). After
 running `install.sh`, read each skill's own `README.md` for prerequisites. In particular,
 `codex/` needs the OpenAI Codex CLI installed and authenticated — see [`codex/README.md`](codex/README.md) —
-and `sprint-orchestrator/` needs its Codex Stop hook wired once per machine: run
-`sprint-orchestrator/install-codex-hook.sh` (details in
-[`sprint-orchestrator/README.md`](sprint-orchestrator/README.md), "Reactive waits on Codex").
+and `sprint-orchestrator/` needs its per-harness mailbox Stop hooks wired once per machine:
+`sprint-orchestrator/install-codex-hook.sh` (Codex) and
+`sprint-orchestrator/install-claude-hook.sh` (Claude) — details in
+[`sprint-orchestrator/README.md`](sprint-orchestrator/README.md), "Reactive waits on Codex" /
+"Reactive waits on Claude".
 
 > **If you are an agent setting this up on a new machine:** follow
 > [`INSTALL.md`](INSTALL.md) — it is written for you, verify steps included. Change nothing

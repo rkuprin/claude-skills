@@ -119,7 +119,7 @@ frontmatter and its `/goal` line — a recap of the wave plus one ready-to-paste
 (story-execution) kickoff per story, every value resolved. Redirect it to one file per wave:
 
 ```bash
-~/.claude/skills/sprint-orchestrator/wave-handoffs.sh docs/sprints/<sprint> 4 > ~/.handoffs/<sprint>-wave4.md
+~/.claude/skills/sprint-orchestrator/wave-handoffs.sh docs/sprints/<sprint> 4 --topology main-session > ~/.handoffs/<sprint>-wave4.md
 ```
 
 Each kickoff mirrors `agent-handoff/SKILL.md`'s story-execution template — that skill file is the
@@ -135,6 +135,11 @@ sprint directory or a wave with no stories.
 If `STORY-FEEDBACK.md` carries unresolved REPLAN/DIRECTION events, the script warns on stderr and
 puts a matching line in the rendered recap — it renders anyway; resolving is your call.
 
+`--topology` is required: `main-session` renders the paste sheet (every paste target is a
+fresh main session); `subagent` renders kickoffs the orchestrator fires as in-session
+subagents — those carry the non-arming `Mailbox wait:` (a subagent cannot end its turn and be
+woken), and only `loop: direct` stories render, with skips named on stderr.
+
 ## The mailbox
 
 Executors and the supervising session exchange transient mail in
@@ -147,7 +152,7 @@ commit trailers — and when nobody answers, everything degrades to the REPLAN h
 
 Codex sessions cannot hold `sprint-mail.sh wait`'s poll loop open, so waiting is done by the
 `codex-stop-wait.sh` Stop hook (beside `sprint-mail.sh`): a session posts its question, runs
-`sprint-mail.sh arm <sprint-dir> <reply-file-or-globs> 1800`, and ends its turn; the hook holds
+`sprint-mail.sh arm --harness codex <sprint-dir> <reply-file-or-globs> 1800`, and ends its turn; the hook holds
 the ending turn on the armed record and, when matching mail lands (or the wait times out),
 its stderr re-enters the same thread as a continuation prompt. Validated live against
 `codex exec` and Codex Desktop 0.144.x (2026-07-17).
@@ -185,6 +190,35 @@ hooks.json entry, so editing the script itself never needs re-trusting. For the 
 fallback (a single long foreground poll), raise `background_terminal_max_timeout` in
 `config.toml` (milliseconds; default 300000).
 
+### Reactive waits on Claude — one-time install (main sessions)
+
+A main-session Claude supervisor or executor waits the same way — arm and end the turn — via
+the `claude-stop-wait.sh` Stop hook (its body is kept byte-identical to the Codex hook by a
+lint diff pin): the session posts its question or watch globs, runs
+`sprint-mail.sh arm --harness claude <sprint-dir> <reply-file-or-globs> [<timeout>]`, and ends
+its turn; the hook holds the ending turn until matching unread mail lands or the budget
+elapses. Main sessions only: the hook is wired for `Stop`, never `SubagentStop` — an
+in-session subagent cannot end its turn and be woken, so rendered subagent kickoffs carry the
+non-arming fallback instead of an `arm`.
+
+Once per machine:
+
+```bash
+~/claude-skills/sprint-orchestrator/install-claude-hook.sh
+```
+
+Idempotent: it appends the hook as its own `Stop` group in `~/.claude/settings.json`
+(re-pointing it if the clone moved) and preserves co-installed Stop hooks — an existing
+iTerm-status hook survives untouched. No trust dance: Claude settings-json hooks activate on
+write (running sessions pick up the edit; a restart is the fallback). Honest limit: a settings
+reference is not proof the hook runs — `disableAllHooks` or managed policy can suppress it,
+and the installer reports that instead of working around it.
+
+Budget: the hook entry carries `timeout: 10860` — the 3h idle-wait budget (`arm … 10800`)
+plus 60s slack, mirroring Codex's 1800/1860 — and targeted reply waits keep `1800`. While a
+parked hook waits, it holds the Stop event's completion; co-installed Stop hooks (the iTerm
+status hook) still run — the only cost is that the event finishes when the wait does.
+
 ## The rule that makes it work
 
 Every commit the executor makes for a story carries two trailers:
@@ -221,7 +255,9 @@ From this repo:
 sprint-orchestrator/test/test-sprint-status.sh   # hermetic git fixtures
 sprint-orchestrator/test/test-wave-handoffs.sh   # renderer output pinned against the kickoff template
 sprint-orchestrator/test/test-sprint-mail.sh   # mailbox helper: sequencing, replies, waits, arm/disarm
-sprint-orchestrator/test/test-codex-stop-wait.sh # Stop hook: wake, timeout, since-epoch filter
+sprint-orchestrator/test/test-codex-stop-wait.sh # Codex Stop hook: wake, timeout, cursor + legacy records
+sprint-orchestrator/test/test-claude-stop-wait.sh # Claude Stop hook: same records, same wakes
+sprint-orchestrator/test/test-install-claude-hook.sh # Claude installer: parity, preserves co-installed hooks
 test/lint-skills.sh                              # invariants both skill files must hold
 ```
 

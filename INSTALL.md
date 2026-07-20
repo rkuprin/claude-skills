@@ -32,17 +32,30 @@ each pointing back into this repo.
 
 - **codex** (summons Codex as a second perspective): needs the OpenAI Codex CLI installed and
   authenticated. Verify: `codex login status`. Details: [`codex/README.md`](codex/README.md).
-- **sprint-orchestrator** — only when Codex is present: wire and trust the mailbox Stop hook:
+- **sprint-orchestrator** — wire each present harness's mailbox Stop hook, once per machine.
+  - Codex present:
 
-  ```bash
-  ./sprint-orchestrator/install-codex-hook.sh
-  ```
+    ```bash
+    ./sprint-orchestrator/install-codex-hook.sh
+    ```
 
-  Verify: it prints `done — hook wired and trusted.` Idempotent — safe to re-run, and it
-  re-points the entry if the clone ever moves. This step is not optional on Codex machines:
-  untrusted hooks are skipped **silently**, and `sprint-mail.sh arm` refuses to arm until the
-  hook is wired. Details and the manual fallback:
-  [`sprint-orchestrator/README.md`](sprint-orchestrator/README.md), "Reactive waits on Codex".
+    Verify: it prints `done — hook wired and trusted.` Idempotent — safe to re-run, and it
+    re-points the entry if the clone ever moves. This step is not optional on Codex machines:
+    untrusted hooks are skipped **silently**, and `sprint-mail.sh arm` refuses to arm until the
+    hook is wired. Details and the manual fallback:
+    [`sprint-orchestrator/README.md`](sprint-orchestrator/README.md), "Reactive waits on Codex".
+  - Claude Code present:
+
+    ```bash
+    ./sprint-orchestrator/install-claude-hook.sh
+    ```
+
+    Verify: it prints `done — hook wired in` naming the settings file, and any co-installed
+    Stop hooks are still present in `~/.claude/settings.json`. Idempotent — safe to re-run,
+    re-points if the clone moved. No trust step: Claude settings-json hooks activate on
+    write. If the installer warns that hooks are disabled (`disableAllHooks` / managed
+    policy), report it. Details:
+    [`sprint-orchestrator/README.md`](sprint-orchestrator/README.md), "Reactive waits on Claude".
 - **claude-reviewer** (Codex summons Claude as reviewer): needs the Claude Code CLI on PATH;
   nothing else.
 - **agent-handoff**: no machine setup.
@@ -55,7 +68,9 @@ codex/test/test.sh
 sprint-orchestrator/test/test-sprint-status.sh
 sprint-orchestrator/test/test-sprint-mail.sh
 sprint-orchestrator/test/test-codex-stop-wait.sh
+sprint-orchestrator/test/test-claude-stop-wait.sh
 sprint-orchestrator/test/test-install-codex-hook.sh
+sprint-orchestrator/test/test-install-claude-hook.sh
 sprint-orchestrator/test/test-wave-handoffs.sh
 ```
 
@@ -63,8 +78,9 @@ Every suite must end `N passed, 0 failed`.
 
 ## 4. Report
 
-Tell the user in one short list: which harnesses were linked, whether the Codex Stop hook is
-wired and trusted, any missing prerequisites (for example a codex CLI that is not
+Tell the user in one short list: which harnesses were linked, whether each present harness's
+mailbox Stop hook is wired (Codex: wired **and trusted**; Claude: wired, plus any
+disabled-hooks warning), any missing prerequisites (for example a codex CLI that is not
 authenticated), and the test tally. Skills appear in each harness's list on its **next**
 session — `/agent-handoff` in Claude Code, `$agent-handoff` in Codex.
 
