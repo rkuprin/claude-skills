@@ -1,5 +1,11 @@
 # Kimi harness adaptation — cron waits, `--target` renderer flag, three-harness prose
 
+> **Status (2026-07-20):** Tasks 1–6 landed — probe + spec rev 3 (4dfd996), arm refusal
+> (ccb3275), `--target` renderer (d18cca7), agent-handoff prose (0365cc3), orchestrator prose
+> (d1deef5), docs (5bc6977); also the prune_stale fix (572a1f1) and the mailbox backlog
+> skeleton (a4e021d). Task 7 Step 1 green: full suite, 510 checks, 0 failed. Steps 2–3 (fresh
+> session load check, optional end-to-end) remain with the operator.
+
 > **For agentic workers:** Execute task-by-task; steps use checkbox (`- [ ]`) tracking. **Tasks 1
 > and 7 are NOT subagent-safe** — they are live validations in real Kimi sessions and need the
 > human operator. The rest are inline-safe. **Note:** the `prune_stale` `set -e` fix that sat
