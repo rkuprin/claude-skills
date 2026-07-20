@@ -85,5 +85,23 @@ out="$(: | "$SUT" 2>&1)"; rc=$?
 [ "$rc" = "0" ] && ok "foreign cwd record ignored" || no "foreign cwd record ignored (rc=$rc)"
 [ -f "$WAITS/wait-other" ] && ok "foreign record left intact" || no "foreign record left intact"
 
+# ---- timeout text branches on the armed glob ----
+arm "$MDIR/07-*-note.md" 2 0
+out="$(: | "$SUT" 2>&1)"
+case "$out" in *"dependency park"*"keep parking"*) ok "note-only glob → park timeout text" ;; *) no "note-only glob → park timeout text (got: $out)" ;; esac
+
+arm "$MDIR/07-*-reply.md $MDIR/07-*-note.md" 2 0
+out="$(: | "$SUT" 2>&1)"
+case "$out" in *"no-reply fallback"*) ok "combined glob → reply text wins" ;; *) no "combined glob → reply text wins (got: $out)" ;; esac
+
+rm -f "$MDIR"/*-question.md "$MDIR"/*-concluded.md   # clear earlier tests' mail so this wait times out
+arm "$MDIR/*-question.md $MDIR/*-concluded.md" 2 0
+out="$(: | "$SUT" 2>&1)"
+case "$out" in *"Supervisors: sweep ALL new mail"*"supervise"*) ok "supervisor glob → sweep/re-arm text" ;; *) no "supervisor glob → sweep/re-arm text (got: $out)" ;; esac
+
+arm "$MDIR/misc-file.txt" 2 0
+out="$(: | "$SUT" 2>&1)"
+case "$out" in *"no-reply fallback"*) ok "unmatched glob → strict fallback text" ;; *) no "unmatched glob → strict fallback text (got: $out)" ;; esac
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

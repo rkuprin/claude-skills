@@ -75,6 +75,20 @@ rm -f "$rec"
 if [ -n "$found" ]; then
   echo "New sprint mail arrived: $found — read it and continue from where you were blocked. Supervisors: sweep ALL new mail with sprint-mail.sh list, then re-arm before ending the turn if the wave is still running." >&2
 else
-  echo "Armed mailbox wait timed out after ${timeout}s with no new mail. Executors: take the contract's no-reply fallback (handback/blocked) and post your terminal concluded. Supervisors: sweep, then re-arm if the wave is still running." >&2
+  case "$glob" in
+    *-reply.md*)
+      # question-wait (also wins for combined reply+note records: the reply is
+      # the blocking need, the note match is opportunistic)
+      echo "Armed mailbox wait timed out after ${timeout}s with no new mail. Executors: take the contract's no-reply fallback (handback/blocked) and post your terminal concluded. Supervisors: sweep, then re-arm if the wave is still running." >&2 ;;
+    *-note.md*)
+      # dependency park — expiring is not a verdict on the gate
+      echo "Armed mailbox wait timed out after ${timeout}s with no new mail. This was a dependency park on a gate note — the gate is still closed. Re-arm the same wait and keep parking; do NOT post a terminal concluded merely because the wait expired. Take the handback path only if the dependency's premise changed." >&2 ;;
+    *-question.md*|*-concluded.md*)
+      # supervisor sweep form
+      echo "Armed mailbox wait timed out after ${timeout}s with no new mail. Supervisors: sweep ALL new mail with sprint-mail.sh unread, then re-arm (sprint-mail.sh supervise) before ending the turn if the wave is still running." >&2 ;;
+    *)
+      # unknown pattern — strict fallback, today's behavior
+      echo "Armed mailbox wait timed out after ${timeout}s with no new mail. Executors: take the contract's no-reply fallback (handback/blocked) and post your terminal concluded. Supervisors: sweep, then re-arm if the wave is still running." >&2 ;;
+  esac
 fi
 exit 2
