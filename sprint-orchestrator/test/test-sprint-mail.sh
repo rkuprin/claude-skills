@@ -266,5 +266,25 @@ q3="$(printf 'q\n' | "$SUT" post "$SPRINT3" 05 question -)"
 u3="$("$SUT" unread "$SPRINT3" '*')"
 [ "$u3" = "$q3" ] && ok "cursor is per-sprint (SPRINT2 marks don't leak)" || no "cursor is per-sprint (got: $u3)"
 
+# ---- classify_cmd: harness process-name mappings (unit-tested directly) ----
+# The override bypasses detection, so source the extracted functions and drive
+# the per-command-line classifier with representative ps lines.
+DETECT_SRC="$TMP/detect-harness.sh"
+{ sed -n '/^classify_cmd()/,/^}/p' "$SUT"; sed -n '/^detect_harness()/,/^}/p' "$SUT"; } > "$DETECT_SRC"
+. "$DETECT_SRC"
+classify() {  # $1=expected harness ("" = unsure)  $2=command line  $3=label
+  local got
+  got="$(classify_cmd "$2")"
+  [ "$got" = "$1" ] && ok "$3" || no "$3 (want [$1] got [$got])"
+}
+classify kimi   "kimi-code"                                                         "classify: kimi-code process name → kimi"
+classify kimi   "/Users/x/.kimi-code/bin/kimi-code"                                 "classify: bin/kimi-code path → kimi"
+classify codex  "/Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.framework/Versions/A/Codex Framework" "classify: Codex Framework path → codex"
+classify codex  "Codex (Renderer)"                                                  "classify: Codex (Renderer) helper → codex"
+classify codex  "Codex (Service)"                                                   "classify: Codex (Service) helper → codex"
+classify codex  "node /Users/x/.nvm/versions/node/v22/bin/codex exec"               "classify: node bin/codex exec → codex"
+classify claude "/Users/x/.local/bin/claude"                                        "classify: claude path → claude"
+classify ""     "bash some/random/script.sh"                                        "classify: unrelated script → empty"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

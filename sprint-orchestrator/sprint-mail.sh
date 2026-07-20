@@ -103,32 +103,46 @@ cursor_file() {  # per-consumer read-cursor path, keyed by the worktree root
   printf '%s\n' "$mail_dir/.read/$(printf '%s\n' "$consumer" | cksum | cut -d' ' -f1)"
 }
 
+# classify_cmd — map one process's full command line to a harness name
+# (codex|claude|kimi on stdout), or print nothing and return 1 when unsure.
+# Pure (no ps, no env) so tests can source and drive it directly.
+# argv[0]'s basename is derived in-shell: macOS basename parses options, so it
+# chokes on a login shell's `-zsh`/`-bash` argv[0].
+classify_cmd() {
+  local cmd="$1" base
+  base="${cmd%% *}"; base="${base##*/}"
+  case "$base" in
+    codex|claude|kimi) printf '%s\n' "$base"; return 0 ;;
+    kimi-code) printf 'kimi\n';  return 0 ;;  # the Kimi CLI's running process name
+    Codex*)    printf 'codex\n'; return 0 ;;  # Codex.app helpers: Codex, Codex (Renderer), Codex (Service)
+  esac
+  case "$cmd" in
+    */bin/codex\ *|*/bin/codex)         printf 'codex\n';  return 0 ;;
+    */bin/claude\ *|*/bin/claude)       printf 'claude\n'; return 0 ;;
+    */bin/kimi\ *|*/bin/kimi)           printf 'kimi\n';   return 0 ;;
+    */bin/kimi-code\ *|*/bin/kimi-code) printf 'kimi\n';   return 0 ;;
+    *Codex\ Framework*)                 printf 'codex\n';  return 0 ;;  # Codex.app's embedded framework path
+  esac
+  return 1
+}
+
 # detect_harness — best-effort identification of the harness whose session this
 # process runs in, for the arm mismatch warning. The codex CLI presents as
-# `node …/bin/codex` (comm alone reads `node`), so match argv[0]'s basename AND
-# the full command line; Codex.app helpers carry a capital-C `Codex` name. The
-# NEAREST harness ancestor wins: a codex exec executor spawned by a Kimi
-# supervisor nests under kimi-code, and it is the codex session that arms.
+# `node …/bin/codex` (comm alone reads `node`), so classify_cmd matches argv[0]'s
+# basename AND the full command line; the Kimi CLI's process name is `kimi-code`
+# and Codex.app helpers carry capital-C `Codex …` names. The NEAREST harness
+# ancestor wins: a codex exec executor spawned by a Kimi supervisor nests under
+# kimi-code, and it is the codex session that arms.
 detect_harness() {
   local assume="${SPRINT_MAIL_ASSUME_HARNESS:-}"
   [ "$assume" = "none" ] && return 0
   [ -n "$assume" ] && { printf '%s\n' "$assume"; return 0; }
-  local pid="$$" ppid cmd base
+  local pid="$$" ppid cmd
   while [ -n "$pid" ] && [ "$pid" != "1" ]; do
     ppid="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')"
     [ -n "$ppid" ] || break
     cmd="$(ps -o command= -p "$ppid" 2>/dev/null)" || break
-    # basename of argv[0], done in-shell: macOS basename parses options, so it
-    # chokes on a login shell's `-zsh`/`-bash` argv[0].
-    base="$(printf '%s\n' "$cmd" | awk '{print $1}')"; base="${base##*/}"
-    case "$base" in
-      codex|claude|kimi|Codex) printf '%s\n' "$base" | tr 'A-Z' 'a-z'; return 0 ;;
-    esac
-    case "$cmd" in
-      */bin/codex\ *|*/bin/codex)   printf 'codex\n';  return 0 ;;
-      */bin/claude\ *|*/bin/claude) printf 'claude\n'; return 0 ;;
-      */bin/kimi\ *|*/bin/kimi)     printf 'kimi\n';   return 0 ;;
-    esac
+    classify_cmd "$cmd" && return 0
     pid="$ppid"
   done
 }
