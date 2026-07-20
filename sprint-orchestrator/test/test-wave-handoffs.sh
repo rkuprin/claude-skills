@@ -185,5 +185,30 @@ RERR="$(mktemp)"
 "$WH" "$SPRINT" 1 --topology main-session >/dev/null 2>"$RERR"
 [ -s "$RERR" ] && no "no warning when all events resolved (got: '$(cat "$RERR")')" || ok "no warning when all events resolved"
 
+# ---- --target: whole-sheet harness override (all feedback resolved above → clean stderr) ----
+KIMI="$("$WH" "$SPRINT" 1 --topology main-session --target kimi 2>/dev/null)"
+has "kimi target renders the cron wait form" "$KIMI" "Mailbox wait: you are a Kimi session — Kimi has no Stop-hook wait."
+has "kimi wait form carries the full helper path" "$KIMI" "\`~/.agents/skills/sprint-orchestrator/sprint-mail.sh unread $SPRINT '07-{SSS}-reply.md'\`"
+has "kimi wait form blocks the goal"        "$KIMI" "Then mark your goal blocked"
+has "kimi wait form resumes via UpdateGoal" "$KIMI" "resume the waiter's goal with UpdateGoal active"
+has "kimi wait form uses an epoch deadline" "$KIMI" "stat -f %m"
+has "kimi target renders the ~/.agents contract path" "$KIMI" "Execution contract: ~/.agents/skills/agent-handoff/EXECUTION.md"
+has "kimi target renders the advisory Launch line" "$KIMI" "Launch: Kimi session · model per session config (tier B advisory — the ladder has no Kimi cell)"
+has "kimi sheet header notes the override"  "$KIMI" '**`--target kimi` applied**'
+case "$KIMI" in *'arm --harness'*) no "kimi sheet contains no arm --harness" ;; *) ok "kimi sheet contains no arm --harness" ;; esac
+case "$KIMI" in *'~/.claude/skills/agent-handoff/EXECUTION.md'*) no "kimi sheet carries no claude contract path" ;; *) ok "kimi sheet carries no claude contract path" ;; esac
+case "$KIMI" in *'~/.codex/skills/agent-handoff/EXECUTION.md'*) no "kimi sheet carries no codex contract path" ;; *) ok "kimi sheet carries no codex contract path" ;; esac
+
+CX="$("$WH" "$SPRINT" 1 --topology main-session --target codex 2>/dev/null)"
+case "$CX" in *'~/.claude/skills/agent-handoff/EXECUTION.md'*) no "codex target forces the codex contract path on every story" ;; *) ok "codex target forces the codex contract path on every story" ;; esac
+has "codex target forces a claude-hint story to the codex cell" "$CX" "Launch: gpt-5.6-luna · medium (tier C)"
+
+"$WH" "$SPRINT" 1 --topology main-session --target desk >/dev/null 2>&1 \
+  && no "unknown --target refused" || ok "unknown --target refused"
+"$WH" "$SPRINT" 1 --topology subagent --target kimi >/dev/null 2>&1 \
+  && no "--target with subagent topology refused" || ok "--target with subagent topology refused"
+"$WH" "$SPRINT" 1 --topology main-session --target >/dev/null 2>&1 \
+  && no "bare --target refused" || ok "bare --target refused"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
