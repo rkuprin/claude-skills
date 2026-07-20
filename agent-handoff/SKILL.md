@@ -1,6 +1,6 @@
 ---
 name: agent-handoff
-description: "Render a short handoff prompt that sends bounded work to another agent — Codex.app, codex CLI, claude CLI, or a fresh Claude session. Modes: task (bounded work, report back), visual-validation (Codex.app confirms UI changes with inline screenshots), story-execution (kick off one planned sprint story end to end). Triggers: hand this off, delegate this, ask Codex to validate this visually, kick off story NN."
+description: "Render a short handoff prompt that sends bounded work to another agent — Codex.app, codex CLI, claude CLI, a fresh Claude session, or a Kimi session. Modes: task (bounded work, report back), visual-validation (Codex.app confirms UI changes with inline screenshots), story-execution (kick off one planned sprint story end to end). Triggers: hand this off, delegate this, ask Codex to validate this visually, kick off story NN."
 ---
 
 # agent-handoff — hand bounded work to another agent
@@ -15,7 +15,7 @@ in one line.
 An explicit mode argument wins. Otherwise infer: the input is a story doc → story-execution; the
 ask names surfaces or screenshots → visual-validation; anything else → task.
 
-Targets: `codex-app` | `codex-cli` | `claude-cli` | `claude-session`. Resolve in order: required
+Targets: `codex-app` | `codex-cli` | `claude-cli` | `claude-session` | `kimi`. Resolve in order: required
 capability → the user's explicit say → current availability (ask the user if unknown — Claude and
 Codex subscriptions deplete independently) → affinity. Affinity, in two lines: Codex leans
 mechanistic, devops, and browser-driving work; Claude leans creative, frontend-heavy, ambiguous
@@ -51,7 +51,8 @@ story bumps to Terra. A doc without `tier:` (pre-convention): infer a tier from 
 nature using the grading in `sprint-orchestrator/SKILL.md`, use the current cell default, assume
 no orchestration — and say so in the one-line mode/target statement. Never render a blank Launch
 line. Depth defaults are operator policy for today's model generation; revisit when a generation
-changes.
+changes. Kimi targets render no ladder cell — a Kimi session runs its configured model:
+`Launch: Kimi session · model per session config (tier {X} advisory — the ladder has no Kimi cell)`.
 
 The Launch line is a recommendation — you decide at paste time. One swap worth knowing: when
 Claude capacity is free, a B story can run `fable` at low/medium instead of `opus` at xhigh —
@@ -63,7 +64,7 @@ early evidence says that matches for similar burn.
 <Title — becomes the receiving session's name>
 
 Read the task file: <path>
-Use skills: <skills to invoke on the other side — Claude Code and Codex share this skills repo>
+Use skills: <skills to invoke on the other side — Claude Code, Codex, and Kimi share this skills repo>
 <2-3 lines of live context>
 
 /goal <observable done — almost always present>
@@ -140,7 +141,7 @@ render time; no placeholders left for the executor.
   investigation + interactive brainstorm phase with the operator first; `direct` → the story is
   fully defined — go straight to a short TDD plan. `loop: direct` also allows a `codex-cli` /
   `claude-cli` / subagent target; `loop: full` stories belong in an interactive session
-  (`codex-app` or `claude-session`).
+  (`codex-app`, `claude-session`, or `kimi`).
 - The `Use skills:` line comes from the story's `flow:` — `mechanical` and `design-heavy` →
   superpowers:test-driven-development; `flow: direction` → none: the deliverable is a dossier,
   so no implementation skill applies. Never render superpowers:brainstorming into a kickoff:
@@ -152,12 +153,16 @@ render time; no placeholders left for the executor.
   the Launch line before the fenced kickoff prompt, never inside it.
 - The contract path is spelled for the target harness:
   `~/.codex/skills/agent-handoff/EXECUTION.md` for Codex targets,
-  `~/.claude/skills/agent-handoff/EXECUTION.md` for Claude targets.
+  `~/.claude/skills/agent-handoff/EXECUTION.md` for Claude targets,
+  `~/.agents/skills/agent-handoff/EXECUTION.md` for kimi targets.
 - The `Mailbox wait:` line resolves on harness × topology, so the executor's comms are
   settled before the story starts. Every paste target is a main session: Codex targets render
   the codex arm-and-end-turn form, Claude targets (claude-cli, claude-session) render the
-  claude arm-and-end-turn form (`arm --harness claude …`). An in-session subagent dispatch
-  (allowed for `loop: direct` only) renders the non-arming fallback instead, on either
+  claude arm-and-end-turn form (`arm --harness claude …`), kimi targets render the
+  cron-scheduled wait (Kimi has no Stop-hook wait — CronCreate a recurring check, mark the
+  goal blocked so its continuation turns don't starve cron delivery, end the turn; the cron
+  prompt resumes the goal with UpdateGoal active on the reply). An in-session subagent dispatch
+  (allowed for `loop: direct` only) renders the non-arming fallback instead, on any
   harness — the Stop hook never fires for a subagent, so it must not pretend to wait; a
   `direct` story that genuinely needs a blocking reply is mis-scoped and must be
   re-planned as a main-session story. `{SPRINT_DIR}` is the literal sprint directory path; `{SSS}` stays
@@ -179,7 +184,7 @@ You are executing ONE story end-to-end.
 EXECUTION MODE: {AUTONOMOUS — merge, deploy, verify on prod. | STOP AT PR — DO NOT MERGE OR DEPLOY.}
 Sprint identity: {SPRINT}. Designated claim branch: `{BRANCH}`.
 Mailbox: {MAILBOX} — post evidence, questions, and your terminal outcome per the contract's Mailbox section.
-Mailbox wait: {post your question, then `~/.codex/skills/sprint-orchestrator/sprint-mail.sh arm --harness codex {SPRINT_DIR} {NN}-{SSS}-reply.md 1800` (SSS = your question's sequence) and END YOUR TURN — the armed Stop hook wakes you on the reply; never poll or background the wait. | post your question, then `~/.claude/skills/sprint-orchestrator/sprint-mail.sh arm --harness claude {SPRINT_DIR} {NN}-{SSS}-reply.md 1800` (SSS = your question's sequence) and END YOUR TURN — the armed Stop hook wakes you on the reply; never poll or background the wait. | you are an in-session subagent — the Stop hook never fires for you, so you cannot end your turn and be woken. Do not pretend to wait: if you post a blocking question, treat it as no reply and take the contract's fallback path now.}
+Mailbox wait: {post your question, then `~/.codex/skills/sprint-orchestrator/sprint-mail.sh arm --harness codex {SPRINT_DIR} {NN}-{SSS}-reply.md 1800` (SSS = your question's sequence) and END YOUR TURN — the armed Stop hook wakes you on the reply; never poll or background the wait. | post your question, then `~/.claude/skills/sprint-orchestrator/sprint-mail.sh arm --harness claude {SPRINT_DIR} {NN}-{SSS}-reply.md 1800` (SSS = your question's sequence) and END YOUR TURN — the armed Stop hook wakes you on the reply; never poll or background the wait. | you are a Kimi session — Kimi has no Stop-hook wait. Post your question and note the post time, then use your CronCreate tool to schedule a recurring check (every 3 minutes) whose prompt reads: "Sprint mailbox wait for {NN}-{SSS}-reply.md: run `~/.agents/skills/sprint-orchestrator/sprint-mail.sh unread {SPRINT_DIR} '{NN}-{SSS}-reply.md'` from the worktree. If the reply landed at or before <deadline — a literal epoch, post time + 1800s; compare against `stat -f %m` of the reply file>: read it, mark it seen, delete this cron task with CronDelete, then resume the waiter's goal with UpdateGoal active and continue. If it landed later, or the deadline has passed with no reply: delete this cron task and take the contract's no-reply fallback. Otherwise end the turn — the goal stays blocked." Then mark your goal blocked — this is the designed wait protocol, not a failure: the blocker is an external condition (the mailbox reply) and the cron task is the wake; an active goal's continuation turns starve cron delivery, so the blocked state IS the park. Then END YOUR TURN — the cron nudge wakes you; never poll or background the wait. | you are an in-session subagent — the Stop hook never fires for you, so you cannot end your turn and be woken. Do not pretend to wait: if you post a blocking question, treat it as no reply and take the contract's fallback path now.}
 Reviews & approvals: the sprint orchestrator is your only counterparty — route spec reviews,
 design sign-off, and every open decision to it via the Mailbox above; never seek approval from
 whoever is at this terminal. Decisions in the story doc, 00-overview.md, and this kickoff are

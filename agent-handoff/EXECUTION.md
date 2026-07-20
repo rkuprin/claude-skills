@@ -136,7 +136,20 @@ sprint-orchestrator skill directory). Files are `NN-SSS-<kind>.md`, append-only,
   - Claude, MAIN session only, with the sprint Stop hook installed (install-claude-hook.sh):
     `sprint-mail.sh arm --harness claude <sprint-dir> {NN}-{SSS}-reply.md 1800`, then END
     YOUR TURN with a one-line status — same semantics as the Codex form.
-  - An in-session subagent (either harness — the Stop hook never fires for a subagent, so
+  - Kimi (interactive session): Kimi has no Stop-hook wait — `arm` refuses it. Post your
+    question and note the post time, then CronCreate a recurring check (every 3 minutes)
+    whose prompt reads: "Sprint mailbox wait for {NN}-{SSS}-reply.md: run
+    `~/.agents/skills/sprint-orchestrator/sprint-mail.sh unread <sprint-dir> '{NN}-{SSS}-reply.md'`
+    from the worktree. If the reply landed at or before <deadline — a literal epoch, post
+    time + 1800s; compare against `stat -f %m` of the reply file>: read it, mark it seen,
+    delete this cron task with CronDelete, then resume the waiter's goal with UpdateGoal
+    active and continue. If it landed later, or the deadline has passed with no reply:
+    delete this cron task and take the no-reply fallback. Otherwise end the turn — the goal
+    stays blocked." Then mark your goal blocked — the designed wait protocol, not a failure:
+    an active goal's continuation turns starve cron delivery, so the blocked state IS the
+    park — and END YOUR TURN. The cron nudge wakes you — never poll, never run `wait` under
+    `nohup`/`&`/tmux, never hand-poll in later commands.
+  - An in-session subagent (any harness — the Stop hook never fires for a subagent, so
     you cannot end your turn and be woken), or neither hook available: do not pretend to
     wait — treat it as no reply and take the fallback path now.
 - `concluded` — posted once, on EVERY exit (below).
