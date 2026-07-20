@@ -118,7 +118,9 @@ detect_harness() {
     ppid="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')"
     [ -n "$ppid" ] || break
     cmd="$(ps -o command= -p "$ppid" 2>/dev/null)" || break
-    base="$(basename "$(printf '%s\n' "$cmd" | awk '{print $1}')")"
+    # basename of argv[0], done in-shell: macOS basename parses options, so it
+    # chokes on a login shell's `-zsh`/`-bash` argv[0].
+    base="$(printf '%s\n' "$cmd" | awk '{print $1}')"; base="${base##*/}"
     case "$base" in
       codex|claude|kimi|Codex) printf '%s\n' "$base" | tr 'A-Z' 'a-z'; return 0 ;;
     esac
