@@ -12,8 +12,8 @@ the user's explicit go first.
 
 - Repo root: the directory this file sits in (canonical clone: `~/claude-skills`).
 - Detect harnesses: `~/.claude` exists → Claude Code is present; `~/.codex` exists → Codex is
-  present. For another harness that discovers skills from a directory, use its skills dir
-  wherever a skills path appears below.
+  present; `~/.kimi-code` exists → Kimi is present. For another harness that discovers skills
+  from a directory, use its skills dir wherever a skills path appears below.
 
 ## 1. Link the skills
 
@@ -22,6 +22,7 @@ From the repo root, once per harness present:
 ```bash
 ./install.sh                                    # -> ~/.claude/skills/   (Claude Code)
 CLAUDE_SKILLS_DIR=~/.codex/skills ./install.sh  # -> ~/.codex/skills/    (Codex)
+CLAUDE_SKILLS_DIR=~/.agents/skills ./install.sh # -> ~/.agents/skills/   (Kimi)
 ```
 
 Install into every harness present so they all run the **same files** and can never drift.
@@ -56,6 +57,9 @@ each pointing back into this repo.
     write. If the installer warns that hooks are disabled (`disableAllHooks` / managed
     policy), report it. Details:
     [`sprint-orchestrator/README.md`](sprint-orchestrator/README.md), "Reactive waits on Claude".
+  - Kimi present: nothing to wire — Kimi has no Stop-hook wait; its sessions wait via cron
+    sweeps they schedule themselves. Details:
+    [`sprint-orchestrator/README.md`](sprint-orchestrator/README.md), "Reactive waits on Kimi".
 - **claude-reviewer** (Codex summons Claude as reviewer): needs the Claude Code CLI on PATH;
   nothing else.
 - **agent-handoff**: no machine setup.

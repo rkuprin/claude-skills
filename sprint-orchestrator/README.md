@@ -14,8 +14,9 @@ Sprint orchestration is judgment-heavy, shortcut-friendly work: it prunes, refra
 re-scopes constantly. Run the planner on Anthropic models — **Fable** preferred, **Opus** as the
 fallback. Codex models execute stories well, but as planners they follow process too literally
 to cut short what deserves cutting short. This is launch advice for you, the operator — the
-running skill never checks or names its own model. Story-level routing is unaffected: the
-planner still routes each story with the tier ladder.
+running skill never checks or names its own model. On Kimi the planner runs whatever model the
+session is configured with — the advice above governs the Claude/Codex choice only.
+Story-level routing is unaffected: the planner still routes each story with the tier ladder.
 
 ## Prerequisites
 
@@ -38,6 +39,7 @@ From the project's repo root:
 ```bash
 /sprint-orchestrator        # Claude Code
 $sprint-orchestrator        # Codex
+/skill:sprint-orchestrator  # Kimi
 ```
 
 Paste the raw inputs. The skill verifies every candidate against the current code before believing
@@ -82,6 +84,7 @@ directory you have. Both symlinks resolve to this same file.
 cd ~/your-project
 ~/.claude/skills/sprint-orchestrator/sprint-status.sh docs/sprints/<sprint>
 ~/.codex/skills/sprint-orchestrator/sprint-status.sh  docs/sprints/<sprint>
+~/.agents/skills/sprint-orchestrator/sprint-status.sh docs/sprints/<sprint>   # Kimi
 ```
 
 Worth putting on your `PATH`:
@@ -218,6 +221,20 @@ Budget: the hook entry carries `timeout: 10860` — the 3h idle-wait budget (`ar
 plus 60s slack, mirroring Codex's 1800/1860 — and targeted reply waits keep `1800`. While a
 parked hook waits, it holds the Stop event's completion; co-installed Stop hooks (the iTerm
 status hook) still run — the only cost is that the event finishes when the wait does.
+
+### Reactive waits on Kimi — nothing to install
+
+Kimi has no Stop-hook wait (its hook timeout caps at 600s, fail-open), and there is no hook to
+wire: a Kimi supervisor or executor waits via a **recurring cron sweep it schedules itself**
+(CronCreate), then marks its goal blocked and ends its turn — an active goal's continuation
+turns starve cron delivery, so the blocked state is the park. The cron prompt runs the same
+`unread`/`seen` cursor sweep and self-deletes on reply, deadline, or wave conclusion. Wake
+latency is the cron period (minutes, vs ~2s for the hooks); correctness is the same durable
+read-cursor, so a missed fire is caught by the next one. The exact forms live in SKILL.md
+("Supervising the Wave") and the rendered kickoffs (`wave-handoffs.sh … --target kimi`).
+One preflight: the session's permission posture must let the mailbox commands and cron
+management run unattended (an auto permission mode or session-approved allow rules) — a sweep
+that stalls on an approval panel wakes no one.
 
 ## The rule that makes it work
 

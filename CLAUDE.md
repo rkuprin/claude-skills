@@ -36,6 +36,9 @@ dialect.
 - A skill that must never fire on its own needs **both** guards, because each harness reads
   only its own key: `disable-model-invocation: true` in `SKILL.md` (Claude) and
   `policy.allow_implicit_invocation: false` in `agents/openai.yaml` (Codex).
+- Kimi reads the same `disable-model-invocation: true` — the skill is hidden from the model's
+  listing but stays manually invocable as `/skill:<name>`. Kimi scans `~/.agents/skills/`;
+  install there with `CLAUDE_SKILLS_DIR=~/.agents/skills ./install.sh`.
 
 ## Prose rules
 

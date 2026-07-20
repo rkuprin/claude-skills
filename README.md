@@ -2,7 +2,7 @@
 
 A personal collection of **global** agent skills — version-controlled here, and installed by
 symlinking each skill into an agent's skills directory so it's callable as `/<skill-name>`
-(Claude) or `$<skill-name>` (Codex) from any project.
+(Claude), `$<skill-name>` (Codex), or `/skill:<skill-name>` (Kimi) from any project.
 
 The install mechanism and layout are skill-agnostic; adding one is "drop a directory and
 re-run the installer."
@@ -11,7 +11,7 @@ re-run the installer."
 |---|---|
 | [`codex`](codex/) | Summons OpenAI Codex as an independent second perspective |
 | [`claude-reviewer`](claude-reviewer/) | The mirror of `codex`: Codex summons Claude Code as an independent reviewer |
-| [`sprint-orchestrator`](sprint-orchestrator/) | Plans verified story handoffs, supervises the wave, and integrates results; story state derived from git. Run it on Claude — Fable, else Opus |
+| [`sprint-orchestrator`](sprint-orchestrator/) | Plans verified story handoffs, supervises the wave, and integrates results; story state derived from git. Planner: Claude (Fable, else Opus) or Kimi |
 | [`agent-handoff`](agent-handoff/) | Hands bounded work to another agent — task, visual-validation, and story-execution modes |
 
 `sprint-orchestrator` and `agent-handoff` are companions: one plans, the other hands off.
@@ -58,6 +58,7 @@ Doing it by hand instead:
 cd ~/claude-skills
 ./install.sh                                    # -> ~/.claude/skills/
 CLAUDE_SKILLS_DIR=~/.codex/skills ./install.sh  # -> ~/.codex/skills/  (optional)
+CLAUDE_SKILLS_DIR=~/.agents/skills ./install.sh # -> ~/.agents/skills/ (optional, Kimi)
 ```
 
 `install.sh` symlinks every skill directory into `$CLAUDE_SKILLS_DIR` (default
@@ -75,7 +76,8 @@ and `sprint-orchestrator/` needs its per-harness mailbox Stop hooks wired once p
 `sprint-orchestrator/install-codex-hook.sh` (Codex) and
 `sprint-orchestrator/install-claude-hook.sh` (Claude) — details in
 [`sprint-orchestrator/README.md`](sprint-orchestrator/README.md), "Reactive waits on Codex" /
-"Reactive waits on Claude".
+"Reactive waits on Claude". Kimi needs no hook — its waits are cron sweeps the session
+schedules itself ("Reactive waits on Kimi").
 
 > **If you are an agent setting this up on a new machine:** follow
 > [`INSTALL.md`](INSTALL.md) — it is written for you, verify steps included. Change nothing
