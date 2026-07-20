@@ -293,6 +293,8 @@ has   "mail: worktree-root cursor key"          "keyed by the worktree root" "$S
 has   "mail: arm refuses without wired hook"    "install-codex-hook.sh" "$SMAIL"
 has   "mail: arm claude branch names installer" "install-claude-hook.sh" "$SMAIL"
 has   "mail: arm requires --harness"            "arm requires --harness" "$SMAIL"
+has   "mail: arm refuses kimi with redirect"    "Kimi has no Stop-hook wait" "$SMAIL"
+hasnt "mail: no kimi hook installer"            "install-kimi-hook" "$SMAIL"
 has   "mail: unread usage line"                 "unread <sprint-dir> <name-or-glob(s)>" "$SMAIL"
 has   "mail: seen usage line"                   "seen <sprint-dir> <file>..." "$SMAIL"
 [ -x "$INSTALLER" ] && ok "installer: exists and is executable" || no "installer: exists and is executable"

@@ -24,7 +24,9 @@
 # $MAIL_ROOT/.codex-waits/, four lines — worktree root, absolute glob(s), timeout,
 # absolute cursor path. `--harness` selects which harness's Stop reference must
 # already exist (a reference is not proof the hook is active — installers own
-# that). `disarm` removes this worktree's record.
+# that). `disarm` removes this worktree's record. Kimi sessions do not arm —
+# Kimi has no Stop-hook wait; they wait via recurring cron sweeps (see
+# sprint-orchestrator/SKILL.md 'Supervising the Wave').
 #
 # `unread`/`seen` are a durable per-consumer read-cursor: `unread` lists mail
 # matching the glob(s) minus this cwd's cursor; `seen` appends read basenames.
@@ -59,6 +61,7 @@ if [ "$cmd" = "arm" ] && [ "${2:-}" = "--harness" ]; then
   harness="${3:-}"
   case "$harness" in
     codex|claude) ;;
+    kimi) err "arm refuses kimi — Kimi has no Stop-hook wait; a Kimi session waits via a recurring cron sweep (see the kickoff's Mailbox wait line or sprint-orchestrator/SKILL.md 'Supervising the Wave')" ;;
     *) err "arm --harness needs 'codex' or 'claude' (got: ${harness:-<empty>})" ;;
   esac
   shift 3; set -- arm "$@"

@@ -148,6 +148,14 @@ out="$("$SUT" arm "$SPRINT" "07-009-reply.md" 900 2>&1)"; rc=$?
 [ "$rc" = "2" ] && case "$out" in *"--harness"*) true ;; *) false ;; esac \
   && ok "arm without --harness refused, names the flag" || no "arm without --harness refused (rc=$rc out=$out)"
 
+# --harness kimi is refused with a redirect to the cron wait, and writes no record.
+out="$("$SUT" arm --harness kimi "$SPRINT" "07-009-reply.md" 900 2>&1)"; rc=$?
+[ "$rc" = "2" ] && case "$out" in *"Kimi has no Stop-hook wait"*) true ;; *) false ;; esac \
+  && ok "arm --harness kimi refused, names the cron wait" \
+  || no "arm --harness kimi refused, names the cron wait (rc=$rc out=$out)"
+[ -z "$(ls "$WAITS"/wait-* 2>/dev/null)" ] \
+  && ok "kimi refusal writes no wait record" || no "kimi refusal writes no wait record"
+
 "$SUT" arm --harness codex "$SPRINT" "sub/dir.md" 900 >/dev/null 2>&1 \
   && no "path-shaped pattern rejected" || ok "path-shaped pattern rejected"
 "$SUT" arm --harness codex "$SPRINT" "07-009-reply.md" "soon" >/dev/null 2>&1 \
