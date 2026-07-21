@@ -45,7 +45,8 @@ resolutions are appended as new events. Event IDs of all kinds carry the story n
 `rp-YYYYMMDD-NN-<n>`, `dr-YYYYMMDD-NN-<n>`, `dp-YYYYMMDD-NN-<n>` — so parallel writers cannot
 collide on same-day IDs. Wave-scoped events — the pre-dispatch `rv-YYYYMMDD-w<wave>-<n>` and the
 retro `rt-YYYYMMDD-w<wave>-<n>` — carry the wave number instead: they belong to no single story.
-Events already recorded keep their old IDs.
+Sprint-scoped events — the STAGE transition record `st-YYYYMMDD-<n>` — carry neither: they
+belong to the whole sprint. Events already recorded keep their old IDs.
 
 REPLAN (executor handback; written under EXECUTION.md's divergence protocol):
 
@@ -88,6 +89,15 @@ RETRO (one per driver family that executed in the wave, at wave conclusion):
     - Findings: <one line each | none>
     - Advice: <one line each | none>
     - Report: <path to the reviewer's full output>
+
+STAGE (the declared project stage changed mid-program; decided by the operator at the gate,
+so it is a decision record — it needs no RESOLUTION block):
+
+    ## STAGE — st-YYYYMMDD-<n>
+    - Was: <stage recorded in 00-overview.md>
+    - Now: <declared stage>
+    - Decision: forward-only | re-baseline
+    - Rationale: <one line>
 
 ### The unresolved-event sweep
 
@@ -364,6 +374,21 @@ even though only the operator and the fresh planner decide what walks through it
     /goal <Next sprint> brief discussed and approved, wave 1 planned, dispatched, and
     supervised to conclusion — every story merged or disposed — and the next planner
     handoff rendered.
+
+## Project stage
+
+The project's exposure stage is declared once, in one line:
+
+    Project stage: playground | internal | pre-launch | live
+
+Discovery order mirrors the tracker binding: a path named by the operator, then the
+project's `AGENTS.md`, then its `CLAUDE.md`. If nothing is declared, ask once at the brief
+gate and offer to write the line; if the operator declines, record the working assumption
+in `00-overview.md` and proceed — the stage is mentioned once, never nagged.
+
+Record the stage in `00-overview.md` as `Planned under stage: <stage>` — set at the brief,
+updated on transition. The Critic sees it there as part of the full-sprint context; no
+summons machinery carries it.
 
 ## Tracker binding
 
