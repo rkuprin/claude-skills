@@ -83,6 +83,11 @@ stories skip to step 3.
 Tests + typecheck; drive the story doc's Browser Verification locally; capture the "after"
 screenshots; open any produced artifact. Fix until green.
 
+- Codex executors on `loop: full` stories: once green, self-review before moving on —
+  re-read the full diff (`git diff origin/main...HEAD`) against the story's "Done means",
+  your ownership bounds, and the evidence you gathered; fix what you find. Record
+  `Self-review: completed` (or what it surfaced) in the hand-back.
+
 ## 6. Merge & deploy — AUTONOMOUS mode only
 
 Under STOP AT PR: open a PR, do not merge, do not deploy. Trailers still go on every commit; `DONE`
