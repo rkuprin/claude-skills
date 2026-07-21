@@ -40,6 +40,16 @@ Before any story is written, measure three things:
 - **Risks** — blast radii, shared-file hotspots, dependency edges, and what is expensive to
   be wrong about.
 
+One standing attribute rides with the three: the **project stage** — `playground`,
+`internal`, `pre-launch`, or `live`, declared once in the project's instructions (format
+and discovery in REFERENCE.md). It is a fact of reality about exposure — who suffers when
+this breaks right now. Weigh it when you judge which gates a story needs, how tight
+"done means" should be, `loop:` choices, and what you put before the Critic. There is no
+per-stage table: the nature of the project combined with the stage is your call, and the
+pre-recap Critic read stays always at every stage. Record the stage you planned under in
+`00-overview.md`; when the declared stage no longer matches, surface the mismatch at the
+next gate — forward-only or re-baseline is the operator's call.
+
 Stories are the output of holding these three against each other — never the starting
 material. Planning is high-level routing backed by in-depth research, never per-story
 implementation planning.
@@ -57,6 +67,9 @@ You ask the operator:
   is seen before it runs. The recap shows every story's `loop:` so they can veto it there;
 - capacity — ask how Claude/Codex/Kimi capacity looks right now, record it as plan-time
   context; it informs routing suggestions, never a `driver_hint`;
+- a stage transition — when the declared project stage (Vital Signs) no longer matches
+  what the sprint was planned under, forward-only or re-baseline is their call, surfaced
+  at the next gate;
 - a dead transport — takeover and leftover integration require the operator's confirmation
   that the prior session is really gone. Death is confirmed, never inferred.
 
