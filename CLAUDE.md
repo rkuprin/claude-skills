@@ -51,5 +51,8 @@ dialect.
 
 - A skill is any top-level directory containing a `SKILL.md`. `install.sh` links **every**
   such directory into the target skills dir — there is no exclusion mechanism.
+- In `sprint-orchestrator/`, `SKILL.md` is the constitution (judgment-grade: mandate,
+  decision rights, invariants) and `REFERENCE.md` holds the mechanics (precision-grade:
+  formats, commands, templates). Edits to one should not leak into the other's register.
 - `docs/` holds specs, plans, and review records (superpowers layout); it is not installed.
 - `AGENTS.md` is a symlink to this file so Codex reads the same instructions.

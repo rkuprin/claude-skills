@@ -8,6 +8,18 @@ fresh session at each wave boundary. Story state stays derived from git througho
 Pairs with [`agent-handoff`](../agent-handoff/), whose story-execution mode renders the kickoff
 prompt that actually runs a story.
 
+## Layout
+
+The skill is built in layers, at two altitudes of prose:
+
+- `SKILL.md` — the **constitution**: the management layer's mandate, decision rights, and
+  invariants. Judgment-grade; it says why and when.
+- `REFERENCE.md` — the **mechanics**: exact trailer/event formats, mailbox commands, the
+  ladder, templates. Precision-grade; loaded on demand when performing the mechanical act.
+- `../agent-handoff/EXECUTION.md` — the executor's contract: detailed, technical, concrete.
+- `../codex/CHARTER.md` — the critic layer's disposition (question the premise, treat the
+  brief as a claim to test), loaded by the critic skills on every run.
+
 ## Where to run it
 
 Sprint orchestration is judgment-heavy, shortcut-friendly work: it prunes, reframes, and
@@ -68,13 +80,26 @@ investigation dossier (`dossier-NN.md` — the name deliberately misses the `[0-
 plus a `## DIRECTION — …` event. Any re-invocation of the skill on the sprint dir resolves
 unresolved events first, appending `## RESOLUTION — <id>` blocks — events are immutable and
 append-only. After you approve the recap, the planner may also execute `loop: direct` stories
-itself as worktree-isolated subagents under the same execution contract (see Executing Direct
-Stories In-Session in SKILL.md); when Claude capacity is tight the same stories render as Codex
-handoffs instead.
+itself as worktree-isolated subagents under the same execution contract (see In-session
+dispatch mechanics in REFERENCE.md); when Claude capacity is tight the same stories render as
+Codex handoffs instead.
 
 Set `execution: autonomous` or `execution: stop-at-pr` once in `00-overview.md`. The planner copies
 it into every story doc, so each doc stands alone and never has to read the overview to learn whether
 it may merge.
+
+The plan is not done when the orchestrator finishes writing it — it is done when the Critic
+has read it and spoken. The Critic is a different model family, summoned through the
+[`codex`](../codex/) and [`claude-reviewer`](../claude-reviewer/) skills under their own
+charter (`codex/CHARTER.md`), never re-described here. It reads the wave at two moments —
+before dispatch (recorded as a `## REVIEW — rv-…` event, presented at the recap) and at each
+wave conclusion (a retro over everything that landed, recorded as `## RETRO — rt-…` events
+whose advice feeds the next planning session) — and the orchestrator may summon it on any
+expensive fork in between. Both runs are cross-family (Codex reviews what Claude and Kimi
+write, Claude/Kimi reviews what Codex writes) with the full sprint as context. The Critic's
+advice is weighed by the orchestrator's judgment, never enforced mechanically. Codex executors
+on `loop: full` stories additionally self-review their diff before handing off (EXECUTION.md
+step 5).
 
 ## Read the state
 
@@ -231,8 +256,8 @@ wire: a Kimi supervisor or executor waits via a **recurring cron sweep it schedu
 turns starve cron delivery, so the blocked state is the park. The cron prompt runs the same
 `unread`/`seen` cursor sweep and self-deletes on reply, deadline, or wave conclusion. Wake
 latency is the cron period (minutes, vs ~2s for the hooks); correctness is the same durable
-read-cursor, so a missed fire is caught by the next one. The exact forms live in SKILL.md
-("Supervising the Wave") and the rendered kickoffs (`wave-handoffs.sh … --target kimi`).
+read-cursor, so a missed fire is caught by the next one. The exact forms live in REFERENCE.md
+("Mailbox mechanics") and the rendered kickoffs (`wave-handoffs.sh … --target kimi`).
 One preflight: the session's permission posture must let the mailbox commands and cron
 management run unattended (an auto permission mode or session-approved allow rules) — a sweep
 that stalls on an approval panel wakes no one.
