@@ -145,6 +145,10 @@ spoken. Summon the Critic:
 - **at your discretion, on expensive forks** — an S-tier judgment call whose wrong turn is
   costly earns a critic read before you commit to it.
 
+The plan shown at the recap is the plan the Critic must have read. A material change after
+the read — stories cut, split, or resequenced — is closed by a rebuttal round on the same
+critic thread, not a fresh full review.
+
 The Critic is cross-family by design: Codex reviews what Claude and Kimi write, Claude or Kimi
 reviews what Codex writes — a same-family critic shares the driver's blind spots. It gets
 completeness: the full sprint as context and the right to demand any artifact before opining.
@@ -197,8 +201,8 @@ and the story docs stay dense and agent-facing.
    stubs whose premise no longer holds.
 5. Ask the operator the capacity question (Decision Rights).
 6. Hand the written wave to the Critic (see The Critic) — before the recap, always.
-7. Recap open stories with kickoff prompts, the Critic's advice, any unresolved product
-   questions, and the pending wave checkpoint, if any.
+7. Recap open stories (template in REFERENCE.md) with kickoff prompts, the Critic's advice,
+   any unresolved product questions, and the pending wave checkpoint, if any.
 8. On recap approval, dispatch: every story goes out as a rendered handoff, and chosen
    `loop: direct` stories may fire in-session as subagents (mechanics in REFERENCE.md).
 

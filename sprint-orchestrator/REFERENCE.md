@@ -307,6 +307,21 @@ path; the kickoff renders `Use skills: none` for direction stories.
 `00-overview.md` must include merge order, dependency edges, shared file hotspots, deferred-wave
 stubs, cut items with reasons, and the path to `STORY-FEEDBACK.md`.
 
+## Recap template
+
+Rendered by the planner at the dispatch gate — after the Critic read, before any story goes
+out; the operator approves or vetoes here. The `Critic:` line is mandatory: a skipped read
+must show as `none — why`, never as silence.
+
+    Wave <N> recap — <sprint-basename>
+
+    Critic: <rv-id | none — why>.
+    Stories: <one line each — NN, working title, loop:, transport>.
+    Critic's advice: <what each finding did — amend, cut, noted disagreement | clean read>.
+    Open questions: <product questions for the operator | none>.
+
+    Dispatch on approval.
+
 ## Planner handoff template
 
 Rendered by the outgoing supervisor at a wave boundary; pasted by the operator into a fresh
