@@ -328,6 +328,28 @@ The `/goal` targets the NEXT wave boundary — a goal that ends at dispatch woul
 plan-and-exit behavior this lifecycle replaces. `/goal` is native on all three harnesses, so
 the handoff pastes cleanly into Claude, Codex, or Kimi.
 
+### Sprint-terminal variant
+
+When the sprint is complete — every story DONE or DISPOSED and no wave N+1 — render this form
+instead. The re-invoke line is mandatory here too: the outgoing supervisor names the door,
+even though only the operator and the fresh planner decide what walks through it.
+
+    Sprint complete: <sprint-basename> — no wave <N+1>.
+
+    Next: <next sprint per program order | none known>. Re-invoke /sprint-orchestrator with
+    raw inputs when ready — a new sprint opens at the brief gate.
+    Scope leads (to verify, not decisions): <pointers — dossier sections, overview stubs,
+    cut items — that the next brief discussion should test against current source truth>.
+    Wave <N> outcome: <one line per story — merged / disposed / leftover>.
+    Leftover in flight: <story NN and who holds it | none>.
+    Unresolved events: <ids | none>.
+    Wave retro: <rt-ids | none>.
+    Mailbox: <literal mailbox path> — reconciled.
+
+    /goal <Next sprint> brief discussed and approved, wave 1 planned, dispatched, and
+    supervised to conclusion — every story merged or disposed — and the next planner
+    handoff rendered.
+
 ## Tracker binding
 
 If the project wants tracker writes, define the binding once in `.sprint/tracking.md`, project instructions, or another user-specified file. Discovery order is: a path named by the user, then `.sprint/tracking.md`, then a clearly labeled tracker binding in project instructions. If no binding exists, use `tracker: none`.

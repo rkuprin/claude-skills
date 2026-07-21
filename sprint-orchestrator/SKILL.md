@@ -278,6 +278,11 @@ A wave concludes when every story is DONE or DISPOSED. Run the wave retro (The C
 render a planner handoff for a fresh session (template in REFERENCE.md) and stop — the next
 wave is never planned in this transcript.
 
+When the sprint itself is complete — no wave N+1 — the handoff still carries the skill call,
+aimed at whatever comes next: a new sprint opens at the brief gate. It names the next sprint
+when program order defines one, and it carries scope leads as pointers to verify —
+never authored scope — what gets built next is decided with the operator at the brief gate,
+not by the outgoing supervisor.
 **Early unblock.** If only a leftover story holds the wave and nothing in wave N+1 depends on
 it, render the planner handoff now and demote yourself: from that moment, answer no mailbox
 messages and write no planning files — story docs, `00-overview.md`, and event resolutions
