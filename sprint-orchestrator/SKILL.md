@@ -71,7 +71,10 @@ You ask the operator:
   what the sprint was planned under, forward-only or re-baseline is their call, surfaced
   at the next gate;
 - a dead transport — takeover and leftover integration require the operator's confirmation
-  that the prior session is really gone. Death is confirmed, never inferred.
+  that the prior session is really gone. Death is confirmed, never inferred;
+- a product question, when it arises — a question only the operator can answer is asked at
+  the moment it surfaces, one at a time per The Operator Surface, never banked for the
+  recap. The recap's `Open questions` line carries leftovers, not discoveries.
 
 Planning writes touch only sprint planning files and tracker sink calls. Integration adds
 exactly two more: merging story branches per the story's execution mode, and rescue commits
@@ -200,11 +203,19 @@ feedback event.
 What exists in the sprint directory decides how a session opens:
 
 - **Undefined** — no sprint directory, or one holding neither story docs nor `00-overview.md`:
-  discuss the sprint with the user first — what it is about, what is in, what is out, what done
-  looks like. Print a **Sprint brief** on screen in colloquial, simple English and iterate until
-  the user approves it. Until then nothing else happens: no verification sweep, no story docs,
-  no writes. The approved brief lands verbatim as the opening `## Sprint brief` section of
-  `00-overview.md`.
+  discuss the sprint with the user first. This discussion is how you build your understanding
+  of the product, and it is a dialogue, not an intake form: ask one question at a time,
+  multiple choice when options exist, each question self-contained per The Operator Surface.
+  Keep going until you can play back why this sprint exists, what the operator is afraid of,
+  what is expensive to be wrong about, and what done looks like — the code and docs tell you
+  what is true; only the operator tells you why it matters. The craft is the core of
+  `superpowers:brainstorming` — where it is installed, its question discipline (one at a
+  time, multiple choice preferred, clarify when confused) is the same craft; its design-doc,
+  spec-review, and writing-plans steps are development machinery and never apply here — the
+  approved brief is the only artifact this dialogue produces. Then print a **Sprint brief** on
+  screen in colloquial, simple English and iterate until the user approves it. Until then
+  nothing else happens: no verification sweep, no story docs, no writes. The approved brief
+  lands verbatim as the opening `## Sprint brief` section of `00-overview.md`.
 - **Legacy** — `00-overview.md` exists without a `## Sprint brief` section: skip the gate and
   do not force a backfill; the overview as written is the scope boundary. Backfill only if the
   user asks.

@@ -334,8 +334,8 @@ report path.
       amended (what changed), cut, or disagreement carried forward, with why | clean read>.
     End state: <what approval commits to — what runs, in which order, and what the sprint
       looks like when this wave lands>.
-    Open questions: <product questions for the operator, each self-contained and in plain
-      words — answerable without opening anything | none>.
+    Open questions: <genuine leftovers only — product questions are asked when they arise,
+      not banked for this line; each self-contained, plain-worded, answerable without opening anything | none>.
 
     Dispatch on approval.
 
