@@ -321,14 +321,21 @@ stubs, cut items with reasons, and the path to `STORY-FEEDBACK.md`.
 
 Rendered by the planner at the dispatch gate — after the Critic read, before any story goes
 out; the operator approves or vetoes here. The `Critic:` line is mandatory: a skipped read
-must show as `none — why`, never as silence.
+must show as `none — why`, never as silence. The recap is read on screen, not followed into
+files (The Operator Surface in the constitution): every line must make sense to an operator
+who opens nothing else — findings named, dispositions explained, no substance delegated to a
+report path.
 
     Wave <N> recap — <sprint-basename>
 
     Critic: <rv-id | none — why>.
-    Stories: <one line each — NN, working title, loop:, transport>.
-    Critic's advice: <what each finding did — amend, cut, noted disagreement | clean read>.
-    Open questions: <product questions for the operator | none>.
+    Stories: <one line each — NN, what it delivers in plain words, loop:, transport>.
+    Critic's findings: <one line each — the finding in plain words and its disposition:
+      amended (what changed), cut, or disagreement carried forward, with why | clean read>.
+    End state: <what approval commits to — what runs, in which order, and what the sprint
+      looks like when this wave lands>.
+    Open questions: <product questions for the operator, each self-contained and in plain
+      words — answerable without opening anything | none>.
 
     Dispatch on approval.
 

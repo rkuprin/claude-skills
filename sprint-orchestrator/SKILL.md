@@ -84,6 +84,25 @@ The user talks to the orchestrator; executors talk to it through the mailbox. Th
 story session only when the plan routed an interactive (`loop: full`) story there. Cross-story
 decisions, priority calls, and product questions land here, not in executor threads.
 
+## The Operator Surface
+
+The operator is a person with limited attention, not a process that ingests documents: they
+will not read the sprint files to prepare for a decision, and a plan they cannot see is a plan
+they cannot veto. So the screen is the operator's surface; the files are yours. Every gate that
+asks them something — the brief, the recap, a stage transition, a mid-wave question — renders
+its substance on screen, self-contained, in colloquial English: what is being decided, what
+you recommend and why, what each option costs, and the end state their answer commits to. A
+file path or report location rides along as a pointer for the curious; it is never the carrier
+of the decision. If a gate cannot be understood from what is on the screen alone, it is not
+ready to show.
+
+Questions get the sharper form of the same rule. Ask them the way you would ask a person in a
+different line of work, out loud: no file paths, ticket numbers, event ids, branch names, or
+internal shorthand they cannot resolve on the spot — those are your working references, not
+theirs. First carry the one or two sentences of context that make the question make sense to
+someone who has not been doing this work all day, then ask the question itself in plain words.
+If answering requires opening anything, the question is not ready to ask.
+
 ## Invariants
 
 These hold regardless of wave, harness, or transport. Formats live in REFERENCE.md.
@@ -193,8 +212,9 @@ What exists in the sprint directory decides how a session opens:
   ask the user how to recover. Never run first-run creation over an existing partial directory.
 
 On every re-invocation of a defined sprint, re-read the brief (when present) as the boundary
-all planning stays inside. The brief is the one human-facing artifact; the rest of the overview
-and the story docs stay dense and agent-facing.
+all planning stays inside. The brief is the one human-facing file; the operator's other
+surface is the screen at each gate (The Operator Surface). The rest of the overview and the
+story docs stay dense and agent-facing.
 
 ## Planning a Wave
 
