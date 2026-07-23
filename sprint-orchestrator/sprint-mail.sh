@@ -4,6 +4,7 @@
 #   sprint-mail.sh post <sprint-dir> <NN> <kind> [<file>|-]
 #   sprint-mail.sh list <sprint-dir> [<NN>]
 #   sprint-mail.sh wait <sprint-dir> <name-or-glob> [<timeout-seconds>]
+#   sprint-mail.sh watch <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
 #   sprint-mail.sh arm --harness <codex|claude> <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
 #   sprint-mail.sh supervise --harness <codex|claude|kimi> <sprint-dir>
 #   sprint-mail.sh disarm <sprint-dir> [--stale]
@@ -20,14 +21,18 @@
 #   supervisor:       note (own counter)
 # `concluded` bodies must open with:  outcome: merged|pr-ready|handback|blocked|failed|dossier
 #
-# `arm --harness codex|claude` registers a reactive wait for that harness's Stop
-# hook (codex-stop-wait.sh / claude-stop-wait.sh): one record per worktree under
-# $MAIL_ROOT/.codex-waits/, four lines — worktree root, absolute glob(s), timeout,
-# absolute cursor path. `--harness` selects which harness's Stop reference must
-# already exist (a reference is not proof the hook is active — installers own
-# that). `disarm` removes this worktree's record. Kimi sessions do not arm —
-# Kimi has no Stop-hook wait; they wait via recurring cron sweeps (see
-# sprint-orchestrator/SKILL.md 'Supervising the Wave').
+# `arm --harness codex` registers a reactive wait for the Codex Stop hook
+# (codex-stop-wait.sh): one record per worktree under $MAIL_ROOT/.codex-waits/,
+# four lines — worktree root, absolute glob(s), timeout, absolute cursor path.
+# `--harness` requires the hook's Stop reference to already exist (a reference
+# is not proof the hook is active — installers own that). `disarm` removes this
+# worktree's record. Claude sessions do not arm — the Claude wait is `watch`,
+# launched as a harness background task (Monitor): a cursor-aware poll that
+# prints exactly ONE stdout line (new mail, timeout guidance, or error — errors
+# mirrored to stderr) and exits; one watch per worktree via an advisory lock in
+# <mail_dir>/.watch/ (stale when its PID is dead or its age passes 2x timeout).
+# Kimi sessions wait via recurring cron sweeps (see sprint-orchestrator/SKILL.md
+# 'Supervising the Wave').
 # `arm` also warns (never refuses) when the session it runs in looks like a
 # different harness than --harness names — detection walks the ancestor chain's
 # full command lines, nearest harness ancestor wins. SPRINT_MAIL_ASSUME_HARNESS
@@ -43,10 +48,16 @@ MAIL_ROOT="${SPRINT_MAIL_ROOT:-$HOME/.sprint-mail}"
 POLL="${SPRINT_MAIL_POLL:-20}"
 
 usage() {
+  # watch runs under a background launcher whose wake event is stdout-only, so
+  # its failures must land one line on stdout too — stderr alone is a silent death.
+  if [ "${cmd:-}" = "watch" ]; then
+    echo "sprint-mail: bad or missing arguments — usage: sprint-mail.sh watch <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]"
+  fi
   cat >&2 <<'EOF'
 usage: sprint-mail.sh post <sprint-dir> <NN> <evidence|question|concluded|reply|note> [<file>|-]
        sprint-mail.sh list <sprint-dir> [<NN>]
        sprint-mail.sh wait <sprint-dir> <name-or-glob> [<timeout-seconds>]
+       sprint-mail.sh watch <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
        sprint-mail.sh arm --harness <codex|claude> <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
        sprint-mail.sh supervise --harness <codex|claude|kimi> <sprint-dir>
        sprint-mail.sh disarm <sprint-dir> [--stale]
@@ -55,7 +66,12 @@ usage: sprint-mail.sh post <sprint-dir> <NN> <evidence|question|concluded|reply|
 EOF
   exit 2
 }
-err() { echo "sprint-mail: $1" >&2; exit 2; }
+err() {
+  echo "sprint-mail: $1" >&2
+  # if-form, not `&&` — under set -e a false && chain would exit with the wrong status
+  if [ "${cmd:-}" = "watch" ]; then echo "sprint-mail: $1"; fi
+  exit 2
+}
 
 cmd="${1:-}"
 # `arm` and `supervise` take a required --harness flag immediately after the
@@ -89,12 +105,14 @@ sprint_dir="${2:-}"
 
 repo_name() {
   local common
-  common="$(git rev-parse --git-common-dir 2>/dev/null)" \
-    || err "not inside a git repo — run from the project so the mailbox can be namespaced by repo"
+  common="$(git rev-parse --git-common-dir 2>/dev/null)" || return 1
   common="$(cd "$common" && pwd)"
   basename "$(dirname "$common")"
 }
-repo="$(repo_name)"
+# err at the call site, not inside repo_name: inside $(...) the watch-protocol
+# stdout mirror would be swallowed by the substitution.
+repo="$(repo_name)" \
+  || err "not inside a git repo — run from the project so the mailbox can be namespaced by repo"
 mail_dir="$MAIL_ROOT/$repo/$(basename "$sprint_dir")"
 
 # Stable per-worktree consumer identity (empty outside a worktree). The cursor
@@ -115,6 +133,21 @@ cursor_file() {  # per-consumer read-cursor path, keyed by the worktree root
   # the mailbox. cksum of the worktree root is a stable, coreutils-portable,
   # fixed-length key; the cursor is transient — never sprint state.
   printf '%s\n' "$mail_dir/.read/$(printf '%s\n' "$consumer" | cksum | cut -d' ' -f1)"
+}
+
+watch_lock() {  # advisory one-watch-per-worktree lock, keyed like the cursor
+  printf '%s\n' "$mail_dir/.watch/$(printf '%s\n' "$consumer" | cksum | cut -d' ' -f1)"
+}
+watch_lock_stale() {  # $1=lock — stale when its PID is dead (fast path; a killed
+  # watch cannot rm its own lock) or past 2x its recorded timeout (backstop for
+  # PID reuse). Lock format: line 1 PID, line 2 timeout.
+  local pid lt age
+  pid="$(sed -n 1p "$1" 2>/dev/null)"
+  case "$pid" in ''|*[!0-9]*) return 0 ;; esac   # malformed → stale
+  kill -0 "$pid" 2>/dev/null || return 0
+  lt="$(sed -n 2p "$1" 2>/dev/null)"; case "$lt" in ''|*[!0-9]*) lt=1800 ;; esac
+  age=$(( $(date +%s) - $(stat -f %m "$1" 2>/dev/null || echo 0) ))
+  [ "$age" -gt $(( lt * 2 )) ]
 }
 
 # classify_cmd — map one process's full command line to a harness name
@@ -222,6 +255,61 @@ case "$cmd" in
       [ "$elapsed" -ge "$timeout" ] && exit 1
       sleep "$POLL"; elapsed=$((elapsed + POLL))
     done
+    ;;
+  watch)
+    # Background wait for Claude sessions: the harness launcher turns stdout
+    # into the wake event, so every terminal outcome is exactly ONE stdout line.
+    pat="${3:-}"; timeout="${4:-1800}"
+    [ -n "$pat" ] || usage
+    [ -n "$consumer" ] || err "not inside a git worktree — mailbox watches are keyed per worktree; run from the project worktree"
+    echo "$timeout" | grep -qE '^[0-9]+$' || err "timeout must be whole seconds (got: $timeout)"
+    case "$pat" in
+      */*|*$'\n'*) err "pattern is a mail filename or glob, not a path (got: $pat)" ;;
+    esac
+    mkdir -p "$mail_dir/.watch"
+    lock="$(watch_lock)"
+    if [ -f "$lock" ] && watch_lock_stale "$lock"; then rm -f "$lock"; fi
+    if ! (set -C; printf '%s\n%s\n' "$$" "$timeout" > "$lock") 2>/dev/null; then
+      err "a watch is already running for this worktree ($lock) — one watch per worktree; if its process is dead the next watch will prune it, or remove the lock by hand"
+    fi
+    trap 'rm -f "$lock"' EXIT
+    cur="$(cursor_file)"
+    elapsed=0
+    found=""
+    while :; do
+      # same predicate as `unread`: glob match minus the read-cursor
+      for f in $(ls -tr "$mail_dir" 2>/dev/null); do
+        matched=0
+        set -f
+        for p in $pat; do case "$f" in $p) matched=1; break ;; esac; done
+        set +f
+        [ "$matched" = 1 ] || continue
+        grep -qxF "$f" "$cur" 2>/dev/null && continue
+        found="${found}${found:+ }$mail_dir/$f"
+      done
+      [ -n "$found" ] && break
+      [ "$elapsed" -ge "$timeout" ] && break
+      sleep "$POLL"; elapsed=$((elapsed + POLL))
+    done
+    if [ -n "$found" ]; then
+      printf 'New sprint mail arrived: %s — a nudge, not state: sweep with sprint-mail.sh unread, mark seen, and act on what the SWEEP returns. Supervisors: re-park (sprint-mail.sh supervise) before ending the turn if the wave is still running.\n' "$found"
+      exit 0
+    fi
+    case "$pat" in
+      *-reply.md*)
+        # question-wait (also wins for combined reply+note patterns: the reply
+        # is the blocking need, the note match is opportunistic)
+        printf 'Mailbox watch timed out after %ss with no new mail. Executors: take the contract'\''s no-reply fallback (handback/blocked) and post your terminal concluded. Supervisors: sweep, then launch a new watch if the wave is still running.\n' "$timeout" ;;
+      *-note.md*)
+        # dependency park — expiring is not a verdict on the gate
+        printf 'Mailbox watch timed out after %ss with no new mail. This was a dependency park on a gate note — the gate is still closed. Launch the same watch again and keep parking; do NOT post a terminal concluded merely because the wait expired. Take the handback path only if the dependency'\''s premise changed.\n' "$timeout" ;;
+      *-question.md*|*-concluded.md*)
+        # supervisor sweep form
+        printf 'Mailbox watch timed out after %ss with no new mail. Supervisors: sweep ALL new mail with sprint-mail.sh unread, then launch a new watch (sprint-mail.sh supervise --harness claude) before ending the turn if the wave is still running.\n' "$timeout" ;;
+      *)
+        printf 'Mailbox watch timed out after %ss with no new mail. Executors: take the contract'\''s no-reply fallback (handback/blocked) and post your terminal concluded. Supervisors: sweep, then launch a new watch if the wave is still running.\n' "$timeout" ;;
+    esac
+    exit 1
     ;;
   arm)
     pat="${3:-}"; timeout="${4:-1800}"

@@ -340,5 +340,86 @@ rec_p="$(ls "$WAITS"/wait-* 2>/dev/null | head -1)"
   && ok "exactly one record after stale prune" || no "exactly one record after stale prune"
 "$SUT" disarm "$SPRINT"
 
+# ---- watch: cursor-aware background wait — ONE stdout line per outcome ----
+one_line() { [ -n "$1" ] && [ "$(printf '%s\n' "$1" | wc -l | tr -d ' ')" = "1" ]; }
+# Fresh sprint fixture so timeout cases see an empty mailbox.
+SPRINT_W="docs/sprints/2026-07-23-watch-fixture"
+WDIR="$SPRINT_MAIL_ROOT/repo-alpha/2026-07-23-watch-fixture"
+WLOCK="$WDIR/.watch/$(printf '%s\n' "$(cd "$REPO_A" && pwd -P)" | cksum | cut -d' ' -f1)"
+
+# wake on pre-existing unread mail: immediate, one line, exit 0, lock cleaned
+wq="$(printf 'which flow?\n' | "$SUT" post "$SPRINT_W" 11 question -)"
+out="$("$SUT" watch "$SPRINT_W" '11-*-question.md' 20)"; rc=$?
+[ "$rc" = 0 ] && ok "watch wakes on pre-existing unread mail (exit 0)" || no "watch wakes on pre-existing unread mail (rc=$rc)"
+echo "$out" | grep -q "New sprint mail arrived: .*11-001-question.md" \
+  && ok "watch wake line names the mail file" || no "watch wake line names the mail file (got: $out)"
+one_line "$out" && ok "watch wake is exactly one stdout line" || no "watch wake is exactly one stdout line (got: $out)"
+[ ! -f "$WLOCK" ] && ok "watch removes its lock on wake" || no "watch removes its lock on wake"
+
+# seen mail does not wake: cursor-aware timeout, supervisor-glob guidance, exit 1
+"$SUT" seen "$SPRINT_W" 11-001-question.md
+out="$("$SUT" watch "$SPRINT_W" '11-*-question.md 11-*-concluded.md' 2)"; rc=$?
+[ "$rc" = 1 ] && ok "watch times out on seen-only mail (exit 1)" || no "watch times out on seen-only mail (rc=$rc)"
+echo "$out" | grep -q "Mailbox watch timed out after 2s" \
+  && ok "watch timeout line present" || no "watch timeout line present (got: $out)"
+echo "$out" | grep -q "sweep ALL new mail" \
+  && ok "question-glob timeout carries supervisor guidance" || no "question-glob timeout carries supervisor guidance (got: $out)"
+one_line "$out" && ok "timeout is exactly one stdout line" || no "timeout is exactly one stdout line (got: $out)"
+
+# reply-glob timeout carries the executor fallback guidance
+out="$("$SUT" watch "$SPRINT_W" '11-*-reply.md' 2)"
+echo "$out" | grep -q "no-reply fallback" \
+  && ok "reply-glob timeout carries executor guidance" || no "reply-glob timeout carries executor guidance (got: $out)"
+one_line "$out" && ok "reply timeout is one line" || no "reply timeout is one line"
+
+# note-glob timeout carries the dependency-park guidance
+out="$("$SUT" watch "$SPRINT_W" '11-*-note.md' 2)"
+echo "$out" | grep -q "dependency park" \
+  && ok "note-glob timeout carries park guidance" || no "note-glob timeout carries park guidance (got: $out)"
+[ ! -f "$WLOCK" ] && ok "watch removes its lock on timeout" || no "watch removes its lock on timeout"
+
+# mail landing mid-poll wakes the loop
+( sleep 2; printf 'late finding\n' | "$SUT" post "$SPRINT_W" 12 evidence - >/dev/null ) &
+out="$("$SUT" watch "$SPRINT_W" '12-*-evidence.md' 20)"; rc=$?
+wait
+[ "$rc" = 0 ] && echo "$out" | grep -q "12-001-evidence.md" \
+  && ok "watch wakes on mail landing mid-poll" || no "watch wakes on mail landing mid-poll (rc=$rc out=$out)"
+
+# lock conflict: a fresh LIVE-pid lock refuses a second watch, line on stdout AND stderr
+mkdir -p "$WDIR/.watch"
+printf '%s\n1800\n' "$$" > "$WLOCK"
+out="$("$SUT" watch "$SPRINT_W" '11-*-reply.md' 2 2>"$TMP/watch.err")"; rc=$?
+[ "$rc" = 2 ] && echo "$out" | grep -q "already running" \
+  && ok "second watch refused while lock is fresh (exit 2)" || no "second watch refused while lock is fresh (rc=$rc out=$out)"
+grep -q "already running" "$TMP/watch.err" \
+  && ok "watch error is mirrored to stderr" || no "watch error is mirrored to stderr"
+one_line "$out" && ok "lock-conflict error is one stdout line" || no "lock-conflict error is one stdout line"
+
+# dead-PID lock is stale even when young: pruned, watch proceeds to timeout
+deadpid="$(sh -c 'echo $$')"
+printf '%s\n1800\n' "$deadpid" > "$WLOCK"
+out="$("$SUT" watch "$SPRINT_W" '11-*-reply.md' 2)"; rc=$?
+[ "$rc" = 1 ] && ok "dead-PID lock pruned, watch proceeds" || no "dead-PID lock pruned, watch proceeds (rc=$rc out=$out)"
+
+# old lock with a live PID is pruned by the age backstop
+printf '%s\n1800\n' "$$" > "$WLOCK"
+touch -t 202601010000 "$WLOCK"
+out="$("$SUT" watch "$SPRINT_W" '11-*-reply.md' 2)"; rc=$?
+[ "$rc" = 1 ] && ok "aged lock pruned by the 2x-timeout backstop" || no "aged lock pruned by the age backstop (rc=$rc out=$out)"
+
+# error protocol covers pre-dispatch and validation failures on stdout
+out="$("$SUT" watch "$SPRINT_W" 'sub/dir.md' 2 2>/dev/null)"; rc=$?
+[ "$rc" = 2 ] && echo "$out" | grep -q "not a path" \
+  && ok "watch rejects path-shaped pattern on stdout" || no "watch rejects path-shaped pattern (rc=$rc out=$out)"
+out="$("$SUT" watch "$SPRINT_W" '11-*-reply.md' soon 2>/dev/null)"; rc=$?
+[ "$rc" = 2 ] && one_line "$out" \
+  && ok "watch rejects non-numeric timeout with one stdout line" || no "watch rejects non-numeric timeout (rc=$rc out=$out)"
+out="$("$SUT" watch "$SPRINT_W" 2>/dev/null)"; rc=$?
+[ "$rc" = 2 ] && one_line "$out" \
+  && ok "watch with missing pattern emits one stdout line" || no "watch with missing pattern emits one stdout line (rc=$rc out=$out)"
+out="$(cd /tmp && "$SUT" watch "$SPRINT_W" '11-*-reply.md' 2 2>/dev/null)"; rc=$?
+[ "$rc" = 2 ] && one_line "$out" \
+  && ok "watch outside a repo emits one stdout line" || no "watch outside a repo emits one stdout line (rc=$rc out=$out)"
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
