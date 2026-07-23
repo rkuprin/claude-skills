@@ -66,12 +66,18 @@ afford slower polls). Differences from `wait`:
      executor fallback), exit 1.
    - Error (bad args, not in a worktree, lock conflict): one line on **stdout** (mirrored
      to stderr) — stderr alone never reaches the event stream, so a stderr-only failure
-     would be a silent death, exit ≥ 2.
+     would be a silent death, exit ≥ 2. This covers PRE-DISPATCH failures too: the shared
+     `err()`/`usage()` paths (not-a-repo in `repo_name()`, missing arguments) mirror one
+     stdout line whenever the parsed command is `watch` — a watch launched from the wrong
+     directory must still produce a wake event explaining itself.
 3. **One watch per worktree — lockfile, not records.** `watch` takes an advisory lock
    keyed by the worktree (a lockfile under the mail dir, e.g. `.watch/<cksum-of-worktree>`,
-   created on start, removed on every exit path, stale-pruned by age against
-   timeout + slack). A second `watch` for the same worktree fails fast with the error
-   protocol above. This restores `arm`'s cross-session one-wait-per-worktree exclusion —
+   holding the watch PID and its timeout; created on start, removed on every exit path).
+   A lock is stale when its recorded PID is no longer alive OR its age exceeds 2× its
+   recorded timeout — a SIGKILLed watch cannot remove its own lock, and waiting 2× a 3h
+   budget to re-park is unacceptable, so PID-liveness is the fast path and age the
+   backstop (PID reuse degrades safely to the age check). A second `watch` for the same
+   worktree fails fast with the error protocol above. This restores `arm`'s cross-session one-wait-per-worktree exclusion —
    a session-local task list cannot provide it (two sessions in one worktree could
    otherwise both wake on the same mail before either marks it seen) — and gives
    `supervise` its idempotence check. The lock is NOT a `.codex-waits` record: a claude
@@ -91,7 +97,12 @@ Monitor(command: "'<skills-path>/sprint-orchestrator/sprint-mail.sh' watch '<spr
         description: "sprint mailbox — <sprint>", persistent: true)
 ```
 
-All rendered commands shell-quote the script path, sprint dir, and globs. `persistent:
+Rendered commands single-quote the sprint dir and globs; the script path renders as an
+unquoted `~/...` path — quoting it would defeat tilde expansion, and the skills path
+contains no spaces by construction. Naming constraint, stated rather than escaped: sprint
+directories are repo paths of the form `docs/sprints/YYYY-MM-DD-<slug>` — no spaces, no
+apostrophes; simple single-quoting is sound under that constraint and a general
+quote-escaping helper is deliberately out of scope. `persistent:
 true` (or the run_in_background equivalent) opts out of the launcher's own timeout; the
 script always exits on its own (wake or timeout), and that exit delivers the guidance line
 as the wake event. Budgets are unchanged: 10800 for the supervisor idle sweep, 1800 for
@@ -197,11 +208,26 @@ Probe checklist, per candidate:
 - Session close/resume and Esc/cancel: what dies, what survives, lockfile state after.
 - Multi-hour silence (the 3h supervisor budget) on the winning candidate.
 
-**Decision rule:** prefer the candidate that passes idle re-invocation and unattended
-re-arm; if both pass, prefer `run_in_background` (the harness's own one-shot idiom, no
-persistent flag needed). If neither survives a 3h budget, shorten the supervisor budget
-(e.g. 3600s re-arms) rather than reverting to the blocking hook — the blocking park is
-rejected regardless.
+**Decision rule (revised 2026-07-23 after the independent online evidence pass):** prefer
+**Monitor** if it passes idle re-invocation and unattended re-arm; `run_in_background` is
+the fallback, not a peer-preference. Rationale, from sourced evidence: Monitor's wake is
+documented ("each event lands as a new transcript message that Claude reacts to
+immediately", v2.1.98 release notes), while Bash background completion has no equally
+explicit contract and a documented memory-pressure reaper (since v2.1.193) that can kill
+background shells once a session idles ≥30 minutes — exactly the supervisor-park profile —
+plus credible current kill-rate and Monitor-vs-Bash longevity reports
+(anthropics/claude-code #76974, #80372). The rendered park instruction names Monitor and
+carries an inline fallback clause: sessions without the Monitor tool launch the same
+command via Bash `run_in_background: true`. If neither candidate survives a 3h budget,
+shorten the supervisor budget (e.g. 3600s re-arms) rather than reverting to the blocking
+hook — the blocking park is rejected regardless.
+
+**Wake events are nudges, never state.** Delivery is best-effort (reports of 30-90s
+delays, silent emission stops, and premature/fabricated notification content exist:
+#76508, #79348, #80235). The woken session always sweeps the mailbox before acting — the
+wake line's content is advisory; the sweep is the truth. Monitors are never restored on
+session resume (documented), so a session that finds itself without a live watch re-parks
+after sweeping. Version floor: Monitor exists since Claude Code v2.1.98.
 
 ## Testing
 
@@ -212,6 +238,20 @@ rejected regardless.
   finalized.
 
 ## Review record
+
+**Addendum, 2026-07-23 (second round).** Two further independent Codex passes ran after
+the implementation plan was written: (a) an online evidence-gathering pass over official
+docs, the changelog, and the claude-code issue tracker, which flipped the Phase 0
+decision-rule preference to Monitor-primary (documented wake semantics; documented
+idle-session background-shell reaper; longevity reports) and motivated the PID-liveness
+lock check, the "wake events are nudges" clause, and the resume-re-park rule; and (b) a
+plan review, whose "will break" findings (watch pre-dispatch errors bypassing the stdout
+protocol, non-hermetic and false-positive test steps, doc/lint leftovers pointing at
+deleted files, stale negative lint pins, exit-codes swallowed by pipes) were adopted into
+the plan, alongside its quoting analysis — resolved here as a stated naming constraint
+instead of an escaping helper. Rejected from (a): reducing the wake line to a constant
+token (the guidance text is instruction, not state; the sweep-first invariant already
+neutralizes notification-integrity risk).
 
 Independent Codex review (gpt-5.6-sol, xhigh, 2026-07-23) found seven issues; this
 revision adopts: the ordered migration (settings edit before file deletion; no bulk record
