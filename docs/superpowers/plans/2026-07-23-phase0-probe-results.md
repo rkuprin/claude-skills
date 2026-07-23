@@ -44,9 +44,13 @@ if any prose renders it that way). Monitor is governed by the same Bash rules
 ## Residuals
 
 - **3h longevity:** a Monitor watch with the full 10800s budget was started mid-probe
-  (task `btgtdc2cg`, sprint `probe-longevity`) and left running through implementation;
-  outcome recorded at Task 8. If unproven there, confirm on the first production wave.
-  A ≥1h observation window is expected within this session.
+  (task `btgtdc2cg`, sprint `probe-longevity`) and left running through implementation.
+  **Task 8 observation: alive and healthy at 57 minutes** (process running, lock intact,
+  verified via lock PID + ps). The full-3h delivery lands as a Monitor event at ~13:42 if
+  the session stays open; otherwise confirm the 3h budget on the first production wave.
+  Additionally, the Task 8 smoke ran the complete production loop end-to-end: supervise →
+  Monitor park → idle wake on a question posted 60s later → sweep/seen → re-park printed
+  fresh (lock cleaned) — zero permission prompts, zero operator input.
 - **Esc / session close / resume:** not locally probed (disruptive to the implementing
   session). Documented behavior stands: monitors are never restored on resume; an
   abandoned monitor may surface an orphan notice. The design absorbs both — the
