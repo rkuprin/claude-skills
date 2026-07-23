@@ -166,8 +166,8 @@ puts a matching line in the rendered recap — it renders anyway; resolving is y
 
 `--topology` is required: `main-session` renders the paste sheet (every paste target is a
 fresh main session); `subagent` renders kickoffs the orchestrator fires as in-session
-subagents — those carry the non-arming `Mailbox wait:` (a subagent cannot end its turn and be
-woken), and only `loop: direct` stories render, with skips named on stderr.
+subagents — those carry the non-arming `Mailbox wait:` (no wake can reach a subagent after
+it returns), and only `loop: direct` stories render, with skips named on stderr.
 
 ## The mailbox
 
@@ -219,34 +219,30 @@ hooks.json entry, so editing the script itself never needs re-trusting. For the 
 fallback (a single long foreground poll), raise `background_terminal_max_timeout` in
 `config.toml` (milliseconds; default 300000).
 
-### Reactive waits on Claude — one-time install (main sessions)
+### Reactive waits on Claude — nothing to install (main sessions)
 
-A main-session Claude supervisor or executor waits the same way — arm and end the turn — via
-the `claude-stop-wait.sh` Stop hook (its body is kept byte-identical to the Codex hook by a
-lint diff pin): the session posts its question or watch globs, runs
-`sprint-mail.sh arm --harness claude <sprint-dir> <reply-file-or-globs> [<timeout>]`, and ends
-its turn; the hook holds the ending turn until matching unread mail lands or the budget
-elapses. Main sessions only: the hook is wired for `Stop`, never `SubagentStop` — an
-in-session subagent cannot end its turn and be woken, so rendered subagent kickoffs carry the
-non-arming fallback instead of an `arm`.
+A main-session Claude supervisor or executor waits by starting the mailbox watch as a
+background task and ending its turn: `sprint-mail.sh watch <sprint-dir>
+<reply-file-or-globs> [<timeout>]` as a Monitor (persistent: true; sessions without the
+Monitor tool launch the same command via Bash `run_in_background: true` — supervise
+prints the exact park). The watch polls the mailbox against the worktree's read-cursor
+and exits with ONE line — the new-mail wake or the timeout guidance — and that event
+wakes the session. The operator keeps the prompt the whole time; there is no Stop hook,
+no arm record, and nothing to install (Monitor ships with Claude Code since v2.1.98).
+The wake line is a nudge, never state: the woken session sweeps (`unread`/`seen`) before
+acting. One watch per worktree, enforced by an advisory lock under the mailbox's
+`.watch/` dir (stale when its PID is dead or its age passes 2x its timeout). Monitors
+are never restored on session resume — no live watch means sweep, then re-park.
+Budgets: 10800 for the supervisor idle sweep, 1800 for targeted reply waits. The
+session's permission posture must allow the watch command to launch unattended —
+re-parking after a wake happens with no operator present. Main sessions only: an
+in-session subagent cannot be woken after it returns, so rendered subagent kickoffs
+carry the non-arming fallback.
 
-Once per machine:
-
-```bash
-~/claude-skills/sprint-orchestrator/install-claude-hook.sh
-```
-
-Idempotent: it appends the hook as its own `Stop` group in `~/.claude/settings.json`
-(re-pointing it if the clone moved) and preserves co-installed Stop hooks — an existing
-iTerm-status hook survives untouched. No trust dance: Claude settings-json hooks activate on
-write (running sessions pick up the edit; a restart is the fallback). Honest limit: a settings
-reference is not proof the hook runs — `disableAllHooks` or managed policy can suppress it,
-and the installer reports that instead of working around it.
-
-Budget: the hook entry carries `timeout: 10860` — the 3h idle-wait budget (`arm … 10800`)
-plus 60s slack, mirroring Codex's 1800/1860 — and targeted reply waits keep `1800`. While a
-parked hook waits, it holds the Stop event's completion; co-installed Stop hooks (the iTerm
-status hook) still run — the only cost is that the event finishes when the wait does.
+Machines that ran the retired `install-claude-hook.sh`: delete the `claude-stop-wait.sh`
+Stop group from `~/.claude/settings.json` (leave co-installed Stop hooks untouched) —
+the hook and installer no longer exist in this repo, and a settings entry pointing at a
+deleted file errors on every Stop.
 
 ### Reactive waits on Kimi — nothing to install
 

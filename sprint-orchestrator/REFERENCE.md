@@ -142,11 +142,18 @@ harness waits in its own way:
 - **Codex**: supervise idempotently arms the sweep wait
   (`arm --harness codex <sprint-dir> '*-question.md *-concluded.md' 1800`) and the Stop hook
   wakes you on new mail or timeout. Requires the one-time `install-codex-hook.sh`.
-- **Claude**: same shape —
-  `arm --harness claude <sprint-dir> '*-question.md *-concluded.md' 10800` (the idle-wait default
-  under the installed hook's 10860s timeout; targeted reply waits keep 1800). Requires the
-  one-time `install-claude-hook.sh`. Main sessions only: the hook is wired for `Stop`, never
-  `SubagentStop`.
+- **Claude**: supervise prints the watch park — start
+  `sprint-mail.sh watch <sprint-dir> '*-question.md *-concluded.md' 10800` as a Monitor
+  (persistent: true; no Monitor tool → the same command via Bash `run_in_background:
+  true`) and end the turn; the watch's event wakes the session, and the operator keeps
+  the prompt throughout. Nothing to install. The wake line is a nudge, never state —
+  sweep before acting. One watch per worktree (advisory lock with PID-liveness;
+  `supervise` prints `already watching` instead of a duplicate park). Monitors are never
+  restored on session resume: no live watch means sweep, then re-park. The session's
+  permission posture must let the watch launch unattended — under a strict allowlist the
+  rule is `Bash(~/.claude/skills/sprint-orchestrator/sprint-mail.sh watch:*)` (an auto
+  permission mode needs none); a permission prompt at re-park time kills reactive
+  supervision. Targeted reply waits keep 1800. Main sessions only.
 - **Kimi**: there is no Stop hook to arm — the wait is a recurring cron sweep, and supervise
   prints the exact task: CronList first, CronCreate only if no sweep task exists, then end the
   turn — with an active goal, mark it blocked (the blocked state IS the park: an active goal's
@@ -185,9 +192,10 @@ The mechanics:
   need an interactive session); `frontend: true` stories are a poor fit — their evidence path
   ends in Codex.app visual validation.
 - Kickoffs fired as in-session subagents are rendered with the subagent topology
-  (`wave-handoffs.sh <sprint-dir> <wave> --topology subagent`): a subagent never arms a
-  blocking mailbox wait — the Stop hook never fires for it, on any harness — so its
-  `Mailbox wait:` is the non-arming fallback. Only main sessions arm; in-session dispatch of
+  (`wave-handoffs.sh <sprint-dir> <wave> --topology subagent`): a subagent never parks on a
+  mailbox wait — no wake can reach it after it returns, on any harness — so its
+  `Mailbox wait:` is the non-arming fallback. Only main sessions park (arm on Codex, watch
+  on Claude, cron on Kimi); in-session dispatch of
   a codex-transport story is `codex exec`, itself a main session. On Kimi the in-session
   transport is the Agent tool — same topology, same non-arming fallback. The operator's paste
   sheet renders with `--topology main-session` (plus `--target kimi` when the batch goes to
