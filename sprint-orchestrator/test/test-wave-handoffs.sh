@@ -78,14 +78,13 @@ case "$OUTPUT" in
   *) ok "bare story-number claim wildcard removed" ;;
 esac
 has "kickoff renders mailbox line"          "$OUTPUT" "Mailbox: ~/.sprint-mail/"
-# Mailbox wait: resolved per harness × topology — every main-session form arms and ends the turn.
+# Mailbox wait: resolved per harness × topology — codex arms and ends the turn,
+# claude parks on a background watch (Monitor primary, bash fallback clause).
 has "codex story renders arm wait line"     "$OUTPUT" "Mailbox wait: post your question, then \`~/.codex/skills/sprint-orchestrator/sprint-mail.sh arm --harness codex $SPRINT 07-{SSS}-reply.md 1800\`"
 has "codex arm line ends the turn"          "$OUTPUT" "END YOUR TURN — the armed Stop hook wakes you on the reply"
-has "claude story renders arm wait line"    "$OUTPUT" "\`~/.claude/skills/sprint-orchestrator/sprint-mail.sh arm --harness claude $SPRINT 08-{SSS}-reply.md 1800\`"
-case "$OUTPUT" in
-  *'as a background task'*) no "no background-task wait rendered" ;;
-  *) ok "no background-task wait rendered" ;;
-esac
+has "claude story renders watch wait line"  "$OUTPUT" "\`~/.claude/skills/sprint-orchestrator/sprint-mail.sh watch '$SPRINT' '08-{SSS}-reply.md' 1800\`"
+has "claude watch line is a Monitor"        "$OUTPUT" "as a Monitor (persistent: true"
+has "claude watch line carries bash fallback" "$OUTPUT" "run_in_background: true"
 has "mailbox line names the sprint"         "$OUTPUT" "/$SPRINT_NAME/ — post evidence, questions, and your terminal outcome"
 # Reviews & approvals route to the orchestrator, never the terminal — the of.ru "approve spec"
 # stall (July 2026) invented a user-facing spec gate the plan never asked for.

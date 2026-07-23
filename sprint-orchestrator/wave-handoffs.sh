@@ -230,7 +230,7 @@ for doc in "${docs[@]}"; do
     codex) contract="~/.codex/skills/agent-handoff/EXECUTION.md"
            mailwait='post your question, then `~/.codex/skills/sprint-orchestrator/sprint-mail.sh arm --harness codex '"$sprint_dir $story"'-{SSS}-reply.md 1800` (SSS = your question'"'"'s sequence) and END YOUR TURN — the armed Stop hook wakes you on the reply; never poll or background the wait.' ;;
     *)     contract="~/.claude/skills/agent-handoff/EXECUTION.md"
-           mailwait='post your question, then `~/.claude/skills/sprint-orchestrator/sprint-mail.sh arm --harness claude '"$sprint_dir $story"'-{SSS}-reply.md 1800` (SSS = your question'"'"'s sequence) and END YOUR TURN — the armed Stop hook wakes you on the reply; never poll or background the wait.' ;;
+           mailwait='post your question, then start the mailbox watch as a Monitor (persistent: true, description: "sprint mailbox") — command: `~/.claude/skills/sprint-orchestrator/sprint-mail.sh watch '"'"''"$sprint_dir"''"'"' '"'"''"$story"'-{SSS}-reply.md'"'"' 1800` (SSS = your question'"'"'s sequence; no Monitor tool in this session? launch the same command with Bash run_in_background: true) — and END YOUR TURN: the watch'"'"'s event wakes you with the reply or the timeout guidance; the operator keeps the prompt. The wake line is a nudge, never state — on any wake, or on finding you have no live watch (monitors are never restored on resume), sweep unread reply mail first (sprint-mail.sh unread), then re-launch only if still waiting. Never foreground the wait.' ;;
   esac
   # Subagent topology overrides every harness form: the Stop hook never fires for an
   # in-session subagent, so an armed wait would never wake it — never render an arm here.
