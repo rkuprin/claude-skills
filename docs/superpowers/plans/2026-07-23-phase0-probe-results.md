@@ -43,11 +43,12 @@ if any prose renders it that way). Monitor is governed by the same Bash rules
 
 ## Residuals
 
-- **3h longevity:** a Monitor watch with the full 10800s budget was started mid-probe
-  (task `btgtdc2cg`, sprint `probe-longevity`) and left running through implementation.
-  **Task 8 observation: alive and healthy at 57 minutes** (process running, lock intact,
-  verified via lock PID + ps). The full-3h delivery lands as a Monitor event at ~13:42 if
-  the session stays open; otherwise confirm the 3h budget on the first production wave.
+- **3h longevity: PROVEN.** A Monitor watch with the full 10800s budget (task
+  `btgtdc2cg`, sprint `probe-longevity`) ran through the entire implementation session —
+  alive and healthy at the 57-minute check (lock PID + ps) — and delivered its timeout
+  guidance as a wake event after exactly 10800s (exit epoch 1784803346). The full
+  supervisor idle budget survives under a persistent Monitor in an interactive session.
+  No residual remains here.
   Additionally, the Task 8 smoke ran the complete production loop end-to-end: supervise →
   Monitor park → idle wake on a question posted 60s later → sweep/seen → re-park printed
   fresh (lock cleaned) — zero permission prompts, zero operator input.
