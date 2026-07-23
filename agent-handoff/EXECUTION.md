@@ -138,9 +138,16 @@ sprint-orchestrator skill directory). Files are `NN-SSS-<kind>.md`, append-only,
     YOUR TURN with a one-line status. The armed hook holds the turn and wakes you when the
     reply lands or the wait times out. Arming and ending the turn IS the wait — never poll,
     never run `wait` under `nohup`/`&`/tmux, never hand-poll in later commands.
-  - Claude, MAIN session only, with the sprint Stop hook installed (install-claude-hook.sh):
-    `sprint-mail.sh arm --harness claude <sprint-dir> {NN}-{SSS}-reply.md 1800`, then END
-    YOUR TURN with a one-line status — same semantics as the Codex form.
+  - Claude, MAIN session only: start the mailbox watch as a Monitor (persistent: true,
+    description: "sprint mailbox") — command:
+    `sprint-mail.sh watch <sprint-dir> '{NN}-{SSS}-reply.md' 1800` — then END YOUR TURN
+    with a one-line status. (No Monitor tool in this session? Launch the same command with
+    the Bash tool, run_in_background: true.) The watch's event wakes you with the reply or
+    the timeout guidance; the operator keeps the prompt. The wake line is a nudge, never
+    state: on any wake, or on finding you have no live watch (monitors are never restored
+    on resume), sweep unread reply mail first (`sprint-mail.sh unread`), then re-launch
+    only if still waiting. Never foreground the watch, and never `arm` — Claude has no
+    Stop-hook wait.
   - Kimi (interactive session): Kimi has no Stop-hook wait — `arm` refuses it. Post your
     question and note the post time, then CronCreate a recurring check (every 3 minutes)
     whose prompt reads: "Sprint mailbox wait for {NN}-{SSS}-reply.md: run
