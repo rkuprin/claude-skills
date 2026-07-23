@@ -126,22 +126,15 @@ case "$(sed -n 4p "$rec")" in "$MDIR/.read/"*) ok "arm line 4 is the cursor path
   || no "arm accepts multiple globs unexpanded, line 4 is the cursor path"
 "$SUT" disarm "$SPRINT"
 
-# --harness claude verifies the Claude settings reference instead of the Codex one.
-# A wired Claude settings lets --harness claude proceed even with the Codex hook
-# unwired; --harness codex still refuses in that state.
-rm -f "$CODEX_HOME/hooks.json"
-export CLAUDE_CONFIG_DIR="$TMP/claudehome"
-mkdir -p "$CLAUDE_CONFIG_DIR"
-printf '{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"bash claude-stop-wait.sh"}]}]}}\n' > "$CLAUDE_CONFIG_DIR/settings.json"
-rec_cl="$("$SUT" arm --harness claude "$SPRINT" "07-011-reply.md" 900)"
-[ -f "$rec_cl" ] && ok "arm --harness claude proceeds with wired Claude settings, no Codex hook" || no "arm --harness claude proceeds with wired Claude settings (got: $rec_cl)"
+# ---- arm refuses claude: the Claude wait is a background watch ----
+# Hermetic either way: an isolated empty CLAUDE_CONFIG_DIR (so the OLD arm code
+# cannot see a real installed hook and succeed) plus an unconditional disarm.
+mkdir -p "$TMP/claude-none"
+out="$(CLAUDE_CONFIG_DIR="$TMP/claude-none" "$SUT" arm --harness claude "$SPRINT" "07-011-reply.md" 900 2>&1)"; rc=$?
 "$SUT" disarm "$SPRINT"
-out="$("$SUT" arm --harness codex "$SPRINT" "07-011-reply.md" 900 2>&1)"; rc=$?
-[ "$rc" = "2" ] && case "$out" in *install-codex-hook.sh*) true ;; *) false ;; esac \
-  && ok "arm --harness codex still refuses when only Claude is wired" \
-  || no "arm --harness codex still refuses when only Claude is wired (rc=$rc out=$out)"
-# restore the Codex wiring for the reaper cases below
-printf '{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"bash codex-stop-wait.sh"}]}]}}\n' > "$CODEX_HOME/hooks.json"
+[ "$rc" != 0 ] && echo "$out" | grep -q "background watch" \
+  && ok "arm --harness claude refused, redirects to watch" \
+  || no "arm --harness claude refused, redirects to watch (rc=$rc out=$out)"
 
 # arm requires --harness; a bare arm is refused naming the flag.
 out="$("$SUT" arm "$SPRINT" "07-009-reply.md" 900 2>&1)"; rc=$?
@@ -314,11 +307,28 @@ out="$(SPRINT_MAIL_ASSUME_HARNESS=none "$SUT" supervise --harness codex "$SPRINT
   && ok "supervise refuses behind a different wait" || no "supervise refuses behind a different wait (rc=$rc out=$out)"
 "$SUT" disarm "$SPRINT"
 
-# ---- supervise: claude budget is 10800 ----
-SPRINT_MAIL_ASSUME_HARNESS=none "$SUT" supervise --harness claude "$SPRINT" >/dev/null
-rec_c="$(ls "$WAITS"/wait-* 2>/dev/null | head -1)"
-[ "$(sed -n 3p "$rec_c")" = "10800" ] && ok "supervise claude budget is 10800" || no "supervise claude budget is 10800"
-"$SUT" disarm "$SPRINT"
+# ---- supervise claude: prints the watch park (no record), idempotent via lock ----
+WLOCK_S="$MDIR/.watch/$(printf '%s\n' "$(cd "$REPO_A" && pwd -P)" | cksum | cut -d' ' -f1)"
+out="$(SPRINT_MAIL_ASSUME_HARNESS=none "$SUT" supervise --harness claude "$SPRINT")"; rc=$?
+"$SUT" disarm "$SPRINT"   # hermetic at red: old supervise armed a record; no-op at green
+[ "$rc" = 0 ] && echo "$out" | grep -q "watch '$SPRINT'" && echo "$out" | grep -q "10800" \
+  && ok "supervise claude prints the watch park with the idle budget" \
+  || no "supervise claude prints the watch park (rc=$rc out=$out)"
+echo "$out" | grep -q "Monitor" \
+  && ok "supervise claude names the Monitor launcher" || no "supervise claude names the Monitor launcher (got: $out)"
+echo "$out" | grep -q "run_in_background" \
+  && ok "supervise claude carries the bash fallback clause" || no "supervise claude carries the bash fallback clause"
+echo "$out" | grep -q "END YOUR TURN" \
+  && ok "supervise claude ends the turn" || no "supervise claude ends the turn"
+[ -z "$(ls "$WAITS"/wait-* 2>/dev/null)" ] \
+  && ok "supervise claude writes no wait record" || no "supervise claude writes no wait record"
+mkdir -p "$MDIR/.watch"
+printf '%s\n10800\n' "$$" > "$WLOCK_S"
+out="$(SPRINT_MAIL_ASSUME_HARNESS=none "$SUT" supervise --harness claude "$SPRINT")"; rc=$?
+[ "$rc" = 0 ] && echo "$out" | grep -q "already watching" \
+  && ok "supervise claude is idempotent under a fresh live lock" \
+  || no "supervise claude is idempotent under a fresh live lock (rc=$rc out=$out)"
+rm -f "$WLOCK_S"
 
 # ---- supervise: a stale sweep record is pruned, not ratified as "already armed" ----
 # Regression for the final whole-branch review finding: supervise's glob-match

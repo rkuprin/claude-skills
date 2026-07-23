@@ -5,7 +5,7 @@
 #   sprint-mail.sh list <sprint-dir> [<NN>]
 #   sprint-mail.sh wait <sprint-dir> <name-or-glob> [<timeout-seconds>]
 #   sprint-mail.sh watch <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
-#   sprint-mail.sh arm --harness <codex|claude> <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
+#   sprint-mail.sh arm --harness <codex> <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
 #   sprint-mail.sh supervise --harness <codex|claude|kimi> <sprint-dir>
 #   sprint-mail.sh disarm <sprint-dir> [--stale]
 #   sprint-mail.sh unread <sprint-dir> <name-or-glob(s)>
@@ -58,7 +58,7 @@ usage: sprint-mail.sh post <sprint-dir> <NN> <evidence|question|concluded|reply|
        sprint-mail.sh list <sprint-dir> [<NN>]
        sprint-mail.sh wait <sprint-dir> <name-or-glob> [<timeout-seconds>]
        sprint-mail.sh watch <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
-       sprint-mail.sh arm --harness <codex|claude> <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
+       sprint-mail.sh arm --harness <codex> <sprint-dir> <name-or-glob(s)> [<timeout-seconds>]
        sprint-mail.sh supervise --harness <codex|claude|kimi> <sprint-dir>
        sprint-mail.sh disarm <sprint-dir> [--stale]
        sprint-mail.sh unread <sprint-dir> <name-or-glob(s)>
@@ -77,13 +77,13 @@ cmd="${1:-}"
 # `arm` and `supervise` take a required --harness flag immediately after the
 # command (the kickoff always knows the target harness). Pull it out before
 # positional parsing so sprint-dir/glob/timeout stay positional exactly like
-# every other subcommand. arm accepts codex|claude; supervise also accepts
-# kimi (it prints a cron park instead of arming).
+# every other subcommand. arm accepts codex only; supervise accepts
+# codex|claude|kimi (claude prints a watch park, kimi a cron park — no arming).
 harness=""
 case "$cmd" in
   arm|supervise)
     [ "${2:-}" = "--harness" ] \
-      || err "$cmd requires --harness <codex|claude> immediately after '$cmd' — the kickoff names the target harness"
+      || err "$cmd requires --harness immediately after '$cmd' — the kickoff names the target harness"
     harness="${3:-}"
     if [ "$cmd" = "supervise" ]; then
       case "$harness" in
@@ -92,9 +92,10 @@ case "$cmd" in
       esac
     else
       case "$harness" in
-        codex|claude) ;;
+        codex) ;;
+        claude) err "arm refuses claude — the Claude wait is a background watch, not a Stop hook: run 'sprint-mail.sh supervise --harness claude' for the park instruction, or launch 'sprint-mail.sh watch' as a background task per the kickoff's Mailbox wait line" ;;
         kimi) err "arm refuses kimi — Kimi has no Stop-hook wait; a Kimi session waits via a recurring cron sweep (see the kickoff's Mailbox wait line or sprint-orchestrator/SKILL.md 'Supervising the Wave')" ;;
-        *) err "arm --harness needs 'codex' or 'claude' (got: ${harness:-<empty>})" ;;
+        *) err "arm --harness needs 'codex' (got: ${harness:-<empty>})" ;;
       esac
     fi
     shift 3; set -- "$cmd" "$@"
@@ -314,24 +315,16 @@ case "$cmd" in
   arm)
     pat="${3:-}"; timeout="${4:-1800}"
     [ -n "$pat" ] || usage
-    [ -n "$harness" ] || err "arm requires --harness <codex|claude> immediately after 'arm' — the kickoff names the target harness"
+    [ -n "$harness" ] || err "arm requires --harness <codex> immediately after 'arm' — the kickoff names the target harness"
     [ -n "$consumer" ] || err "not inside a git worktree — mailbox waits are keyed per worktree; run from the project worktree"
-    # An armed record only works if the named harness's Stop hook is wired —
-    # otherwise the turn ends and nothing ever wakes, the exact orphaned-wait
-    # failure arm exists to prevent. A textual reference is NOT proof the hook is
-    # active (Claude: disableAllHooks / managed policy; Codex: silent-skip until
-    # trusted) — the installers own activation; arm only verifies the reference
-    # exists in the expected place. Refuse loudly instead of arming a dead wait.
-    case "$harness" in
-      codex)
-        ref="${CODEX_HOME:-$HOME/.codex}/hooks.json"
-        grep -q "codex-stop-wait.sh" "$ref" 2>/dev/null \
-          || err "codex Stop hook not referenced in $ref — run sprint-orchestrator/install-codex-hook.sh once on this machine, or take the contract's no-wait fallback instead of arming" ;;
-      claude)
-        cfg="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
-        grep -q "claude-stop-wait.sh" "$cfg/settings.json" "$cfg/settings.local.json" 2>/dev/null \
-          || err "claude Stop hook not referenced in $cfg/settings.json — run sprint-orchestrator/install-claude-hook.sh once on this machine, or take the contract's no-wait fallback instead of arming" ;;
-    esac
+    # An armed record only works if the Codex Stop hook is wired — otherwise the
+    # turn ends and nothing ever wakes, the exact orphaned-wait failure arm
+    # exists to prevent. A textual reference is NOT proof the hook is active
+    # (silent-skip until trusted) — the installer owns activation; arm only
+    # verifies the reference exists. Refuse loudly instead of arming a dead wait.
+    ref="${CODEX_HOME:-$HOME/.codex}/hooks.json"
+    grep -q "codex-stop-wait.sh" "$ref" 2>/dev/null \
+      || err "codex Stop hook not referenced in $ref — run sprint-orchestrator/install-codex-hook.sh once on this machine, or take the contract's no-wait fallback instead of arming"
     detected="$(detect_harness)"
     if [ -n "$detected" ] && [ "$detected" != "$harness" ]; then
       echo "sprint-mail: warning: arming --harness $harness but the nearest harness ancestor looks like $detected — the wait record is harness-agnostic and will still fire; check the kickoff's harness matches this session" >&2
@@ -361,9 +354,9 @@ case "$cmd" in
   supervise)
     [ -n "$consumer" ] || err "not inside a git worktree — mailbox waits are keyed per worktree; run from the project worktree"
     case "$harness" in
-      codex|claude)
+      codex)
         globs='*-question.md *-concluded.md'
-        budget=1800; [ "$harness" = "claude" ] && budget=10800
+        budget=1800
         abs=""
         set -f
         for p in $globs; do abs="$abs${abs:+ }$mail_dir/$p"; done
@@ -380,6 +373,23 @@ case "$cmd" in
           err "a different wait is already armed for this worktree ($(sed -n 2p "$f")) — run 'sprint-mail.sh disarm' first"
         done
         exec "$0" arm --harness "$harness" "$sprint_dir" "$globs" "$budget"
+        ;;
+      claude)
+        globs='*-question.md *-concluded.md'
+        lock="$(watch_lock)"
+        if [ -f "$lock" ] && ! watch_lock_stale "$lock"; then
+          printf 'already watching: %s\n' "$lock"
+          exit 0
+        fi
+        cat <<EOF
+Claude supervisor park for $sprint_dir — the wait is a background watch: the turn ends, the operator keeps the prompt, the watch's event wakes you. Do this now:
+
+1. Start the mailbox watch as a Monitor (persistent: true, description: "sprint mailbox"):
+   command: '$0' watch '$sprint_dir' '$globs' 10800
+   (No Monitor tool in this session? Launch the same command with the Bash tool, run_in_background: true.)
+2. END YOUR TURN. The wake event carries the new-mail line or the timeout guidance — a nudge, never state: sweep first (sprint-mail.sh unread, then seen), act on what the sweep returns, then run 'sprint-mail.sh supervise --harness claude' again if the wave is still running.
+3. One watch per worktree — if this printed 'already watching', do not launch another. Monitors are never restored on session resume: no live watch after a resume means sweep, then re-park.
+EOF
         ;;
       kimi)
         cat <<EOF
