@@ -295,8 +295,6 @@ sprint-orchestrator/test/test-sprint-status.sh   # hermetic git fixtures
 sprint-orchestrator/test/test-wave-handoffs.sh   # renderer output pinned against the kickoff template
 sprint-orchestrator/test/test-sprint-mail.sh   # mailbox helper: sequencing, replies, waits, arm/disarm
 sprint-orchestrator/test/test-codex-stop-wait.sh # Codex Stop hook: wake, timeout, cursor + legacy records
-sprint-orchestrator/test/test-claude-stop-wait.sh # Claude Stop hook: same records, same wakes
-sprint-orchestrator/test/test-install-claude-hook.sh # Claude installer: parity, preserves co-installed hooks
 test/lint-skills.sh                              # invariants both skill files must hold
 ```
 

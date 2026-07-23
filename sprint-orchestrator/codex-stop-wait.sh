@@ -2,6 +2,9 @@
 # codex-stop-wait.sh — Codex Stop hook: hold the turn open while an armed
 # sprint-mail wait is pending for this session.
 #
+# The Codex Stop hook is the only Stop-hook wait — Claude parks via
+# 'sprint-mail.sh watch' as a background task; Kimi via cron sweeps.
+#
 # Records live under ${SPRINT_MAIL_ROOT:-~/.sprint-mail}/.codex-waits/, four
 # lines. Two formats coexist during the cursor migration (dual-reader):
 #   NEW    — worktree root, absolute glob(s), timeout, ABSOLUTE cursor path.
